@@ -1,4 +1,4 @@
-#version 120
+#version 140
 
 out vec4 starData; //rgb = star color, a = flag for weather or not this pixel is a star.
 

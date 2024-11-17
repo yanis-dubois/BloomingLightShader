@@ -1,1 +1,3 @@
-#include "basic_vert.glsl"
+#version 140
+
+#include "lit_vert.glsl"

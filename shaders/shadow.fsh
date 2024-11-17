@@ -1,4 +1,7 @@
+#version 140
 #extension GL_ARB_explicit_attrib_location : enable
+
+const int shadowMapResolution = 4096;
 
 // uniforms
 uniform sampler2D gtexture;
@@ -17,18 +20,14 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
 
     /* albedo */
-    vec3 albedo = pow(textureColor.rgb, vec3(2.2))
-                * pow(additionalColor.rgb, vec3(2.2));
+    vec3 albedo = textureColor.rgb * additionalColor.rgb;
     
     /* transparency */
     float transparency = textureColor.a;
     if (transparency < alphaTestRef) discard;
 
-    vec3 outColor = pow(albedo, vec3(1/2.2));
+    vec3 outColor = albedo;
 
     // combine color & transparency as result
     outColor0 = vec4(outColor, transparency);
-
-    /** debug **/
-    // outColor0 = vec4(shadowLightDirection, 1);
 }
