@@ -1,7 +1,13 @@
 #version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
-const int shadowMapResolution = 4096;
+#define SHADOW_QUALITY 2
+#define SHADOW_SOFTNESS 1
+
+const int shadowMapResolution = 2048;
+const bool shadowtex0Nearest = true;
+const bool shadowtex1Nearest = true;
+const bool shadowcolor0Nearest = true;
 
 // uniforms
 uniform sampler2D gtexture;

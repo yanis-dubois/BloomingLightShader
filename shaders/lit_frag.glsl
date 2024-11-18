@@ -19,6 +19,8 @@ uniform float alphaTestRef;
 uniform float viewWidth;
 uniform float viewHeight;
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous
+uniform int heldBlockLightValue;
+uniform int heldBlockLightValue2;
 
 // attributes
 in vec4 additionalColor; // foliage, water, particules
@@ -36,10 +38,13 @@ const float gamma = 0.1;
 /* DRAWBUFFERS:01 */
 layout(location = 0) out vec4 outColor0;
 
-float cosThetaToSigmoid(float cosTheta, float alpha) {
+float sigmoid(float x, float offset, float speed) {
+    return (offset / (offset + pow(e, -speed * x)));
+}
+
+float cosThetaToSigmoid(float cosTheta, float offset, float speed) {
     float normalizedAngle = acos(cosTheta)/PI *4 -1;
-    float sigmoid = 1 - (alpha / (alpha + pow(e, -lambda * normalizedAngle)));
-    return sigmoid;
+    return 1 - sigmoid(normalizedAngle, offset, speed);
 }
 
 vec3 kelvinToRGB(float kelvin) {
@@ -91,8 +96,10 @@ void main() {
     // use original minecraft lightmap 
     // vec3 blockLightValue = pow(texture2D(lightmap, vec2(lightMapCoordinate.x, 1./32.)).rgb, vec3(2.2));
     // vec3 skyIndirectLightValue = pow(texture2D(lightmap, vec2(1./32., lightMapCoordinate.y)).rgb, vec3(2.2));
+
     float blockLightIntensity = pow(lightMapCoordinate.x, 2.2);
-    float skyIndirectLightIntensity = pow(lightMapCoordinate.y, 2.2);
+    float ambiantSkyLightIntensity = pow(lightMapCoordinate.y, 2.2);
+    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2)*1.; // max ???
     float moonPhaseBlend = moonPhase < 4 ? moonPhase*1./4. : (4.-(moonPhase*1.-4.))/4.; 
     moonPhaseBlend = cos(moonPhaseBlend * PI) / 2. + 0.5; // [0;1] new=0, full=1
 
@@ -113,18 +120,9 @@ void main() {
     vec3 normalWorldSpace = mat3(gbufferModelViewInverse) * normal;
     vec3 sunLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * sunPosition);
 
-    // oui
-    float skyAngle = PI/4;
-    mat3 skyRotationMatrix;
-    skyRotationMatrix[0] = vec3(1, 0, 0);
-    skyRotationMatrix[1] = vec3(0, cos(skyAngle), sin(skyAngle));
-    skyRotationMatrix[2] = vec3(0, -sin(skyAngle), cos(skyAngle));
-    // apply rotation
-    sunLightDirectionWorldSpace = skyRotationMatrix * sunLightDirectionWorldSpace;
-
+    // angles 
     float sunDirectionDotNormal = dot(sunLightDirectionWorldSpace, normalWorldSpace);
     float sunDirectionDotUp = dot(sunLightDirectionWorldSpace, upDirection);
-
 
     // shadow
     // lot of space conversion to get fragPosition into screen space
@@ -139,14 +137,14 @@ void main() {
     // is frag in shadow ?
     float isInShadow = step(fragShadowScreenSpace.z, texture2D(shadowtex0, fragShadowScreenSpace.xy).r);
     float isntInColoredShadow = step(fragShadowScreenSpace.z, texture2D(shadowtex1, fragShadowScreenSpace.xy).r);
-    vec3 shadowColor = texture2D(shadowcolor0, fragShadowScreenSpace.xy).rgb;
+    vec4 shadowColor = texture2D(shadowcolor0, fragShadowScreenSpace.xy);
     // shadow get colored if needed
     vec3 shadow = vec3(1);
     if (isInShadow == 0) {
         if (isntInColoredShadow == 0) {
             shadow = vec3(0);
         } else {
-            shadow = shadowColor;
+            shadow = shadowColor.rgb * (1-shadowColor.a);
         }
     }
     // decrease shadow with distance
@@ -158,8 +156,8 @@ void main() {
     // color //
     // sun color
     float sunDawnColorTemperature = 2000.;
-    float sunZenithColorTemperature = 7000.;
-    float sunColorTemperature = clamp(cosThetaToSigmoid(sunDirectionDotUp, 0.1) * (sunZenithColorTemperature-sunDawnColorTemperature) + sunDawnColorTemperature, 
+    float sunZenithColorTemperature = 6000.;
+    float sunColorTemperature = clamp(cosThetaToSigmoid(sunDirectionDotUp, 0.1, 5.5) * (sunZenithColorTemperature-sunDawnColorTemperature) + sunDawnColorTemperature, 
                                         sunDawnColorTemperature, 
                                         sunZenithColorTemperature); // [2000;7000] depending at sun angle
     vec3 sunLightColor = kelvinToRGB(sunColorTemperature); 
@@ -170,13 +168,15 @@ void main() {
     float moonMidnightColorTemperature = clamp(moonPhaseBlend * (moonFullMidnightColorTemperature-moonNewMidnightColorTemperature) + moonNewMidnightColorTemperature, 
                                         moonFullMidnightColorTemperature, 
                                         moonNewMidnightColorTemperature); // taking moon phase account
-    float moonColorTemperature = clamp(cosThetaToSigmoid(abs(sunDirectionDotUp), 5.) * (moonMidnightColorTemperature-moonDawnColorTemperature) + moonDawnColorTemperature, 
+    float moonColorTemperature = clamp(cosThetaToSigmoid(abs(sunDirectionDotUp), 5., 5.5) * (moonMidnightColorTemperature-moonDawnColorTemperature) + moonDawnColorTemperature, 
                                         moonMidnightColorTemperature, 
                                         moonDawnColorTemperature);
     vec3 moonLightColor = 0.5 * kelvinToRGB(moonColorTemperature); 
     // sky color 
-    vec3 skyLightColor = sunDirectionDotUp<0 ? moonLightColor : sunLightColor;
-    skyLightColor = mix(skyLightColor, vec3(0.3), rainStrength); // reduce contribution if it rain
+    float skyDayNightBlend = sigmoid(sunDirectionDotUp, 1., 50.);
+    vec3 rainySkyColor = 0.5 * kelvinToRGB(8000);
+    vec3 skyLightColor = mix(moonLightColor, sunLightColor, skyDayNightBlend);
+    skyLightColor = mix(skyLightColor, rainySkyColor, rainStrength); // reduce contribution if it rain
     skyLightColor = pow(skyLightColor, vec3(2.2));
     // emissive block color 
     float blockColorTemperature = 5000.;
@@ -184,15 +184,19 @@ void main() {
     blockLightColor = pow(blockLightColor, vec3(2.2));
 
     // light //
-    // ambiant light
-    const float ambiantLightIntensity = 0.2;
-    vec3 ambiantLight = ambiantLightIntensity * skyLightColor * skyIndirectLightIntensity;
+    // direct sky light
+    float rainFactor = max(1-rainStrength, 0.05);
+    vec3 skyDirectLight = shadow * skyLightColor * abs(sunDirectionDotNormal);
+    skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
+    // ambiant sky light
+    const float ambiantFactor = 0.2;
+    vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
     // emissive block light
     vec3 blockLight = blockLightColor * blockLightIntensity;
-    // direct sky light
-    vec3 skyDirectLight = shadow * skyLightColor * abs(sunDirectionDotNormal);
+    // dynamic emissive light 
+    vec3 heldBlockLight = blockLightColor * pow(max(1-(distanceFromCamera/(0.0001+heldLightValue)), 0), 2.2);
     // perfect diffuse
-    vec3 outColor = albedo * (ambiantLight + blockLight + skyDirectLight);
+    vec3 outColor = albedo * (skyDirectLight + ambiantSkyLight + max(blockLight, heldBlockLight));
     outColor = pow(outColor, vec3(1/2.2));
 
     // custom fog
@@ -211,7 +215,7 @@ void main() {
     outColor0 = vec4(outColor, transparency);
 
     /** debug **/
-    // outColor0 = vec4(moonLightColor*2, 1);
+    // outColor0 = vec4((blockLight), 1);
     // shadow map
     // outColor0 = vec4(texture2D(shadowtex0, gl_FragCoord.xy/vec2(viewWidth,viewHeight)).rgb, 1);
 }
