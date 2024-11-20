@@ -1,10 +1,8 @@
-#version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
 // uniforms
 uniform sampler2D gtexture;
 uniform float alphaTestRef;
-uniform float rainStrength;
 
 // attributes
 in vec4 additionalColor; // foliage, water, particules
@@ -13,9 +11,9 @@ in vec2 textureCoordinate; // immuable block & item
 // results
 /* RENDERTARGETS: 0,2,3,5 */
 layout(location = 0) out vec4 opaqueAlbedoData;
-layout(location = 1) out vec4 opaqueLightAndTypeData;
-layout(location = 2) out vec4 transparentAlbedoData;
-layout(location = 3) out vec4 transparentLightAndTypeData;
+layout(location = 2) out vec4 opaqueLightAndTypeData;
+layout(location = 3) out vec4 transparentAlbedoData;
+layout(location = 5) out vec4 transparentLightAndTypeData;
 
 void main() {
     /* albedo */
@@ -24,13 +22,12 @@ void main() {
     // transparency
     float transparency = textureColor.a;
     if (transparency < alphaTestRef) discard;
-    transparency = mix(transparency, 0, rainStrength);
-
+    
     /* type */
     float type = 0; // basic=0
 
     /* buffers */
     // write opaque buffers
-    opaqueAlbedoData = vec4(albedo, 1);
+    opaqueAlbedoData = vec4(albedo, transparency);
     opaqueLightAndTypeData = vec4(0, 0, type, 1);
 }
