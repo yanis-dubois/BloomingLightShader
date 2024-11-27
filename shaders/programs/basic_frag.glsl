@@ -7,13 +7,15 @@ uniform float alphaTestRef;
 // attributes
 in vec4 additionalColor; // foliage, water, particules
 in vec2 textureCoordinate; // immuable block & item
+in vec2 typeData;
 
 // results
-/* RENDERTARGETS: 0,2,3,5 */
+/* RENDERTARGETS: 0,2,3,5,6 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 2) out vec4 opaqueLightAndTypeData;
 layout(location = 3) out vec4 transparentAlbedoData;
 layout(location = 5) out vec4 transparentLightAndTypeData;
+layout(location = 6) out vec4 opaqueTypeData;
 
 void main() {
     /* albedo */
@@ -30,4 +32,5 @@ void main() {
     // write opaque buffers
     opaqueAlbedoData = vec4(albedo, transparency);
     opaqueLightAndTypeData = vec4(0, 0, type, 1);
+    opaqueTypeData = vec4(typeData, 0, 1);
 }

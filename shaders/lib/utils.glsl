@@ -4,6 +4,21 @@ const float e = 2.71828182846;
 
 /* functions */
 
+bool isInRange(float x, float min_, float max_) {
+    return min_ < x && x < max_;
+}
+
+bool isInRange(vec2 xy, float min_, float max_) {
+    return isInRange(xy.x, min_, max_) && isInRange(xy.y, min_, max_);
+}
+
+float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
+    // to [0;1]
+    float mapped = (value-fromMin) / (fromMax-fromMin);
+    // to new interval
+    return mapped*(toMax-toMin) + toMin;
+}
+
 float sigmoid(float x, float offset, float speed) {
     return (offset / (offset + pow(e, -speed * x)));
 }
@@ -57,9 +72,4 @@ vec3 kelvinToRGB(float kelvin) {
     }
 
     return vec3(red, green, blue);
-}
-
-vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
-    vec4 homPos = projectionMatrix * vec4(position, 1.0);
-    return homPos.xyz / homPos.w;
 }

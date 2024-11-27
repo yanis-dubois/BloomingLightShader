@@ -14,15 +14,17 @@ in vec3 normal;
 in vec2 textureCoordinate; // immuable block & item albedo
 in vec2 lightMapCoordinate; // light map
 in vec3 viewSpacePosition;
+in vec2 typeData;
 
 // results
-/* RENDERTARGETS: 0,1,2,3,4,5 */
+/* RENDERTARGETS: 0,1,2,3,4,5,6 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 1) out vec4 opaqueNormalData;
 layout(location = 2) out vec4 opaqueLightAndTypeData;
 layout(location = 3) out vec4 transparentAlbedoData;
 layout(location = 4) out vec4 transparentNormalData;
 layout(location = 5) out vec4 transparentLightAndTypeData;
+layout(location = 6) out vec4 opaqueTypeData;
 
 void main() {
     /* albedo */
@@ -56,4 +58,5 @@ void main() {
     transparentAlbedoData = vec4(albedo, transparency);
     transparentNormalData = vec4(encodedNormal, 1);
     transparentLightAndTypeData = vec4(blockLightIntensity, ambiantSkyLightIntensity, type, 1);
+    opaqueTypeData = vec4(typeData, 0, 1);
 }
