@@ -10,21 +10,21 @@ uniform float viewWidth;
 
 vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
 
-vec4 addMatrixRows(int row1, int row2) {
+vec4 addMatrixRows(mat4 matrix, int row1, int row2) {
     return vec4(
-        gbufferProjection[0][row1] + gbufferProjection[0][row2],
-        gbufferProjection[1][row1] + gbufferProjection[1][row2],
-        gbufferProjection[2][row1] + gbufferProjection[2][row2],
-        gbufferProjection[3][row1] + gbufferProjection[3][row2]
+        matrix[0][row1] + matrix[0][row2],
+        matrix[1][row1] + matrix[1][row2],
+        matrix[2][row1] + matrix[2][row2],
+        matrix[3][row1] + matrix[3][row2]
     );
 }
 
-vec4 subtractMatrixRows(int row1, int row2) {
+vec4 subtractMatrixRows(mat4 matrix, int row1, int row2) {
     return vec4(
-        gbufferProjection[0][row1] - gbufferProjection[0][row2],
-        gbufferProjection[1][row1] - gbufferProjection[1][row2],
-        gbufferProjection[2][row1] - gbufferProjection[2][row2],
-        gbufferProjection[3][row1] - gbufferProjection[3][row2]
+        matrix[0][row1] - matrix[0][row2],
+        matrix[1][row1] - matrix[1][row2],
+        matrix[2][row1] - matrix[2][row2],
+        matrix[3][row1] - matrix[3][row2]
     );
 }
 
@@ -99,36 +99,40 @@ vec3 tangentToView(vec3 tangentPosition, mat3 TBN) {
     return TBN * tangentPosition;
 }
 
-// in my specific case there can be only one intersection
-vec3 segmentFrustumIntersection(vec3 positionA, vec3 positionB) {
+struct Plane {
+    vec3 normal;
+    vec3 point;
+};
 
-    vec3 nearBottomLeftCorner = NDCToView(vec3(-1));
-    vec3 farTopRightCorner = NDCToView(vec3(1));
+// find intersection between ray and frustum
+vec3 rayFrustumIntersection(vec3 origin, vec3 direction) {
 
-    vec3 points[6] = vec3[](
-        vec3(0,0.5,0.5), // left
-        vec3(1,0.5,0.5), // right
-        vec3(0.5,0,0.5), // bottom
-        vec3(0.5,1,0.5), // top
-        vec3(0.5,0.5,0), // near
-        vec3(0.5,0.5,1) // far
+    // extract frustum planes infos from projection matrix
+    vec4 planesData[6] = vec4[](
+        addMatrixRows(gbufferProjection, 3, 0), // left
+        subtractMatrixRows(gbufferProjection, 3, 0), // right
+        addMatrixRows(gbufferProjection, 3, 1), // bottom
+        subtractMatrixRows(gbufferProjection, 3, 1), // top
+        addMatrixRows(gbufferProjection, 3, 2), // near
+        subtractMatrixRows(gbufferProjection, 3, 2) // far
     );
 
-    // extract frustum planes [TODO: calcul only 1 time]
-    vec3 normals[6] = vec3[](
-        addMatrixRows(3, 0).xyz, // left
-        subtractMatrixRows(3, 0).xyz, // right
-        addMatrixRows(3, 1).xyz, // bottom
-        subtractMatrixRows(3, 1).xyz, // top
-        addMatrixRows(3, 2).xyz, // near
-        subtractMatrixRows(3, 2).xyz // far
-    );
+    // create planes from infos
+    Plane planes[6];
     for (int i=0; i<6; ++i) {
-        points[i] = NDCToView(points[i]);
-        normals[i] = normalize((normals[i]));
-    }
+        vec3 normal = normalize(planesData[i].xyz);
 
-    vec3 segmentDirection = normalize(positionB - positionA);
+        vec3 point = vec3(0.0);
+        if (planesData[i].x != 0.0) {
+            point.x = -planesData[i].w / planesData[i].x;
+        } else if (planesData[i].y != 0.0) {
+            point.y = -planesData[i].w / planesData[i].y;
+        } else if (planesData[i].z != 0.0) {
+            point.z = -planesData[i].w / planesData[i].z;
+        }
+
+        planes[i] = Plane(-normal, point);
+    }
 
     // get intersections
     bool hasIntersection[6];
@@ -136,70 +140,43 @@ vec3 segmentFrustumIntersection(vec3 positionA, vec3 positionB) {
     for (int i=0; i<6; ++i) {
         hasIntersection[i] = true;
 
-        vec3 point = points[i];
-        vec3 normal = normals[i];
+        vec3 normal = planes[i].normal;
+        vec3 point = planes[i].point;
 
-        float denom = dot(normal, segmentDirection);
+        float denom = dot(normal, direction);
         // segment parallel to the plane
-        if (denom < 0.0001) {
+        if (denom < 1e-6) {
             hasIntersection[i] = false;
             continue;
         }
 
         // compute intersection
-        float t = - (dot(normal, (positionA - point))) / denom;
-        //t = abs(t);
-        if (0 <= t && t <= 1) {
-            intersections[i] = positionA + t * segmentDirection;
+        float t = - (dot(normal, (origin - point))) / denom;
+        if (t > 0) {
+            intersections[i] = origin + (t - 1e-2) * direction;
         } else {
             hasIntersection[i] = false;
         }
     }
 
-    return vec3(hasIntersection[0]);
-
-    // // get intersections
-    // bool hasIntersection[6];
-    // vec3 intersections[6];
-    // for (int i=0; i<6; ++i) {
-    //     hasIntersection[i] = true;
-
-    //     vec3 point = points[i];
-    //     vec3 normal = normals[i];
-
-    //     float denom = dot(normal, segmentDirection);
-    //     // segment parallel to the plane
-    //     if (denom < 1e-6) {
-    //         hasIntersection[i] = false;
-    //         continue;
-    //     }
-
-    //     // compute intersection
-    //     float t = - (dot(normal, (positionA - point))) / denom;
-    //     //t = abs(t);
-    //     if (0 <= t && t <= 1) {
-    //         intersections[i] = positionA + t * segmentDirection;
-    //     } else {
-    //         hasIntersection[i] = false;
-    //     }
-    // }
-
     // keep only intersections that are inside frustum
-    // for (int i=0; i<6; ++i) {
-    //     if (!hasIntersection[i]) continue;
+    for (int i=0; i<6; ++i) {
+        if (!hasIntersection[i]) continue;
 
-    //     bool isInside = true;
-    //     for (int j=0; j<6; ++j) {
-    //         if (dot(planes[j].xyz, intersections[i]) + planes[j].w > 0) {
-    //             isInside = false;
-    //             break;
-    //         }
-    //     }
+        bool isInside = true;
+        for (int j=0; j<6; ++j) {
+            if (dot(-planes[j].normal, intersections[i] - planes[j].point) < 0) {
+                isInside = false;
+                break;
+            }
+        }
 
-    //     if (isInside) return intersections[i];
-    // }
+        if (isInside) {
+            return intersections[i];
+        }
+    }
 
-    return positionB;
+    return vec3(0);
 }
 
 #endif

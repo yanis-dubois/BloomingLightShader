@@ -18,10 +18,10 @@ const bool shadowcolor0Nearest = true;
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_MAX_DISTANCE 15
+#define SSR_MAX_DISTANCE 1
 #define SSR_RESOLUTION 1
 #define SSR_STEPS 10
-#define SSR_THICKNESS 1
+#define SSR_THICKNESS 0.5
 
 //////////////////////////
 //////// Uniforms ////////

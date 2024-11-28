@@ -10,12 +10,9 @@ in vec2 textureCoordinate; // immuable block & item
 in vec2 typeData;
 
 // results
-/* RENDERTARGETS: 0,2,3,5,6 */
+/* RENDERTARGETS: 0,2 */
 layout(location = 0) out vec4 opaqueAlbedoData;
-layout(location = 2) out vec4 opaqueLightAndTypeData;
-layout(location = 3) out vec4 transparentAlbedoData;
-layout(location = 5) out vec4 transparentLightAndTypeData;
-layout(location = 6) out vec4 opaqueTypeData;
+layout(location = 1) out vec4 opaqueLightAndTypeData;
 
 void main() {
     /* albedo */
@@ -29,8 +26,6 @@ void main() {
     float type = 0; // basic=0
 
     /* buffers */
-    // write opaque buffers
     opaqueAlbedoData = vec4(albedo, transparency);
     opaqueLightAndTypeData = vec4(0, 0, type, 1);
-    opaqueTypeData = vec4(typeData, 0, 1);
 }

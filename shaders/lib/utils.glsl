@@ -4,6 +4,13 @@ const float e = 2.71828182846;
 
 /* functions */
 
+float schlick(float n2, float cosTheta) {
+    float n1 = 1;
+    float R0_ = ((n1 - n2) / (n1 + n2));
+    float R0 = R0_ * R0_;
+    return R0 + (1 - R0) * pow(1 - cosTheta, 5);
+}
+
 bool isInRange(float x, float min_, float max_) {
     return min_ < x && x < max_;
 }
@@ -17,6 +24,10 @@ float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
     float mapped = (value-fromMin) / (fromMax-fromMin);
     // to new interval
     return mapped*(toMax-toMin) + toMin;
+}
+
+float perspectiveMix(float a, float b, float factor) {
+    return 1. / ( (1./a) + (factor * ((1./b) - (1./a))) );
 }
 
 float sigmoid(float x, float offset, float speed) {
