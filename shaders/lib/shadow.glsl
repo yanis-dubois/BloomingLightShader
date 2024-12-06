@@ -16,18 +16,18 @@ vec3 distortShadowClipPos(vec3 shadowClipPos){
 }
 
 // say if a pixel is in shadow and apply a shadow color to it if needed
-vec3 getShadow(vec3 shadowScreenPos) {
+vec4 getShadow(vec3 shadowScreenPos) {
     float isInShadow = step(shadowScreenPos.z, texture2D(shadowtex0, shadowScreenPos.xy).r);
     float isntInColoredShadow = step(shadowScreenPos.z, texture2D(shadowtex1, shadowScreenPos.xy).r);
     vec4 shadowColor = texture2D(shadowcolor0, shadowScreenPos.xy);
 
     // shadow get colored if needed
-    vec3 shadow = vec3(1);
+    vec4 shadow = vec4(0);
     if (isInShadow == 0) {
         if (isntInColoredShadow == 0) {
-            shadow = vec3(0);
+            shadow = vec4(vec3(0), 1);
         } else {
-            shadow = shadowColor.rgb * (1-shadowColor.a);
+            shadow = shadowColor;// shadowColor.rgb * (1-shadowColor.a);
         }
     }
 
@@ -35,7 +35,7 @@ vec3 getShadow(vec3 shadowScreenPos) {
 }
 
 // blur shadow by calling getShadow around actual pixel and average results
-vec3 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbufferModelViewInverse) {
+vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbufferModelViewInverse) {
     // space conversion
     vec3 NDCPos = vec3(uv, depth) * 2.0 - 1.0;
     vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
@@ -54,7 +54,7 @@ vec3 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     const float range = SHADOW_SOFTNESS / 2; // how far away from the original position we take our samples from
     const float increment = range / SHADOW_QUALITY; // distance between each sample
 
-    vec3 shadowAccum = vec3(0.0); // sum of all shadow samples
+    vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
     int samples = 0;
 
     for (float x = -range; x <= range; x += increment) {

@@ -1,6 +1,6 @@
 #version 140
 
-//all the messy code in this file is mostly a port of vanilla line rendering.
+// all the messy code in this file is mostly a port of vanilla line rendering.
 
 const float LINE_WIDTH  = 5.0;
 const float VIEW_SHRINK = 1.0 - (1.0 / 256.0);
@@ -37,5 +37,5 @@ void main() {
 	if (gl_VertexID % 2 != 0) lineOffset = -lineOffset;
 	gl_Position = vec4((ndc1 + vec3(lineOffset, 0.0)) * linePosStart.w, linePosStart.w);
 
-	tint = vaColor;
+	tint = vec4(0, 0, 0, 1);
 }

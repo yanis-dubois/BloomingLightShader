@@ -18,13 +18,22 @@ uniform sampler2D colortex5; // transparent light
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 
-// attributes
-in vec2 uv;
+// constant
+const float startShadowDecrease = 140;
+const float endShadowDecrease = 150;
 
-// functions
-float linearizeDepth(float depth) {
-    return 2.05 * (near * far) / (depth * (near - far) + far);
-}
+// attributes
+in vec3 sunLightColor;
+in vec3 moonLightColor;
+in vec3 skyLightColor;
+in vec3 blockLightColor;
+in vec3 fog_color;
+in float moonPhaseBlend;
+in float skyDayNightBlend;
+in float rainFactor;
+in float fog_density;
+
+in vec2 uv;
 
 // TODO: be sure to normalize sample vec par rapport à l'espace view
 float SSAO(vec2 uv, float depth, mat3 TBN) {
@@ -61,6 +70,49 @@ float SSAO(vec2 uv, float depth, mat3 TBN) {
     return occlusion;
 }
 
+vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, 
+              float ambiantFactor, float ambiantSkyLightIntensity, float blockLightIntensity) {
+
+    // TODO: SSAO
+    float occlusion = 1;
+    
+    // directions and angles
+    vec3 shadowLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float shadowDirectionDotNormal = dot(shadowLightDirectionWorldSpace, normal);
+    float distanceFromCamera = distance(viewToWorld(vec3(0)), viewToWorld(screenToView(uv, depth)));
+    float linearDepth = distanceFromCamera / far;
+
+    /* shadow */
+    vec4 shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
+    // decrease shadow as it rains
+    shadow.a *= rainFactor;
+    // decrease shadow with distance
+    float shadowBlend = clamp((distanceFromCamera - startShadowDecrease) / (endShadowDecrease - startShadowDecrease), 0, 1);
+    shadow.a = mix(shadow.a, 0, shadowBlend);
+
+    /* lighting */
+    // direct sky light
+    vec3 skyDirectLight = max(shadowDirectionDotNormal, 0) * skyLightColor;
+    skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
+    skyDirectLight = mix(skyDirectLight, shadow.rgb * skyLightColor, shadow.a); // apply shadow
+    // ambiant sky light
+    vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
+    // emissive block light
+    vec3 blockLight = blockLightColor * blockLightIntensity;
+    // perfect diffuse
+    vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
+
+    /* fog */
+    // custom fog
+    float customFogBlend = clamp(1 - pow(2, -pow((linearDepth*fog_density), 2)), 0, 1); // exponential function
+    color = mix(color, fog_color, customFogBlend);
+    // vanilla fog
+    float vanillaFogBlend = clamp((distanceFromCamera - fogStart) / (fogEnd - fogStart), 0, 1);
+    color = mix(color, fog_color, vanillaFogBlend);
+
+    return vec4(color, transparency);
+}
+
 // results
 /* RENDERTARGETS: 0,1,2,3,4 */
 layout(location = 0) out vec4 opaqueColorData;
@@ -69,58 +121,63 @@ layout(location = 2) out vec4 opaqueTypeData;
 layout(location = 3) out vec4 transparentColorData;
 layout(location = 4) out vec4 transparentNormalData;
 
-/******************************************
-************ lighting SSAO fog ************
-*******************************************/
+/*****************************************
+************* lighting & fog *************
+******************************************/
 void main() {
 
     /* opaque buffers values */
     // albedo
     vec4 albedoData_opaque = texture2D(colortex0, uv);
-    vec3 albedo_opaque = pow(albedoData_opaque.rgb, vec3(2.2));
+    albedoData_opaque = SRGBtoLinear(albedoData_opaque);
+    vec3 albedo_opaque = albedoData_opaque.rgb;
     float transparency_opaque = albedoData_opaque.a;
     // normal
     vec4 normalData_opaque = texture2D(colortex1, uv);
     vec3 normal_opaque = normalData_opaque.xyz *2 -1;
     // indirect sky & block light and type
-    vec3 lightAndTypeData_opaque = texture2D(colortex2, uv).xyz;
-    vec2 lightData_opaque = pow(lightAndTypeData_opaque.xy, vec2(2.2));
+    vec4 lightAndTypeData_opaque = texture2D(colortex2, uv);
+    vec2 lightData_opaque = lightAndTypeData_opaque.xy;
+    lightData_opaque = SRGBtoLinear(lightData_opaque);
     float blockLightIntensity_opaque = lightData_opaque.x;
     float ambiantSkyLightIntensity_opaque = lightData_opaque.y;
     float type_opaque = lightAndTypeData_opaque.z;
     // depth
     float depth_opaque = texture2D(depthtex1, uv).x;
-    float distanceFromCamera_opaque = linearizeDepth(depth_opaque);
-    float linearDepth_opaque = distanceFromCamera_opaque / far;
 
     /* transparent buffers values */
     // albedo
     vec4 albedoData_transparent = texture2D(colortex3, uv);
-    vec3 albedo_transparent = pow(albedoData_transparent.rgb, vec3(2.2));
+    albedoData_transparent = SRGBtoLinear(albedoData_transparent);
+    vec3 albedo_transparent = albedoData_transparent.rgb;
     float transparency_transparent = albedoData_transparent.a;
     // normal
     vec4 normalData_transparent = texture2D(colortex4, uv);
     vec3 normal_transparent = normalData_transparent.xyz *2 -1;
     // indirect sky & block light and type
-    vec2 lightData_transparent = pow(texture2D(colortex5, uv).xy, vec2(2.2));
+    vec4 lightAndTypeData_transparent = texture2D(colortex5, uv);
+    vec2 lightData_transparent = lightAndTypeData_transparent.xy;
+    lightData_transparent = SRGBtoLinear(lightData_transparent);
     float blockLightIntensity_transparent = lightData_transparent.x;
     float ambiantSkyLightIntensity_transparent = lightData_transparent.y;
+    float type_transparent = lightAndTypeData_transparent.z;
     // depth 
     float depth_all = texture2D(depthtex0, uv).x;
-    float distanceFromCamera_all = linearizeDepth(depth_all);
-    float linearDepth_all = distanceFromCamera_all / far;
+
+
+    float ambiantFactor_opaque = 0.2;
+    float ambiantFactor_transparent = 1;
 
 
     // -- WRITE STATIC BUFFERS -- //
     opaqueNormalData = normalData_opaque;
-    opaqueTypeData = vec4(type_opaque, 0, 0, 1);
+    opaqueTypeData = vec4(type_opaque, type_transparent, 0, 1);
     transparentNormalData = normalData_transparent;
 
+    // -- INIT DYNAMIC BUFFERS -- //
+    opaqueColorData = vec4(0);
+    transparentColorData = vec4(0);
 
-    // -- BASIC MATERIAL -- //
-    if (type_opaque == 0) {
-        opaqueColorData = vec4(albedo_opaque, transparency_opaque);
-    }
 
 
     // view space pos
@@ -149,134 +206,51 @@ void main() {
     float occlusion = SSAO(uv, depth_all, TBN);
     occlusion = map(occlusion, 0, 1, 0.2, 1);
 
-    /* uniform infos */
-    // moon phase
-    float moonPhaseBlend = moonPhase < 4 ? moonPhase*1./4. : (4.-(moonPhase*1.-4.))/4.; 
-    moonPhaseBlend = cos(moonPhaseBlend * PI) / 2. + 0.5; // [0;1] new=0, full=1
-    // day time
-    vec3 upDirection = vec3(0,1,0);
-    vec3 sunLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-    float sunDirectionDotUp = dot(sunLightDirectionWorldSpace, upDirection);
-    vec3 shadowLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
 
-    /* light colors */
-    // sun color
-    float sunDawnColorTemperature = 2000.;
-    float sunZenithColorTemperature = 6000.;
-    float sunColorTemperature = clamp(cosThetaToSigmoid(sunDirectionDotUp, 0.1, 5.5) * (sunZenithColorTemperature-sunDawnColorTemperature) + sunDawnColorTemperature, 
-                                        sunDawnColorTemperature, 
-                                        sunZenithColorTemperature); // [2000;7000] depending at sun angle
-    vec3 sunLightColor = kelvinToRGB(sunColorTemperature); 
-    // moon color
-    float moonDawnColorTemperature = 20000.;
-    float moonFullMidnightColorTemperature = 7500.;
-    float moonNewMidnightColorTemperature = 20000.;
-    float moonMidnightColorTemperature = clamp(moonPhaseBlend * (moonFullMidnightColorTemperature-moonNewMidnightColorTemperature) + moonNewMidnightColorTemperature, 
-                                        moonFullMidnightColorTemperature, 
-                                        moonNewMidnightColorTemperature); // taking moon phase account
-    float moonColorTemperature = clamp(cosThetaToSigmoid(abs(sunDirectionDotUp), 5., 5.5) * (moonMidnightColorTemperature-moonDawnColorTemperature) + moonDawnColorTemperature, 
-                                        moonMidnightColorTemperature, 
-                                        moonDawnColorTemperature);
-    vec3 moonLightColor = 0.5 * kelvinToRGB(moonColorTemperature); 
-    // sky color 
-    vec3 rainySkyColor = 0.9 * kelvinToRGB(8000);
-    float skyDayNightBlend = sigmoid(sunDirectionDotUp, 1., 50.);
-    vec3 skyLightColor = mix(moonLightColor, sunLightColor, skyDayNightBlend);
-    skyLightColor = mix(skyLightColor, rainySkyColor, rainStrength); // reduce contribution if it rain
-    skyLightColor = pow(skyLightColor, vec3(2.2));
-    // emissive block color 
-    float blockColorTemperature = 5000.;
-    vec3 blockLightColor = kelvinToRGB(blockColorTemperature);
-    blockLightColor = pow(blockLightColor, vec3(2.2));
-    // fog
-    float rainFactor = max(1-rainStrength, 0.05);
-    vec3 fog_color = pow(fogColor, vec3(2.2));
-    float density = mix(2.5, 1, rainFactor);
+    // -- BASIC MATERIAL -- //
+    if (type_opaque == 0) {
+        opaqueColorData = vec4(albedo_opaque, transparency_opaque);
 
-    // init albedo 
-    vec3 outColor_opaque = vec3(0);
-    vec3 outColor_transparent = vec3(0);
-
+        // opaqueColorData = vec4(1,0,0,1);
+    } 
     // -- LIT MATERIAL -- //
-    if (type_opaque == 1) {
-        // directions and angles
-        float shadowDirectionDotNormal = dot(shadowLightDirectionWorldSpace, normal_opaque);
+    else if (type_opaque == 1) {
+        opaqueColorData = lighting(
+            uv, 
+            albedo_opaque, 
+            transparency_opaque, 
+            normal_opaque, 
+            depth_opaque, 
+            ambiantFactor_opaque, 
+            ambiantSkyLightIntensity_opaque, 
+            blockLightIntensity_opaque
+        );
 
-        /* shadow */
-        vec3 shadow = getSoftShadow(uv, depth_opaque, gbufferProjectionInverse, gbufferModelViewInverse);
-        // decrease shadow with distance
-        float startShadowDecrease = 200;
-        float endShadowDecrease = 250;
-        float shadowBlend = clamp((distanceFromCamera_opaque - startShadowDecrease) / (endShadowDecrease - startShadowDecrease), 0, 1);
-        shadow = mix(shadow, vec3(1), shadowBlend);
-
-        /* lighting */
-        // direct sky light
-        vec3 skyDirectLight = shadow * max(shadowDirectionDotNormal, 0) * skyLightColor;
-        skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
-        // ambiant sky light
-        float ambiantFactor = 0.2;
-        vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity_opaque;
-        // emissive block light
-        vec3 blockLight = blockLightColor * blockLightIntensity_opaque;
-        // perfect diffuse
-        outColor_opaque = albedo_opaque * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
-        outColor_opaque = outColor_opaque;
-
-        /* fog */
-        // custom fog
-        float customFogBlend = clamp(1 - pow(2, -(linearDepth_opaque*density)*(linearDepth_opaque*density)*(linearDepth_opaque*density)), 0, 1); // exponential function
-        outColor_opaque = mix(outColor_opaque, fog_color, customFogBlend);
-        // vanilla fog
-        float vanillaFogBlend = clamp((distanceFromCamera_opaque - fogStart) / (fogEnd - fogStart), 0, 1);
-        outColor_opaque = mix(outColor_opaque, fog_color, vanillaFogBlend);
-
-        opaqueColorData = vec4(outColor_opaque, transparency_opaque);
+        // opaqueColorData = vec4(1,1,0,1);
     }
 
+    // -- GLOWING MATERIAL-- //
+    if (type_transparent > 0 && type_transparent < 1) {
+        opaqueColorData += albedoData_transparent;
+
+        // transparentColorData = vec4(0,1,1,1);
+    }
     // -- TRANSPARENT MATERIAL -- //
-    if (depth_all<depth_opaque && transparency_transparent>alphaTestRef) {
-        // directions and angles
-        float shadowDirectionDotNormal = dot(shadowLightDirectionWorldSpace, normal_transparent);
-
-        /* shadow */
-        vec3 shadow = getSoftShadow(uv, depth_all, gbufferProjectionInverse, gbufferModelViewInverse);
-        // decrease shadow with distance
-        float startShadowDecrease = 125;
-        float endShadowDecrease = 150;
-        float shadowBlend = clamp((distanceFromCamera_all - startShadowDecrease) / (endShadowDecrease - startShadowDecrease), 0, 1);
-        shadow = mix(shadow, vec3(1), shadowBlend);
-
-        /* lighting */
-        // direct sky light
-        vec3 skyDirectLight = shadow * max(shadowDirectionDotNormal, 0) * skyLightColor;
-        skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
-        // ambiant sky light
-        float ambiantFactor = 1;
-        vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity_transparent;
-        // emissive block light
-        vec3 blockLight = blockLightColor * blockLightIntensity_transparent;
-        // perfect diffuse
-        outColor_transparent = albedo_transparent * (skyDirectLight + ambiantSkyLight + blockLight);
-        outColor_transparent = outColor_transparent;
-
-        /* fog */
-        // custom fog
-        float customFogBlend = clamp(1 - pow(2, -(linearDepth_all*density)*(linearDepth_all*density)*(linearDepth_all*density)), 0, 1); // exponential function
-        outColor_transparent = mix(outColor_transparent, fog_color, customFogBlend);
-        // vanilla fog
-        float vanillaFogBlend = clamp((distanceFromCamera_all - fogStart) / (fogEnd - fogStart), 0, 1);
-        outColor_transparent = mix(outColor_transparent, fog_color, vanillaFogBlend);
-
-        transparentColorData = vec4(outColor_transparent, transparency_transparent);
+    else if (depth_all<depth_opaque && transparency_transparent>alphaTestRef) {
+        transparentColorData = lighting(
+            uv, 
+            albedo_transparent, 
+            transparency_transparent, 
+            normal_transparent, 
+            depth_all, 
+            ambiantFactor_transparent, 
+            ambiantSkyLightIntensity_transparent, 
+            blockLightIntensity_transparent
+        );
+        
+        // transparentColorData = vec4(0,0,1,1);
     }
-    
-    /* debug */
-    // outColor0 = vec4(vec3(1), 1);
-    // shadow map
-    // outColor0 = vec4(texture2D(shadowtex0, gl_FragCoord.xy/vec2(viewWidth,viewHeight)).rgb, 1);
 
-    /* /!\ IMPORTANT /!\ */
-    // blend opaque & transparent together
-    // outColor0 = vec4(vec3(mix(outColor_opaque, outColor_transparent, transparency_transparent)), 1); return;
+    opaqueColorData = linearToSRGB(opaqueColorData);
+    transparentColorData = linearToSRGB(transparentColorData);
 }

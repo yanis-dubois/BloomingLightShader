@@ -18,7 +18,7 @@ float fogify(float x, float w) {
 }
 
 vec3 calcSkyColor(vec3 pos) {
-	float upDot = dot(pos, gbufferModelView[1].xyz); //not much, what's up with you?
+	float upDot = dot(pos, gbufferModelView[1].xyz);
 	return mix(skyColor, fogColor, fogify(max(upDot, 0.0), 0.25));
 }
 
@@ -29,11 +29,9 @@ vec3 screenToView(vec3 screenPos) {
 }
 
 // results
-/* RENDERTARGETS: 0,2,3,5 */
+/* RENDERTARGETS: 0,2 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 1) out vec4 opaqueLightAndTypeData;
-layout(location = 2) out vec4 transparentAlbedoData;
-layout(location = 3) out vec4 transparentLightAndTypeData;
 
 void main() {
 	/* albedo */
@@ -49,7 +47,6 @@ void main() {
 	float type = 0; // basic=0
 
 	/* buffers */
-    // write opaque buffers
     opaqueAlbedoData = vec4(albedo, 1);
     opaqueLightAndTypeData = vec4(0, 0, type, 1);
 }

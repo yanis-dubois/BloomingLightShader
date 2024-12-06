@@ -23,13 +23,12 @@ layout(location = 1) out vec4 opaqueNormalData;
 layout(location = 2) out vec4 opaqueLightAndTypeData;
 layout(location = 3) out vec4 transparentAlbedoData;
 layout(location = 4) out vec4 transparentNormalData;
-layout(location = 5) out vec4 transparentLightAndTypeData;
+layout(location = 5) out vec4 transparentLightData;
 
 void main() {
     /* albedo */
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
-    // transparency 
     float transparency = textureColor.a;
     if (transparency < alphaTestRef) discard;
 

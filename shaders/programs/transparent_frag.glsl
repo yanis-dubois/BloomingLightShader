@@ -17,7 +17,7 @@ in vec3 viewSpacePosition;
 in vec2 typeData;
 
 // results
-/* RENDERTARGETS: 0,1,2,3,4,5,6 */
+/* RENDERTARGETS: 0,1,2,3,4,5 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 1) out vec4 opaqueNormalData;
 layout(location = 2) out vec4 opaqueLightAndTypeData;
@@ -45,13 +45,11 @@ void main() {
     float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
+    /* type */
+    float type = 1; // transparent = 1
+
     /* buffers */
-    // don't write opaque
-    opaqueAlbedoData = vec4(0);
-    opaqueNormalData = vec4(0);
-    opaqueLightAndTypeData = vec4(0);
-    // write transparent
     transparentAlbedoData = vec4(albedo, transparency);
     transparentNormalData = vec4(encodedNormal, 1);
-    transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, 0, 1);
+    transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, type, 1);
 }

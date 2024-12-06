@@ -1,12 +1,14 @@
 #extension GL_ARB_explicit_attrib_location : enable
 
+#include "/lib/common.glsl"
+#include "/lib/utils.glsl"
+
 // uniforms
 uniform sampler2D gtexture;
-uniform float alphaTestRef;
 
 // attributes
-in vec4 additionalColor; // foliage, water, particules
-in vec2 textureCoordinate; // immuable block & item
+in vec4 additionalColor; // foliage, water, particules albedo
+in vec2 textureCoordinate; // immuable block & item albedo
 in vec2 typeData;
 
 // results
@@ -26,10 +28,10 @@ void main() {
     if (transparency < alphaTestRef) discard;
     
     /* type */
-    float type = 0; // basic=0
+    float type = 0.5; // glowing=0.5
 
     /* buffers */
-    opaqueAlbedoData = vec4(albedo, transparency);
-    opaqueNormalData = vec4(0,0,1,1);
-    opaqueLightAndTypeData = vec4(0, 0, type, 1);
+    transparentAlbedoData = vec4(albedo.xyz, transparency);
+    transparentNormalData = vec4(0, 0, 1, 1);
+    transparentLightData = vec4(0, 0, type, 1);
 }

@@ -1,13 +1,6 @@
 #ifndef "/lib/common.glsl"
 #define "/lib/common.glsl"
 
-uniform mat4 gbufferProjection;
-uniform mat4 gbufferProjectionInverse;
-uniform mat4 gbufferModelView;
-uniform mat4 gbufferModelViewInverse;
-uniform float viewHeight;
-uniform float viewWidth;
-
 vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
 
 vec4 addMatrixRows(mat4 matrix, int row1, int row2) {

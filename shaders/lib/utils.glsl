@@ -1,3 +1,6 @@
+#ifndef "/lib/common.glsl"
+#define "/lib/common.glsl"
+
 // constant
 const float PI = 3.14159265359;
 const float e = 2.71828182846;
@@ -84,3 +87,37 @@ vec3 kelvinToRGB(float kelvin) {
 
     return vec3(red, green, blue);
 }
+
+float SRGBtoLinear(float x) {
+    return pow(x, gamma);
+}
+
+vec2 SRGBtoLinear(vec2 x) {
+    return pow(x, vec2(gamma));
+}
+
+vec3 SRGBtoLinear(vec3 x) {
+    return pow(x, vec3(gamma));
+}
+
+vec4 SRGBtoLinear(vec4 x) {
+    return pow(x, vec4(gamma));
+}
+
+float linearToSRGB(float x) {
+    return pow(x, 1./gamma);
+}
+
+vec2 linearToSRGB(vec2 x) {
+    return pow(x, vec2(1./gamma));
+}
+
+vec3 linearToSRGB(vec3 x) {
+    return pow(x, vec3(1./gamma));
+}
+
+vec4 linearToSRGB(vec4 x) {
+    return pow(x, vec4(1./gamma));
+}
+
+#endif

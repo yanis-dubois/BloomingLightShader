@@ -1,3 +1,3 @@
 #version 140
 
-#include "/programs/lit_frag.glsl"
+#include "/programs/basic_frag.glsl"
