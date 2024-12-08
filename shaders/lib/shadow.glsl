@@ -54,12 +54,21 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     const float range = SHADOW_SOFTNESS / 2; // how far away from the original position we take our samples from
     const float increment = range / SHADOW_QUALITY; // distance between each sample
 
+    // get noise
+    float noise = getNoise(uv).r;
+    float theta = noise * 2*PI;
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+    // rotation matrix
+    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+
     vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
     int samples = 0;
 
     for (float x = -range; x <= range; x += increment) {
         for (float y = -range; y <= range; y += increment) {
-            vec2 offset = vec2(x, y) / shadowMapResolution; // we divide by the resolution so our offset is in terms of pixels
+            vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
+            offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
             vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
             offsetShadowClipPos.z -= 0.0015; // apply bias
             offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion

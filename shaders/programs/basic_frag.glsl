@@ -28,6 +28,11 @@ void main() {
     /* type */
     float type = 0; // basic=0
 
+    #ifdef BEACON_BEAM
+    albedo *= 1.25;
+    transparency = 0.5;
+    #endif
+
     /* buffers */
     opaqueAlbedoData = vec4(albedo, transparency);
     opaqueNormalData = vec4(0,0,1,1);

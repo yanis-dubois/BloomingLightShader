@@ -28,7 +28,12 @@ void main() {
     if (transparency < alphaTestRef) discard;
     
     /* type */
-    float type = 0.5; // glowing=0.5
+    float type = 0; // glowing=0
+
+    #ifdef BEACON_BEAM
+    type = 0;
+    transparency = 0.8;
+    #endif
 
     /* buffers */
     transparentAlbedoData = vec4(albedo.xyz, transparency);

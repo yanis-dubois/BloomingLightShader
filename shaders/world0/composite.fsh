@@ -15,12 +15,16 @@ uniform sampler2D colortex2; // opaque light & type : x=block_light, y=sky_ambia
 uniform sampler2D colortex3; // transparent albedo
 uniform sampler2D colortex4; // transparent normal
 uniform sampler2D colortex5; // transparent light
+uniform sampler2D colortex6; // opaque PBR
+uniform sampler2D colortex7; // transparent PBR
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 
 // constant
 const float startShadowDecrease = 140;
 const float endShadowDecrease = 150;
+const float ambiantFactor_opaque = 0.2;
+const float ambiantFactor_transparent = 1;
 
 // attributes
 in vec3 sunLightColor;
@@ -71,7 +75,9 @@ float SSAO(vec2 uv, float depth, mat3 TBN) {
 }
 
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, 
-              float ambiantFactor, float ambiantSkyLightIntensity, float blockLightIntensity) {
+              float ambiantSkyLightIntensity, float blockLightIntensity, bool isTranslucent) {
+
+    float ambiantFactor = isTranslucent ? ambiantFactor_transparent : ambiantFactor_opaque;
 
     // TODO: SSAO
     float occlusion = 1;
@@ -79,6 +85,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // directions and angles
     vec3 shadowLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float shadowDirectionDotNormal = dot(shadowLightDirectionWorldSpace, normal);
+    if (isTranslucent) shadowDirectionDotNormal = abs(shadowDirectionDotNormal);
     float distanceFromCamera = distance(viewToWorld(vec3(0)), viewToWorld(screenToView(uv, depth)));
     float linearDepth = distanceFromCamera / far;
 
@@ -134,7 +141,7 @@ void main() {
     float transparency_opaque = albedoData_opaque.a;
     // normal
     vec4 normalData_opaque = texture2D(colortex1, uv);
-    vec3 normal_opaque = normalData_opaque.xyz *2 -1;
+    vec3 normal_opaque = decodeNormal(normalData_opaque.xyz);
     // indirect sky & block light and type
     vec4 lightAndTypeData_opaque = texture2D(colortex2, uv);
     vec2 lightData_opaque = lightAndTypeData_opaque.xy;
@@ -144,6 +151,8 @@ void main() {
     float type_opaque = lightAndTypeData_opaque.z;
     // depth
     float depth_opaque = texture2D(depthtex1, uv).x;
+    // PBR
+    vec4 PBRData_opaque = texture2D(colortex6, uv);
 
     /* transparent buffers values */
     // albedo
@@ -163,10 +172,12 @@ void main() {
     float type_transparent = lightAndTypeData_transparent.z;
     // depth 
     float depth_all = texture2D(depthtex0, uv).x;
+    // PBR
+    vec4 PBRData_transparent = texture2D(colortex7, uv);
 
 
     float ambiantFactor_opaque = 0.2;
-    float ambiantFactor_transparent = 1;
+    float ambiantFactor_transparent = 0.2; // 1
 
 
     // -- WRITE STATIC BUFFERS -- //
@@ -206,49 +217,58 @@ void main() {
     float occlusion = SSAO(uv, depth_all, TBN);
     occlusion = map(occlusion, 0, 1, 0.2, 1);
 
-
     // -- BASIC MATERIAL -- //
     if (type_opaque == 0) {
-        opaqueColorData = vec4(albedo_opaque, transparency_opaque);
+        opaqueColorData += vec4(albedo_opaque, transparency_opaque);
 
         // opaqueColorData = vec4(1,0,0,1);
     } 
     // -- LIT MATERIAL -- //
     else if (type_opaque == 1) {
-        opaqueColorData = lighting(
+        opaqueColorData += lighting(
             uv, 
             albedo_opaque, 
             transparency_opaque, 
             normal_opaque, 
-            depth_opaque, 
-            ambiantFactor_opaque, 
+            depth_opaque,  
             ambiantSkyLightIntensity_opaque, 
-            blockLightIntensity_opaque
+            blockLightIntensity_opaque,
+            false
         );
 
         // opaqueColorData = vec4(1,1,0,1);
+        // opaqueColorData = PBRData_opaque;
     }
 
     // -- GLOWING MATERIAL-- //
-    if (type_transparent > 0 && type_transparent < 1) {
-        opaqueColorData += albedoData_transparent;
+    if (type_transparent < 1) {
+        // add it
+        if (type_transparent == 0) {
+            opaqueColorData += albedoData_transparent;
+            transparentColorData += albedoData_transparent;
+        }
+        // mix it
+        else if (0.49 < type_transparent && type_transparent < 0.51) {
+            transparentColorData = vec4(albedo_transparent, transparency_transparent);
+        }
 
         // transparentColorData = vec4(0,1,1,1);
     }
     // -- TRANSPARENT MATERIAL -- //
     else if (depth_all<depth_opaque && transparency_transparent>alphaTestRef) {
-        transparentColorData = lighting(
+        transparentColorData += lighting(
             uv, 
             albedo_transparent, 
             transparency_transparent, 
             normal_transparent, 
             depth_all, 
-            ambiantFactor_transparent, 
             ambiantSkyLightIntensity_transparent, 
-            blockLightIntensity_transparent
+            blockLightIntensity_transparent,
+            true
         );
         
         // transparentColorData = vec4(0,0,1,1);
+        // transparentColorData = PBRData_transparent;
     }
 
     opaqueColorData = linearToSRGB(opaqueColorData);

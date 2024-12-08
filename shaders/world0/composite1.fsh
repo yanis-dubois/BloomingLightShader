@@ -265,9 +265,6 @@ void main() {
     // outColor = colorData_transparent;
     // return;
 
-    // outColor = vec4(vec3(colorData_transparent.a), 1);
-    // return;
-
     outColor = vec4(vec3(mix(color_opaque, color_transparent, transparency_transparent)), transparency_opaque);
     return;
 

@@ -1,6 +1,3 @@
-const int noiseTextureResolution = 256;
-
-uniform sampler2D noisetex;
 
 float hash(vec2 uv, float seed) {
     // Combine UV coordinates with the seed
@@ -8,13 +5,6 @@ float hash(vec2 uv, float seed) {
     p3 += dot(p3, p3.yzx + 19.19);
     return fract((p3.x + p3.y) * p3.z);
 }
-
-// return 3 random value from uv coordinates
-// vec3 getNoise(vec2 uv) {
-//     ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
-//     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
-//     return texelFetch(noisetex, noiseCoord, 0).rgb;
-// }
 
 // return a random sample in tangent space
 vec3 getSample(vec2 uv, float seed) {

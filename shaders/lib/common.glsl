@@ -3,7 +3,10 @@
 //////////////////////////
 
 // Sun and Moon
-const float sunPathRotation = 0;
+const float sunPathRotation = 2;
+
+// Noise Texture
+const int noiseTextureResolution = 256;
 
 // Shadows
 #define SHADOW_QUALITY 5. // number of samples 
@@ -30,6 +33,8 @@ const bool shadowcolor0Nearest = true;
 //////// Uniforms ////////
 //////////////////////////
 
+uniform sampler2D noisetex;
+
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelView;
@@ -52,3 +57,5 @@ uniform float viewWidth;
 uniform float gamma;
 
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous
+uniform int heldBlockLightValue;
+uniform int heldBlockLightValue2;

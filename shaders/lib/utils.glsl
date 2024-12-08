@@ -7,6 +7,13 @@ const float e = 2.71828182846;
 
 /* functions */
 
+// return 3 random value from uv coordinates
+vec3 getNoise(vec2 uv) {
+    ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
+    ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
+    return texelFetch(noisetex, noiseCoord, 0).rgb;
+}
+
 float schlick(float n2, float cosTheta) {
     float n1 = 1;
     float R0_ = ((n1 - n2) / (n1 + n2));
@@ -118,6 +125,15 @@ vec3 linearToSRGB(vec3 x) {
 
 vec4 linearToSRGB(vec4 x) {
     return pow(x, vec4(1./gamma));
+}
+
+// -- DATA ENCODING - DECODING -- //
+vec3 encodeNormal(vec3 normal) {
+    return (normal + 1) / 2; // from [-1;1] to [0;1]
+}
+
+vec3 decodeNormal(vec3 normal) {
+    return normal * 2 - 1; // from [0;1] to [-1;1]
 }
 
 #endif

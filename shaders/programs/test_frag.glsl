@@ -22,9 +22,11 @@ void main() {
     if (transparency < alphaTestRef) discard;
 
     /* type */
-    float type = 0.1; // basic=0
+    float type = 0; // basic=0
+
+    albedo = vec3(1,0,0);
 
     /* buffers */
-    opaqueAlbedoData = vec4(albedo, 1);
+    opaqueAlbedoData = vec4(albedo, 0.5);
     opaqueLightAndTypeData = vec4(0, 0, type, 1);
 }
