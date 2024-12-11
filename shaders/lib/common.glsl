@@ -25,7 +25,7 @@ const bool shadowcolor0Nearest = true;
 
 // Screen Space Reflection (SSR)
 #define SSR_MAX_DISTANCE 1
-#define SSR_RESOLUTION 1
+#define SSR_RESOLUTION 0.25
 #define SSR_STEPS 10
 #define SSR_THICKNESS 0.5
 
@@ -45,6 +45,8 @@ uniform vec3 sunPosition;
 uniform vec3 shadowLightPosition;
 uniform vec3 skyColor;
 uniform vec3 fogColor;
+
+uniform ivec2 eyeBrightness;
 
 uniform float fogStart;
 uniform float fogEnd;

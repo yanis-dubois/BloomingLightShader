@@ -29,9 +29,9 @@ vec3 screenToView(vec3 screenPos) {
 }
 
 // results
-/* RENDERTARGETS: 0,2 */
+/* RENDERTARGETS: 0,3 */
 layout(location = 0) out vec4 opaqueAlbedoData;
-layout(location = 1) out vec4 opaqueLightAndTypeData;
+layout(location = 1) out vec4 opaqueMaterialData;
 
 void main() {
 	/* albedo */
@@ -48,5 +48,5 @@ void main() {
 
 	/* buffers */
     opaqueAlbedoData = vec4(albedo, 1);
-    opaqueLightAndTypeData = vec4(0, 0, type, 1);
+    opaqueMaterialData = vec4(type, 0, 0, 1);
 }

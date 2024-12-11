@@ -1,3 +1,5 @@
 #version 140
 
-#include "/programs/glowing_vert.glsl"
+#define GLOWING
+
+#include "/programs/basic_vert.glsl"

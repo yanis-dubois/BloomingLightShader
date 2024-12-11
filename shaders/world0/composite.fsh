@@ -12,11 +12,11 @@
 uniform sampler2D colortex0; // opaque albedo
 uniform sampler2D colortex1; // opaque normal
 uniform sampler2D colortex2; // opaque light & type : x=block_light, y=sky_ambiant_light, z=material_type[0:basic,0.5:transparent,1:lit]
-uniform sampler2D colortex3; // transparent albedo
-uniform sampler2D colortex4; // transparent normal
-uniform sampler2D colortex5; // transparent light
-uniform sampler2D colortex6; // opaque PBR
-uniform sampler2D colortex7; // transparent PBR
+uniform sampler2D colortex3; // opaque PBR (smoothness, reflectance, emissivness)
+uniform sampler2D colortex4; // transparent albedo
+uniform sampler2D colortex5; // transparent normal
+uniform sampler2D colortex6; // transparent light
+uniform sampler2D colortex7; // transparent PBR (smoothness, reflectance, emissivness)
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 
@@ -74,8 +74,8 @@ float SSAO(vec2 uv, float depth, mat3 TBN) {
     return occlusion;
 }
 
-vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, 
-              float ambiantSkyLightIntensity, float blockLightIntensity, bool isTranslucent) {
+vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance,
+              float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, bool isTranslucent) {
 
     float ambiantFactor = isTranslucent ? ambiantFactor_transparent : ambiantFactor_opaque;
 
@@ -83,11 +83,17 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     float occlusion = 1;
     
     // directions and angles
-    vec3 shadowLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float shadowDirectionDotNormal = dot(shadowLightDirectionWorldSpace, normal);
-    if (isTranslucent) shadowDirectionDotNormal = abs(shadowDirectionDotNormal);
-    float distanceFromCamera = distance(viewToWorld(vec3(0)), viewToWorld(screenToView(uv, depth)));
+    vec3 LightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float lightDirectionDotNormal = dot(LightDirectionWorldSpace, normal);
+    if (isTranslucent) lightDirectionDotNormal = abs(lightDirectionDotNormal);
+    vec3 viewSpacePosition = screenToView(uv, depth);
+    vec3 viewSpaceViewDirection = normalize(viewSpacePosition);
+    vec3 worldSpacePosition = viewToWorld(viewSpacePosition);
+    vec3 viewDirectionWorldSpace = normalize(cameraPosition - worldSpacePosition);
+    float distanceFromCamera = distance(viewToWorld(vec3(0)), worldSpacePosition);
     float linearDepth = distanceFromCamera / far;
+    vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal);
+    float cosTheta = dot(-viewSpaceViewDirection, viewSpaceNormal);
 
     /* shadow */
     vec4 shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
@@ -99,34 +105,44 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
 
     /* lighting */
     // direct sky light
-    vec3 skyDirectLight = max(shadowDirectionDotNormal, 0) * skyLightColor;
+    vec3 skyDirectLight = max(lightDirectionDotNormal, 0) * skyLightColor;
     skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, shadow.rgb * skyLightColor, shadow.a); // apply shadow
     // ambiant sky light
     vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
-    // emissive block light
+    // block light
+    if (emissivness == 1) blockLightIntensity = 2; // enhance emissive light
     vec3 blockLight = blockLightColor * blockLightIntensity;
     // perfect diffuse
-    vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
+    // vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
+
+    /* BRDF */
+    float roughness = pow(1.0 - smoothness, 2.0);
+    vec3 BRDF = albedo * (ambiantSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
+
+    /* fresnel */
+    transparency = max(transparency, schlick(reflectance, cosTheta));
+    // transparency = schlick(reflectance, cosTheta);
 
     /* fog */
     // custom fog
     float customFogBlend = clamp(1 - pow(2, -pow((linearDepth*fog_density), 2)), 0, 1); // exponential function
-    color = mix(color, fog_color, customFogBlend);
+    BRDF = mix(BRDF, fog_color, customFogBlend);
     // vanilla fog
     float vanillaFogBlend = clamp((distanceFromCamera - fogStart) / (fogEnd - fogStart), 0, 1);
-    color = mix(color, fog_color, vanillaFogBlend);
+    BRDF = mix(BRDF, fog_color, vanillaFogBlend);
 
-    return vec4(color, transparency);
+    return vec4(BRDF, transparency);
 }
 
 // results
-/* RENDERTARGETS: 0,1,2,3,4 */
+/* RENDERTARGETS: 0,1,2,3,4,5 */
 layout(location = 0) out vec4 opaqueColorData;
 layout(location = 1) out vec4 opaqueNormalData;
-layout(location = 2) out vec4 opaqueTypeData;
+layout(location = 2) out vec4 opaqueMaterialData;
 layout(location = 3) out vec4 transparentColorData;
 layout(location = 4) out vec4 transparentNormalData;
+layout(location = 5) out vec4 transparentMaterialData;
 
 /*****************************************
 ************* lighting & fog *************
@@ -142,53 +158,55 @@ void main() {
     // normal
     vec4 normalData_opaque = texture2D(colortex1, uv);
     vec3 normal_opaque = decodeNormal(normalData_opaque.xyz);
-    // indirect sky & block light and type
-    vec4 lightAndTypeData_opaque = texture2D(colortex2, uv);
-    vec2 lightData_opaque = lightAndTypeData_opaque.xy;
-    lightData_opaque = SRGBtoLinear(lightData_opaque);
-    float blockLightIntensity_opaque = lightData_opaque.x;
-    float ambiantSkyLightIntensity_opaque = lightData_opaque.y;
-    float type_opaque = lightAndTypeData_opaque.z;
+    // light
+    vec4 lightData_opaque = texture2D(colortex2, uv);
+    vec2 receivedLight_opaque = lightData_opaque.xy;
+    receivedLight_opaque = SRGBtoLinear(receivedLight_opaque);
+    float blockLightIntensity_opaque = receivedLight_opaque.x;
+    float ambiantSkyLightIntensity_opaque = receivedLight_opaque.y;
+    float emissivness_opaque = lightData_opaque.z;
+    // material
+    vec4 materialData_opaque = texture2D(colortex3, uv);
+    float type_opaque = materialData_opaque.x;
+    float smoothness_opaque = materialData_opaque.y;
+    float reflectance_opaque = materialData_opaque.z;
     // depth
     float depth_opaque = texture2D(depthtex1, uv).x;
-    // PBR
-    vec4 PBRData_opaque = texture2D(colortex6, uv);
 
     /* transparent buffers values */
     // albedo
-    vec4 albedoData_transparent = texture2D(colortex3, uv);
+    vec4 albedoData_transparent = texture2D(colortex4, uv);
     albedoData_transparent = SRGBtoLinear(albedoData_transparent);
     vec3 albedo_transparent = albedoData_transparent.rgb;
     float transparency_transparent = albedoData_transparent.a;
     // normal
-    vec4 normalData_transparent = texture2D(colortex4, uv);
+    vec4 normalData_transparent = texture2D(colortex5, uv);
     vec3 normal_transparent = normalData_transparent.xyz *2 -1;
-    // indirect sky & block light and type
-    vec4 lightAndTypeData_transparent = texture2D(colortex5, uv);
-    vec2 lightData_transparent = lightAndTypeData_transparent.xy;
-    lightData_transparent = SRGBtoLinear(lightData_transparent);
-    float blockLightIntensity_transparent = lightData_transparent.x;
-    float ambiantSkyLightIntensity_transparent = lightData_transparent.y;
-    float type_transparent = lightAndTypeData_transparent.z;
+    // light
+    vec4 lightData_transparent = texture2D(colortex6, uv);
+    vec2 receivedLight_transparent = lightData_transparent.xy;
+    receivedLight_transparent = SRGBtoLinear(receivedLight_transparent);
+    float blockLightIntensity_transparent = receivedLight_transparent.x;
+    float ambiantSkyLightIntensity_transparent = receivedLight_transparent.y;
+    float emissivness_transparent = lightData_transparent.z;
+    // material
+    vec4 materialData_transparent = texture2D(colortex7, uv);
+    float type_transparent = materialData_transparent.x;
+    float smoothness_transparent = materialData_transparent.y;
+    float reflectance_transparent = materialData_transparent.z;
     // depth 
     float depth_all = texture2D(depthtex0, uv).x;
-    // PBR
-    vec4 PBRData_transparent = texture2D(colortex7, uv);
-
-
-    float ambiantFactor_opaque = 0.2;
-    float ambiantFactor_transparent = 0.2; // 1
 
 
     // -- WRITE STATIC BUFFERS -- //
     opaqueNormalData = normalData_opaque;
-    opaqueTypeData = vec4(type_opaque, type_transparent, 0, 1);
+    opaqueMaterialData = materialData_opaque;
     transparentNormalData = normalData_transparent;
+    transparentMaterialData = materialData_transparent;
 
     // -- INIT DYNAMIC BUFFERS -- //
     opaqueColorData = vec4(0);
     transparentColorData = vec4(0);
-
 
 
     // view space pos
@@ -230,11 +248,19 @@ void main() {
             albedo_opaque, 
             transparency_opaque, 
             normal_opaque, 
-            depth_opaque,  
+            depth_opaque,
+            smoothness_opaque,
+            reflectance_opaque,
             ambiantSkyLightIntensity_opaque, 
             blockLightIntensity_opaque,
+            emissivness_opaque,
             false
         );
+
+        // vec3 viewSpacePosition = screenToView(uv, depth_opaque);
+        // vec3 viewDirection = normalize(viewSpacePosition);
+        // float cosTheta = dot(-viewDirection, viewSpaceNormal);
+        // opaqueColorData = vec4(vec3(schlick(reflectance_opaque, cosTheta)), 1);
 
         // opaqueColorData = vec4(1,1,0,1);
         // opaqueColorData = PBRData_opaque;
@@ -262,13 +288,15 @@ void main() {
             transparency_transparent, 
             normal_transparent, 
             depth_all, 
+            smoothness_transparent,
+            reflectance_transparent,
             ambiantSkyLightIntensity_transparent, 
             blockLightIntensity_transparent,
+            emissivness_transparent,
             true
         );
         
         // transparentColorData = vec4(0,0,1,1);
-        // transparentColorData = PBRData_transparent;
     }
 
     opaqueColorData = linearToSRGB(opaqueColorData);
