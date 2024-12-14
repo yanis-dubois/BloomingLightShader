@@ -19,8 +19,8 @@ void main() {
     vec4 color = texture2D(colortex0, uv);
 
     // final color tweak
-    vec3 col = SRGBtoLinear(color.rgb);
-    color.rgb = linearToSRGB(col * 1.5);
+    // vec3 col = SRGBtoLinear(color.rgb);
+    // color.rgb = linearToSRGB(col * 1.5);
 
     outColor = color;
 }

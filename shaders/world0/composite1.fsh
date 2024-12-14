@@ -15,6 +15,7 @@ uniform sampler2D colortex4; // transparent normal
 uniform sampler2D colortex5; // transparent material : x=material_type, y=smoothness, z=reflectance
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
+uniform sampler2D depthtex2; // only opaque depth and no hand
 
 in vec3 planes_normal[6];
 in vec3 planes_point[6];
@@ -26,8 +27,11 @@ in vec2 uv;
 vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture,
                     vec3 texelSpaceStartPosition, vec3 texelSpaceEndPosition, 
                     float startPositionDepth, float endPositionDepth,
-                    float lastPosition, float currentPosition) {
+                    float lastPosition, float currentPosition,
+                    vec3 viewSpaceStartPosition, float reflectedDirectionDotZ) {
     
+    if (SSR_STEPS <= 0) return vec4(0);
+
     // init
     vec3 texelSpaceCurrentPosition = vec3(0);
     vec3 screenSpaceCurrentPosition = vec3(0);
@@ -80,8 +84,17 @@ vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture,
     reflectionVisibility *= (screenSpaceCurrentPosition.x<0 || 1<screenSpaceCurrentPosition.x ? 0 : 1)
                           * (screenSpaceCurrentPosition.y<0 || 1<screenSpaceCurrentPosition.y ? 0 : 1);
     
-    if (reflectionVisibility <= alphaTestRef)
+    if (reflectionVisibility <= alphaTestRef) {
         return vec4(0);
+    }
+
+    vec3 hitPosition = screenToView(
+            screenSpaceCurrentPosition.xy, 
+            texture2D(depthTexture, screenSpaceCurrentPosition.xy).r
+        );
+    float dist = distance(viewToWorld(hitPosition), viewToWorld(viewSpaceStartPosition));
+    if (reflectedDirectionDotZ < 0 && dist > 2) 
+        return vec4(backgroundColor, reflectionVisibility);
 
     vec4 reflection = texture2D(colorTexture, screenSpaceCurrentPosition.xy);
 
@@ -97,15 +110,19 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     // directions and angles in view space
     vec3 viewSpacePosition = screenToView(uv, depth);
     vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal);
+    //vec3 viewSpaceNormal = normal;
     vec3 viewDirection = normalize(viewSpacePosition);
     vec3 reflectedDirection = normalize(reflect(viewDirection, viewSpaceNormal));
-    float maxDistance = clamp(SSR_MAX_DISTANCE, 0, 1) * far;
-    float cosTheta = dot(-viewDirection, viewSpaceNormal);
+    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
+    float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0,0,-1));
 
     // fresnel
-    float reflectionVisibility = schlick(reflectance, cosTheta);
+    float reflectionVisibility = schlick(reflectance, viewDirectionDotNormal);
     if (reflectionVisibility <= 0.001)
         return vec4(0);
+    
+    vec4 reflection = vec4(backgroundColor, reflectionVisibility);
+    if (SSR_ONLY_FRESNEL == 1) return reflection;
 
     // define start and end search positions
     vec3 viewSpaceStartPosition = viewSpacePosition;
@@ -117,20 +134,22 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     vec3 texelSpaceStartPosition = screenToTexel(screenSpaceStartPosition);
     vec3 texelSpaceEndPosition = screenToTexel(screenSpaceEndPosition);
 
-    // avoid start position = end position
-    vec2 delta = texelSpaceEndPosition.xy - texelSpaceStartPosition.xy;
-    if (delta.x == 0 && delta.y == 0) {
-        return vec4(0);
-    }
-
     // default value is end point
     vec4 reflection_opaque = texture2D(colorTexture_opaque, screenSpaceEndPosition.xy);
     vec4 reflection_transparent = texture2D(colorTexture_transparent, screenSpaceEndPosition.xy);
-    vec4 reflection = vec4(mix(reflection_opaque.rgb, reflection_transparent.rgb, reflection_transparent.a), reflectionVisibility);
+    reflection = vec4(mix(reflection_opaque.rgb, reflection_transparent.rgb, reflection_transparent.a), reflectionVisibility);
+    if (reflectedDirectionDotZ < 0) reflection.rgb = backgroundColor;
+
+    // avoid start position = end position
+    vec2 delta = texelSpaceEndPosition.xy - texelSpaceStartPosition.xy;
+    if (delta.x == 0 && delta.y == 0) {
+        return reflection;
+    }
 
     // determine the step length
+    float resolution = mix(0.01, SSR_RESOLUTION, smoothness);
     float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1 : 0;
-    float stepsNumber = max(abs(delta.x), abs(delta.y)) * clamp(SSR_RESOLUTION, 0, 1); // check which dimension has the longest to determine the number of steps
+    float stepsNumber = max(abs(delta.x), abs(delta.y)) * clamp(resolution, 0, 1); // check which dimension has the longest to determine the number of steps
     vec2 stepLength = delta / stepsNumber;
 
     // position used during the intersection search 
@@ -141,7 +160,7 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     // initialize some variable
     vec3 texelSpaceCurrentPosition = texelSpaceStartPosition;
     vec3 screenSpaceCurrentPosition = screenSpaceStartPosition;
-    float currentPositionDepth = 0;
+    float currentPositionDepth = startPositionDepth;
     float actualPositionDepth_opaque = startPositionDepth;
     float actualPositionDepth_transparent = startPositionDepth;
     float depthDifference = SSR_THICKNESS;
@@ -151,11 +170,6 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     for (int i=0; i<int(stepsNumber); ++i) {
         texelSpaceCurrentPosition += vec3(stepLength, 1);
         screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
-
-        // stop if outside frustum [TODO: fade]
-        if (!isInRange(screenSpaceCurrentPosition.xy, 0.005, 0.995)) {
-            return vec4(backgroundColor, reflectionVisibility);
-        }
 
         // depth at this uv coordinate
         actualPositionDepth_opaque = - screenToView(
@@ -175,7 +189,12 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         );
         
         // determine actual depth
-        currentPositionDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
+        if (startPositionDepth < endPositionDepth) {
+            currentPositionDepth = - perspectiveMix(endPositionDepth, startPositionDepth, (1-currentPosition));
+        }
+        else {
+            currentPositionDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
+        }
         if (currentPositionDepth < 0) {
             break;
         }
@@ -195,11 +214,19 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         lastPosition = currentPosition;
     }
 
+    // ...
     float fadeFactor = pow(2*distanceInf(vec2(0.5), screenSpaceCurrentPosition.xy), 5);
     reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
 
-    if (!hitFirstPass_opaque && !hitFirstPass_transparent)
+    // no hit
+    if (!hitFirstPass_opaque && !hitFirstPass_transparent) {
+        // reflected ray go towards camera
+        // if (viewDirectionDotNormal > 0.8) {
+        //     reflection.rgb = backgroundColor;
+        //     return reflection;
+        // }
         return reflection;
+    }
 
     if (hitFirstPass_opaque)
         reflection_opaque = SSR_SecondPass(
@@ -210,7 +237,9 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
             startPositionDepth,
             endPositionDepth,
             lastPosition, 
-            currentPosition
+            currentPosition,
+            viewSpaceStartPosition,
+            reflectedDirectionDotZ
         );
     
     if (hitFirstPass_transparent)
@@ -222,9 +251,11 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
             startPositionDepth,
             endPositionDepth,
             lastPosition_transparent, 
-            currentPosition_transparent
+            currentPosition_transparent,
+            viewSpaceStartPosition,
+            reflectedDirectionDotZ
         );
-    
+
     if (reflection_opaque.a <= alphaTestRef && reflection_transparent.a <= alphaTestRef)
         return reflection;
     
@@ -244,6 +275,7 @@ void main() {
     // color
     vec4 colorData_opaque = texture2D(colortex0, uv);
     vec3 color_opaque = colorData_opaque.rgb;
+    color_opaque = SRGBtoLinear(color_opaque);
     float transparency_opaque = colorData_opaque.a;
     // normal
     vec4 normalData_opaque = texture2D(colortex1, uv);
@@ -260,6 +292,7 @@ void main() {
     // color
     vec4 colorData_transparent = texture2D(colortex3, uv);
     vec3 color_transparent = colorData_transparent.rgb;
+    color_transparent = SRGBtoLinear(color_transparent);
     float transparency_transparent = colorData_transparent.a;
     // normal
     vec4 normalData_transparent = texture2D(colortex4, uv);
@@ -281,16 +314,66 @@ void main() {
     // outColor = vec4(vec3(mix(color_opaque, color_transparent, transparency_transparent)), transparency_opaque);
     // return;
 
+
+
+    // view space pos
+    vec3 viewSpacePosition = screenToView(uv, depth_opaque);
+    vec3 worldSpacePosition = viewToWorld(viewSpacePosition);
+    // view space normal
+    vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal_opaque);
+    // view space tangent 
+    vec3 t1 = cross(normal_opaque, vec3(0,0,1));
+    vec3 t2 = cross(normal_opaque, vec3(0,1,0));
+    vec3 tangent = length(t1)>length(t2) ? t1 : t2;
+    tangent = normalize(tangent);
+    vec3 viewSpaceTangent = normalize(mat3(gbufferModelView) * tangent);
+    // view space bitangent
+    vec3 viewSpaceBitangent = cross(viewSpaceTangent, viewSpaceNormal);
+    viewSpaceBitangent = normalize(viewSpaceBitangent);
+    // tbn - tangent to view 
+    mat3 TBN = mat3(viewSpaceTangent, viewSpaceBitangent, viewSpaceNormal); 
+
+    vec3 bitangent = cross(tangent, normal_opaque);
+    bitangent = normalize(bitangent);
+    mat3 TBNworld = mat3(tangent, bitangent, normal_opaque); 
+
+    vec3 viewDirection = - normalize(viewSpacePosition);
+    float roughness = pow(1.0 - smoothness_opaque, 2.0);
+    roughness *= roughness;
+    roughness = roughness;
+
+    vec3 cul = mod(abs(worldSpacePosition), vec3(1));
+    //cul = abs(cul*2 - 1);
+    cul = transpose(TBNworld) * cul;
+    cul = abs(cul);
+
+    vec3 noise = getNoise1(cul.xy);
+    noise = getNoise(uv);
+    float zeta1 = noise.x, zeta2 = noise.y;
+
+    viewDirection = transpose(TBN) * viewDirection;
+
+    vec3 sampledNormal = sampleGGXVNDF(viewDirection, roughness, roughness, zeta1, zeta2);
+    // sampledNormal = normalize(sampledNormal);
+
+    // sampledNormal = sampleGGXNormal(uv, roughness);
+
+    sampledNormal = TBN * sampledNormal;
+    sampledNormal = viewToEye(sampledNormal);
+
+    // outColor = vec4(noise, 1);
+    // return;
+
     // -- LIT OPAQUE -- //
     if (type_opaque == 1) {
         vec4 reflectionData = SSR(
             colortex0, 
             colortex3, 
-            depthtex1, 
+            depthtex2, 
             depthtex0, 
             uv, 
             depth_opaque, 
-            normal_opaque,
+            sampledNormal,
             smoothness_opaque, 
             reflectance_opaque
         );
@@ -305,7 +388,7 @@ void main() {
         vec4 reflectionData = SSR(
             colortex0,
             colortex3,
-            depthtex1,
+            depthtex2,
             depthtex0,
             uv,
             depth_all,
@@ -321,5 +404,5 @@ void main() {
 
     /* mix opaque & transparent */
     outColor = vec4(vec3(mix(color_opaque, color_transparent, transparency_transparent)), transparency_opaque);
-    // outColor = mix(outColor, vec4(0), 2*(distanceInf(vec2(0.5), uv)));
+    outColor.rgb = linearToSRGB(outColor.rgb);
 }

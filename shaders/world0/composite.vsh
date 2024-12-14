@@ -52,21 +52,19 @@ void main() {
     skyDayNightBlend = sigmoid(sunDirectionDotUp, 1., 50.);
     skyLightColor = mix(moonLightColor, sunLightColor, skyDayNightBlend);
     skyLightColor = mix(skyLightColor, skyLightColor*rainySkyColor, rainStrength); // reduce contribution if it rain
-    skyLightColor = pow(skyLightColor, vec3(2.2));
+    skyLightColor = SRGBtoLinear(skyLightColor);
 
     // emissive block color 
     float blockColorTemperature = 4500.;
     blockLightColor = kelvinToRGB(blockColorTemperature);
-    blockLightColor = pow(blockLightColor, vec3(2.2));
+    blockLightColor = SRGBtoLinear(blockLightColor);
 
     // rain
     rainFactor = max(1-rainStrength, 0.05);
 
     // fog
-    fog_color = pow(fogColor, vec3(2.2));
+    fog_color = SRGBtoLinear(fogColor);
     fog_density = mix(0.8, 1.5, rainStrength);
-
-
 
     /* vertex infos */
     gl_Position = ftransform();

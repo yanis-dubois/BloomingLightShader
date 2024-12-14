@@ -30,35 +30,46 @@ vec3 getMaterialData(int id) {
     float reflectance = 0;
     float emmissivness = 0;
 
+    float n1 = isEyeInWater == 1 ? 1.33 : 1;
+
     // -- smoothness -- //
 
     // water
     if (id == 20000) {
         smoothness = 0.9;
+
+        float n2 = isEyeInWater == 0 ? 1.33 : 1;
+        reflectance = getReflectance(n1, n2);
     }
     // glass 
     else if (id == 20010 || id == 20011 || id == 20012) {
         smoothness = 0.95;
+        reflectance = getReflectance(n1, 1.5);
     }
     // metal
     else if (id == 20020) {
         smoothness = 0.8;
+        reflectance = getReflectance(n1, 3);
     }
     // polished
-    else if (id == 20030) {
-        smoothness = 0.6;
+    else if (id == 20030 || id == 20031) {
+        smoothness = 0.7;
+        reflectance = getReflectance(n1, 2.1);
     }
     // specular
     else if (id == 20040) {
         smoothness = 0.4;
+        reflectance = getReflectance(n1, 2.1);
     }
     // rough
     else if (id == 20050) {
         smoothness = 0.2;
+        reflectance = getReflectance(n1, 3);
     }
     // emmissive and smooth
     else if (id == 30030) {
         smoothness = 0.95;
+        reflectance = getReflectance(n1, 2);
     }
 
     // -- emmissive -- //

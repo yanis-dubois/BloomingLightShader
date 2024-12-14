@@ -24,10 +24,10 @@ const bool shadowcolor0Nearest = true;
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_MAX_DISTANCE 1
-#define SSR_RESOLUTION 0.25
-#define SSR_STEPS 10
-#define SSR_THICKNESS 0.5
+#define SSR_ONLY_FRESNEL 0 // 0=no; 1=yes
+#define SSR_RESOLUTION 0.3 // from 0=low to 1=high
+#define SSR_STEPS 10 // from 0=none to inf=too_much
+#define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 
 //////////////////////////
 //////// Uniforms ////////
@@ -61,3 +61,4 @@ uniform float gamma;
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous
 uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;
+uniform int isEyeInWater;

@@ -2,6 +2,7 @@
 
 // includes
 #include "/lib/common.glsl"
+#include "/lib/utils.glsl"
 
 // left right bottom top near far
 out vec3 planes_normal[6];
@@ -59,7 +60,7 @@ void main() {
 
     // background reflection color
     // TODO: gérer le fog dans les grottes
-    backgroundColor = mix(0.5*fogColor, skyColor, float(eyeBrightness.y)/255.);
+    backgroundColor = mix(0.5*SRGBtoLinear(fogColor), SRGBtoLinear(skyColor), float(eyeBrightness.y)/255.);
 
     gl_Position = ftransform();
     uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;

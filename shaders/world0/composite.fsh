@@ -210,9 +210,7 @@ void main() {
 
 
     // view space pos
-    vec3 NDCPos = vec3(uv, depth_opaque) * 2.0 - 1.0;
-    vec3 viewSpacePosition = projectAndDivide(gbufferProjectionInverse, NDCPos);
-    viewSpacePosition = screenToView(uv, depth_opaque);
+    vec3 viewSpacePosition = screenToView(uv, depth_opaque);
 
     // view space normal
     vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal_opaque);
@@ -298,6 +296,9 @@ void main() {
         
         // transparentColorData = vec4(0,0,1,1);
     }
+
+    opaqueColorData.rgb *= 1.5;
+    transparentColorData.rgb *= 1.5;
 
     opaqueColorData = linearToSRGB(opaqueColorData);
     transparentColorData = linearToSRGB(transparentColorData);

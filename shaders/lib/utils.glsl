@@ -19,6 +19,10 @@ float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
 float schlick(float F0, float cosTheta) {
     return F0 + (1 - F0) * pow(1 - cosTheta, 5);
 }
+float getReflectance(float n1, float n2) {
+    float R0 = (n1 - n2) / (n1 + n2);
+    return R0 * R0;
+}
 vec3 brdf(vec3 lightDirection, vec3 viewDirection, vec3 normal, vec3 albedo, float roughness, float reflectance) {
     
     float alpha = pow(roughness, 2);
@@ -56,6 +60,53 @@ vec3 getNoise(vec2 uv) {
     ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
     return texelFetch(noisetex, noiseCoord, 0).rgb;
+}
+vec3 getNoise1(vec2 uv) {
+    return texture2D(noisetex, uv).rgb;
+}
+// sample GGX normal
+vec3 sampleGGXNormal(vec2 uv, float alpha) {
+    vec2 zeta = getNoise(uv).xy;
+
+    // Étape 1 : Calcul de θ_h et φ_h
+    float theta_h = atan(alpha * sqrt(zeta.x) / sqrt(1.0 - zeta.x));
+    float phi_h = 2.0 * PI * zeta.y;
+
+    // Étape 2 : Conversion en coordonnées cartésiennes
+    vec3 h_local;
+    h_local.x = sin(theta_h) * cos(phi_h);
+    h_local.y = sin(theta_h) * sin(phi_h);
+    h_local.z = cos(theta_h);
+
+    return h_local;
+}
+// FAFLFDOFKAFS?
+vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
+
+    // Section 3.2: transforming the view direction to the hemisphere configuration
+    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
+
+    // Section 4.1: orthonormal basis (with special case if cross product is zero)
+    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+    vec3 T1 = lensq > 0 ? vec3(-Vh.y, Vh.x, 0) * inversesqrt(lensq) 
+                        : vec3(1,0,0);
+    vec3 T2 = cross(Vh, T1);
+
+    // Section 4.2: parameterization of the projected area
+    float r = sqrt(U1);
+    float phi = 2.0 * PI * U2;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5 * (1.0 + Vh.z);
+    t2 = (1.0 - s)*sqrt(1.0 - t1*t1) + s*t2;
+
+    // Section 4.3: reprojection onto hemisphere
+    vec3 Nh = t1*T1 + t2*T2 + sqrt(max(0.0, 1.0 - t1*t1 - t2*t2))*Vh;
+
+    // Section 3.4: transforming the normal back to the ellipsoid configuration
+    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
+
+    return Ne;
 }
 
 // -- interval stuff -- //
