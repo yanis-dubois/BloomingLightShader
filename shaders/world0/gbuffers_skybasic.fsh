@@ -29,15 +29,19 @@ vec3 screenToView(vec3 screenPos) {
 }
 
 // results
-/* RENDERTARGETS: 0,3 */
+/* RENDERTARGETS: 0,2,3 */
 layout(location = 0) out vec4 opaqueAlbedoData;
-layout(location = 1) out vec4 opaqueMaterialData;
+layout(location = 1) out vec4 opaqueLightData;
+layout(location = 2) out vec4 opaqueMaterialData;
 
 void main() {
+	float emissivness = 0;
+
 	/* albedo */
 	vec3 albedo = vec3(0);
 	if (starData.a > 0.5) {
 		albedo = starData.rgb;
+		emissivness = 1;
 	} else {
 		vec3 pos = screenToView(vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1));
 		albedo = calcSkyColor(normalize(pos));
@@ -48,5 +52,6 @@ void main() {
 
 	/* buffers */
     opaqueAlbedoData = vec4(albedo, 1);
+	opaqueLightData = vec4(0, 0, emissivness, 1);
     opaqueMaterialData = vec4(type, 0, 0, 1);
 }

@@ -110,15 +110,18 @@ vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
 }
 
 // -- interval stuff -- //
+bool isInRange(int x, int min_, int max_) {
+    return min_ <= x && x <= max_;
+}
 bool isInRange(float x, float min_, float max_) {
-    return min_ < x && x < max_;
+    return min_ <= x && x <= max_;
 }
 bool isInRange(vec2 xy, float min_, float max_) {
     return isInRange(xy.x, min_, max_) && isInRange(xy.y, min_, max_);
 }
 float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
     float mapped = (value-fromMin) / (fromMax-fromMin); // from [fromMin;fromMax] to [0;1]
-    return mapped*(toMax-toMin) + toMin; // from [0;1] to [toMin;toMax]
+    return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]
 }
 
 // -- misc -- //
@@ -134,8 +137,8 @@ float perspectiveMix(float a, float b, float factor) {
 float sigmoid(float x, float offset, float speed) {
     return (offset / (offset + pow(e, -speed * x)));
 }
-float cosThetaToSigmoid(float cosTheta, float offset, float speed) {
-    float normalizedAngle = acos(cosTheta)/PI *4 -1;
+float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duration) {
+    float normalizedAngle = duration * acos(cosTheta)/PI *4 -1;
     return 1 - sigmoid(normalizedAngle, offset, speed);
 }
 

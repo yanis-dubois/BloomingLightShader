@@ -11,18 +11,16 @@
 // textures
 uniform sampler2D colortex0; // opaque albedo
 uniform sampler2D colortex1; // opaque normal
-uniform sampler2D colortex2; // opaque light & type : x=block_light, y=sky_ambiant_light, z=material_type[0:basic,0.5:transparent,1:lit]
-uniform sampler2D colortex3; // opaque PBR (smoothness, reflectance, emissivness)
+uniform sampler2D colortex2; // opaque light (block_light, sky_ambiant_light, emmissivness)
+uniform sampler2D colortex3; // opaque material (smoothness, reflectance, emissivness)
 uniform sampler2D colortex4; // transparent albedo
 uniform sampler2D colortex5; // transparent normal
-uniform sampler2D colortex6; // transparent light
-uniform sampler2D colortex7; // transparent PBR (smoothness, reflectance, emissivness)
+uniform sampler2D colortex6; // transparent light (block_light, sky_ambiant_light, emmissivness)
+uniform sampler2D colortex7; // transparent material (smoothness, reflectance, emissivness)
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 
 // constant
-const float startShadowDecrease = 140;
-const float endShadowDecrease = 150;
 const float ambiantFactor_opaque = 0.2;
 const float ambiantFactor_transparent = 1;
 
@@ -34,6 +32,7 @@ in vec3 blockLightColor;
 in vec3 fog_color;
 in float moonPhaseBlend;
 in float skyDayNightBlend;
+in float shadowDayNightBlend;
 in float rainFactor;
 in float fog_density;
 
@@ -97,16 +96,16 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
 
     /* shadow */
     vec4 shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
-    // decrease shadow as it rains
-    shadow.a *= rainFactor;
-    // decrease shadow with distance
-    float shadowBlend = clamp((distanceFromCamera - startShadowDecrease) / (endShadowDecrease - startShadowDecrease), 0, 1);
-    shadow.a = mix(shadow.a, 0, shadowBlend);
+    // reduce contribution as it rains or during day-night transition
+    shadow.a *= rainFactor * shadowDayNightBlend;
+    // fade into the distance
+    shadow.a *= 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
+    if (distanceFromCamera > endShadowDecrease) shadow.a = 0;
 
     /* lighting */
     // direct sky light
     vec3 skyDirectLight = max(lightDirectionDotNormal, 0) * skyLightColor;
-    skyDirectLight *= rainFactor * abs(skyDayNightBlend-0.5)*2; // reduce contribution as it rains or during day-night transition
+    skyDirectLight *= rainFactor ; // * shadowDayNightBlend; // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, shadow.rgb * skyLightColor, shadow.a); // apply shadow
     // ambiant sky light
     vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
@@ -114,35 +113,36 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     if (emissivness == 1) blockLightIntensity = 2; // enhance emissive light
     vec3 blockLight = blockLightColor * blockLightIntensity;
     // perfect diffuse
-    // vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
+    vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
 
     /* BRDF */
-    float roughness = pow(1.0 - smoothness, 2.0);
-    vec3 BRDF = albedo * (ambiantSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
+    // float roughness = pow(1.0 - smoothness, 2.0);
+    // vec3 BRDF = albedo * (ambiantSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
 
     /* fresnel */
     transparency = max(transparency, schlick(reflectance, cosTheta));
-    // transparency = schlick(reflectance, cosTheta);
 
     /* fog */
     // custom fog
     float customFogBlend = clamp(1 - pow(2, -pow((linearDepth*fog_density), 2)), 0, 1); // exponential function
-    BRDF = mix(BRDF, fog_color, customFogBlend);
+    color = mix(color, fog_color, customFogBlend);
     // vanilla fog
     float vanillaFogBlend = clamp((distanceFromCamera - fogStart) / (fogEnd - fogStart), 0, 1);
-    BRDF = mix(BRDF, fog_color, vanillaFogBlend);
+    color = mix(color, fog_color, vanillaFogBlend);
 
-    return vec4(BRDF, transparency);
+    return vec4(color, transparency);
 }
 
 // results
-/* RENDERTARGETS: 0,1,2,3,4,5 */
+/* RENDERTARGETS: 0,1,2,3,4,5,6,7 */
 layout(location = 0) out vec4 opaqueColorData;
 layout(location = 1) out vec4 opaqueNormalData;
-layout(location = 2) out vec4 opaqueMaterialData;
-layout(location = 3) out vec4 transparentColorData;
-layout(location = 4) out vec4 transparentNormalData;
-layout(location = 5) out vec4 transparentMaterialData;
+layout(location = 2) out vec4 opaqueLightAndTypeData;
+layout(location = 3) out vec4 opaqueMaterialData;
+layout(location = 4) out vec4 transparentColorData;
+layout(location = 5) out vec4 transparentNormalData;
+layout(location = 6) out vec4 transparentLightData;
+layout(location = 7) out vec4 transparentMaterialData;
 
 /*****************************************
 ************* lighting & fog *************
@@ -201,7 +201,9 @@ void main() {
     // -- WRITE STATIC BUFFERS -- //
     opaqueNormalData = normalData_opaque;
     opaqueMaterialData = materialData_opaque;
+    opaqueLightAndTypeData = lightData_opaque;
     transparentNormalData = normalData_transparent;
+    transparentLightData = lightData_transparent;
     transparentMaterialData = materialData_transparent;
 
     // -- INIT DYNAMIC BUFFERS -- //
@@ -238,6 +240,7 @@ void main() {
         opaqueColorData += vec4(albedo_opaque, transparency_opaque);
 
         // opaqueColorData = vec4(1,0,0,1);
+        // opaqueColorData = vec4(vec3(lightData_opaque.z), 1);
     } 
     // -- LIT MATERIAL -- //
     else if (type_opaque == 1) {
@@ -255,13 +258,8 @@ void main() {
             false
         );
 
-        // vec3 viewSpacePosition = screenToView(uv, depth_opaque);
-        // vec3 viewDirection = normalize(viewSpacePosition);
-        // float cosTheta = dot(-viewDirection, viewSpaceNormal);
-        // opaqueColorData = vec4(vec3(schlick(reflectance_opaque, cosTheta)), 1);
-
         // opaqueColorData = vec4(1,1,0,1);
-        // opaqueColorData = PBRData_opaque;
+        // opaqueColorData = vec4(vec3(normal_opaque), 1);
     }
 
     // -- GLOWING MATERIAL-- //

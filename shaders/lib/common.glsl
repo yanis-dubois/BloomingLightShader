@@ -15,6 +15,8 @@ const int shadowMapResolution = 2048;
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
 const bool shadowcolor0Nearest = true;
+const float startShadowDecrease = 100; // 100?
+const float endShadowDecrease = 150; // 150?
 
 // Screen Space Ambiant Occlusion (SSAO)
 #define SSAO_SAMPLES 0 // number of samples
@@ -58,6 +60,7 @@ uniform float viewHeight;
 uniform float viewWidth;
 uniform float gamma;
 
+uniform int worldTime; // in tick [0;23999]
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous
 uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;

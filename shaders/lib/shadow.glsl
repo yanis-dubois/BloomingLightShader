@@ -3,7 +3,11 @@ uniform sampler2D shadowtex0; // all shadow
 uniform sampler2D shadowtex1; // only opaque shadow
 uniform sampler2D shadowcolor0; // shadow color
 uniform mat4 shadowModelView;
+uniform mat4 shadowModelViewInverse;
 uniform mat4 shadowProjection;
+uniform mat4 shadowProjectionInverse;
+
+const float bias = 0.002; // 0.0015 // 0.02
 
 // makes shadows near to the player higher resolution than ones far from them
 vec3 distortShadowClipPos(vec3 shadowClipPos){
@@ -17,9 +21,9 @@ vec3 distortShadowClipPos(vec3 shadowClipPos){
 
 // say if a pixel is in shadow and apply a shadow color to it if needed
 vec4 getShadow(vec3 shadowScreenPos) {
-    float isInShadow = step(shadowScreenPos.z, texture2D(shadowtex0, shadowScreenPos.xy).r);
-    float isntInColoredShadow = step(shadowScreenPos.z, texture2D(shadowtex1, shadowScreenPos.xy).r);
-    vec4 shadowColor = texture2D(shadowcolor0, shadowScreenPos.xy);
+    float isInShadow = step(shadowScreenPos.z, shadow2D(shadowtex0, shadowScreenPos.xy).r);
+    float isntInColoredShadow = step(shadowScreenPos.z, shadow2D(shadowtex1, shadowScreenPos.xy).r);
+    vec4 shadowColor = shadow2D(shadowcolor0, shadowScreenPos.xy);
 
     // shadow get colored if needed
     vec4 shadow = vec4(0);
@@ -27,7 +31,7 @@ vec4 getShadow(vec3 shadowScreenPos) {
         if (isntInColoredShadow == 0) {
             shadow = vec4(vec3(0), 1);
         } else {
-            shadow = shadowColor;// shadowColor.rgb * (1-shadowColor.a);
+            shadow = shadowColor;
         }
     }
 
@@ -44,15 +48,20 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 
     if (SHADOW_SOFTNESS <= 0. || SHADOW_QUALITY <= 0.) {
-        shadowClipPos.z -= 0.0015; // apply bias
+        shadowClipPos.z -= bias; // apply bias
         shadowClipPos.xyz = distortShadowClipPos(shadowClipPos.xyz); // apply distortion
         vec3 shadowNDCPos = shadowClipPos.xyz / shadowClipPos.w; // convert to NDC space
         vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
         return getShadow(shadowScreenPos);
     }
 
-    const float range = SHADOW_SOFTNESS / 2; // how far away from the original position we take our samples from
-    const float increment = range / SHADOW_QUALITY; // distance between each sample
+    // distant shadows are smoother
+    float distanceToPlayer = distance(vec3(0), feetPlayerPos);
+    float blend = map(distanceToPlayer, 0, startShadowDecrease, 1, 20);
+
+    float range = SHADOW_SOFTNESS / 2; // how far away from the original position we take our samples from
+    range *= blend;
+    float increment = range / SHADOW_QUALITY; // distance between each sample
 
     // get noise
     float noise = getNoise(uv).r;
@@ -70,7 +79,7 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
             vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
             offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
             vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
-            offsetShadowClipPos.z -= 0.0015; // apply bias
+            offsetShadowClipPos.z -= bias; // apply bias
             offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
             vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
             vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space

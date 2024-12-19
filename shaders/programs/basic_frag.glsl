@@ -1,8 +1,11 @@
 #extension GL_ARB_explicit_attrib_location : enable
 
+// includes
+#include "/lib/common.glsl"
+#include "/lib/utils.glsl"
+
 // uniforms
 uniform sampler2D gtexture;
-uniform float alphaTestRef;
 
 // attributes
 in vec4 additionalColor; // foliage, water, particules
@@ -31,12 +34,17 @@ void main() {
     float type = 0; // basic=0
 
     #ifdef BEACON_BEAM
-    albedo *= 1.25;
     transparency = 0.5;
+    albedo = SRGBtoLinear(albedo);
+    albedo *= 1.5;
+    albedo = linearToSRGB(albedo);
     #endif
 
     /* buffers */
     #ifdef GLOWING
+        albedo = SRGBtoLinear(albedo);
+        albedo *= 2;
+        albedo = linearToSRGB(albedo);
         transparentAlbedoData = vec4(albedo, transparency);
         transparentMaterialData = vec4(type, 0, 0, 1);
     #else

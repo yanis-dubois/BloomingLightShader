@@ -9,16 +9,16 @@ uniform sampler2D gtexture;
 // attributes
 in vec4 additionalColor; // foliage, water, particules albedo
 in vec3 normal;
+in vec3 viewSpacePosition;
 in vec2 textureCoordinate; // immuable block & item albedo
 in vec2 lightMapCoordinate; // light map
-in vec3 viewSpacePosition;
 flat in int id;
 
 // results
 /* RENDERTARGETS: 0,1,2,3,4,5,6,7 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 1) out vec4 opaqueNormalData;
-layout(location = 2) out vec4 opaqueLightAndTypeData;
+layout(location = 2) out vec4 opaqueLightData; // blockLightIntensity, ambiantSkyLightIntensity, emmissivness, type, smoothness, reflectance
 layout(location = 3) out vec4 opaqueMaterialData;
 layout(location = 4) out vec4 transparentAlbedoData;
 layout(location = 5) out vec4 transparentNormalData;
@@ -42,7 +42,7 @@ vec3 getMaterialData(int id) {
         reflectance = getReflectance(n1, n2);
     }
     // glass 
-    else if (id == 20010 || id == 20011 || id == 20012) {
+    else if (id == 20010 || id == 20011 || id == 20012 || id == 20013) {
         smoothness = 0.95;
         reflectance = getReflectance(n1, 1.5);
     }
@@ -85,6 +85,8 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
+    if (id == 20010) transparency = clamp(transparency, 0.36, 0.75); // uncolored glass
+    if (id == 20011) transparency = clamp(transparency, 0.36, 1); // beacon glass
     if (transparency < alphaTestRef) discard;
 
     /* normal */
@@ -122,7 +124,7 @@ void main() {
     #else
         opaqueAlbedoData = vec4(albedo, transparency);
         opaqueNormalData = vec4(encodedNormal, 1);
-        opaqueLightAndTypeData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, 1);
+        opaqueLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, 1);
         opaqueMaterialData = vec4(type, smoothness, reflectance, 1);
     #endif
 }
