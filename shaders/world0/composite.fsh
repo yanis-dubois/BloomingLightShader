@@ -25,13 +25,9 @@ const float ambiantFactor_opaque = 0.2;
 const float ambiantFactor_transparent = 1;
 
 // attributes
-in vec3 sunLightColor;
-in vec3 moonLightColor;
 in vec3 skyLightColor;
 in vec3 blockLightColor;
 in vec3 fog_color;
-in float moonPhaseBlend;
-in float skyDayNightBlend;
 in float shadowDayNightBlend;
 in float rainFactor;
 in float fog_density;
@@ -243,7 +239,7 @@ void main() {
         // opaqueColorData = vec4(vec3(lightData_opaque.z), 1);
     } 
     // -- LIT MATERIAL -- //
-    else if (type_opaque == 1) {
+    else if (type_opaque >= 0.9) {
         opaqueColorData += lighting(
             uv, 
             albedo_opaque, 
@@ -263,7 +259,7 @@ void main() {
     }
 
     // -- GLOWING MATERIAL-- //
-    if (type_transparent < 1) {
+    if (type_transparent < 0.9) {
         // add it
         if (type_transparent == 0) {
             opaqueColorData += albedoData_transparent;

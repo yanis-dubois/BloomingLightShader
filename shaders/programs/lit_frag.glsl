@@ -48,28 +48,28 @@ vec3 getMaterialData(int id) {
     }
     // metal
     else if (id == 20020) {
-        smoothness = 0.8;
+        smoothness = 0.75;
         reflectance = getReflectance(n1, 3);
     }
     // polished
     else if (id == 20030 || id == 20031) {
-        smoothness = 0.7;
-        reflectance = getReflectance(n1, 2.1);
+        smoothness = 0.6;
+        reflectance = getReflectance(n1, 1.4);
     }
     // specular
     else if (id == 20040) {
         smoothness = 0.4;
-        reflectance = getReflectance(n1, 2.1);
+        reflectance = getReflectance(n1, 1.3);
     }
     // rough
     else if (id == 20050) {
         smoothness = 0.2;
-        reflectance = getReflectance(n1, 3);
+        reflectance = getReflectance(n1, 1);
     }
     // emmissive and smooth
     else if (id == 30030) {
         smoothness = 0.95;
-        reflectance = getReflectance(n1, 2);
+        reflectance = getReflectance(n1, 1.5);
     }
 
     // -- emmissive -- //
@@ -86,7 +86,7 @@ void main() {
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
     if (id == 20010) transparency = clamp(transparency, 0.36, 0.75); // uncolored glass
-    if (id == 20011) transparency = clamp(transparency, 0.36, 1); // beacon glass
+    if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
     /* normal */
@@ -103,6 +103,7 @@ void main() {
 
     /* type */
     float type = 1; // lit=1
+    if (id == 20000) type = 0.95; // water
 
     /* material data */
     vec3 pbr = getMaterialData(id);

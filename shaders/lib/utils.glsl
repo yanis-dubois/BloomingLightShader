@@ -56,6 +56,9 @@ vec3 brdf(vec3 lightDirection, vec3 viewDirection, vec3 normal, vec3 albedo, flo
 
 // -- random generator -- //
 // return 3 random value from uv coordinates
+float pseudoRandom(vec2 uv) {
+    return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+}
 vec3 getNoise(vec2 uv) {
     ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
@@ -142,50 +145,6 @@ float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duratio
     return 1 - sigmoid(normalizedAngle, offset, speed);
 }
 
-// -- color stuff -- //
-vec3 kelvinToRGB(float kelvin) {
-    // Normalize the Kelvin value to fit the range.
-    float temperature = kelvin / 100.;
-
-    // Initialize RGB values
-    float red, green, blue;
-
-    // Calculate red
-    if (temperature <= 66.) {
-        red = 1.;
-    } else {
-        red = temperature - 60.;
-        red = 329.698727446 * pow(red, -0.1332047592);
-        red = clamp(min(255., red), 0, 255) / 255.;
-    }
-
-    // Calculate green
-    if (temperature <= 66.) {
-        green = temperature;
-        green = 99.4708025861 * log(green) - 161.1195681661;
-    } else {
-        green = temperature - 60.;
-        green = 288.1221695283 * pow(green, -0.0755148492);
-    }
-    green = clamp(min(255., green), 0, 255) / 255.;
-
-    // Calculate blue
-    if (temperature >= 66.) {
-        blue = 1.;
-    } else {
-        if (temperature <= 19.) {
-            blue = 0.;
-        } else {
-            blue = temperature - 10.;
-            blue = 138.5177312231 * log(blue) - 305.0447927307;
-            blue = clamp(min(255., blue), 0, 255) / 255.;
-        }
-    }
-
-    return vec3(red, green, blue);
-}
-
-
 // -- gamma correction -- //
 float SRGBtoLinear(float x) {
     return pow(x, gamma);
@@ -263,10 +222,10 @@ vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], 
 
 // -- data encoding & decoding -- //
 vec3 encodeNormal(vec3 normal) {
-    return (normal + 1) / 2; // from [-1;1] to [0;1]
+    return (normal + 1.0) / 2.0; // from [-1;1] to [0;1]
 }
 vec3 decodeNormal(vec3 normal) {
-    return normal * 2 - 1; // from [0;1] to [-1;1]
+    return normal * 2.0 - 1.0; // from [0;1] to [-1;1]
 }
 
 #endif

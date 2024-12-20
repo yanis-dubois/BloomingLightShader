@@ -4,24 +4,24 @@
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
+#include "/lib/color.glsl"
 #include "/lib/space_conversion.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
 uniform sampler2D colortex1; // opaque normal
 uniform sampler2D colortex2; // opaque light (block_light, sky_ambiant_light, emmissivness)
-uniform sampler2D colortex3; // opaque material (smoothness, reflectance, emissivness)
+uniform sampler2D colortex3; // opaque material (type, smoothness, reflectance)
 uniform sampler2D colortex4; // transparent color
 uniform sampler2D colortex5; // transparent normal
 uniform sampler2D colortex6; // transparent light (block_light, sky_ambiant_light, emmissivness)
-uniform sampler2D colortex7; // transparent material (smoothness, reflectance, emissivness)
+uniform sampler2D colortex7; // transparent material (type, smoothness, reflectance)
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 uniform sampler2D depthtex2; // only opaque depth and no hand
 
 in vec3 planes_normal[6];
 in vec3 planes_point[6];
-in vec3 backgroundColor;
 
 // attributes
 in vec2 uv;
@@ -30,7 +30,7 @@ vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture, sampler2D li
                     vec3 texelSpaceStartPosition, vec3 texelSpaceEndPosition, 
                     float startPositionDepth, float endPositionDepth,
                     float lastPosition, float currentPosition,
-                    vec3 viewSpaceStartPosition, float reflectedDirectionDotZ) {
+                    vec3 viewSpaceStartPosition, float reflectedDirectionDotZ, vec3 backgroundColor) {
     
     // no second pass
     if (SSR_STEPS <= 0) return vec4(0);
@@ -101,14 +101,16 @@ vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture, sampler2D li
 
     // hit
     vec4 reflection = texture2D(colorTexture, screenSpaceCurrentPosition.xy);
+    // lighten emissive object
     vec4 light = texture2D(lightTexture, screenSpaceCurrentPosition.xy);
     reflection.rgb = SRGBtoLinear(reflection.rgb) * (light.z+1);
+
     return reflection;
 }
 
 vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent, 
                  sampler2D depthTexture_opaque, sampler2D depthTexture_transparent, 
-                 vec2 uv, float depth, vec3 normal, float smoothness, float reflectance) {
+                 vec2 uv, float depth, vec3 normal, float smoothness, float reflectance, vec3 backgroundColor, float skyLight) {
     
     // no reflections for perfectly rough surface
     if (smoothness <= 0.01) return vec4(0);
@@ -127,7 +129,10 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     if (reflectionVisibility <= 0.001)
         return vec4(0);
     
-    // light version (only fresnel)
+    // background color goes to black if ray go towards camera and there is no sky light
+    backgroundColor = mix(mix(vec3(0), backgroundColor, skyLight), backgroundColor, (reflectedDirectionDotZ+1)/2);
+    
+    // lite version (only fresnel)
     vec4 reflection = vec4(backgroundColor, reflectionVisibility);
     if (SSR_ONLY_FRESNEL == 1) return reflection;
 
@@ -147,8 +152,9 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         return reflection;
     }
 
+    // TODO: 
     // determine the step length
-    float resolution = mix(0.01, SSR_RESOLUTION, smoothness);
+    float resolution = mix(0.05, SSR_RESOLUTION, smoothness*smoothness*smoothness);
     float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1 : 0;
     float stepsNumber = max(abs(delta.x), abs(delta.y)) * clamp(resolution, 0, 1); // check which dimension has the longest to determine the number of steps
     vec2 stepLength = delta / stepsNumber;
@@ -177,10 +183,11 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
             screenSpaceCurrentPosition.xy, 
             texture2D(depthTexture_opaque, screenSpaceCurrentPosition.xy).r
         ).z;
-        actualPositionDepth_transparent = - screenToView(
-            screenSpaceCurrentPosition.xy, 
-            texture2D(depthTexture_transparent, screenSpaceCurrentPosition.xy).r
-        ).z;
+        if (!hitFirstPass_transparent)
+            actualPositionDepth_transparent = - screenToView(
+                screenSpaceCurrentPosition.xy, 
+                texture2D(depthTexture_transparent, screenSpaceCurrentPosition.xy).r
+            ).z;
         
         // percentage of progression on the line
         currentPosition = mix(
@@ -215,13 +222,30 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         lastPosition = currentPosition;
     }
 
-    // set default reflection to end position value
-    vec4 reflection_opaque = texture2D(colorTexture_opaque, screenSpaceEndPosition.xy);
-    vec4 light = texture2D(colortex2, screenSpaceCurrentPosition.xy);
-    reflection_opaque.rgb = SRGBtoLinear(reflection_opaque.rgb) * (1 + light.z*10);
+    // set default reflection to background color if ray goes towards from camera 
+    vec4 reflection_opaque = vec4(backgroundColor, reflectionVisibility);
+    vec4 reflection_transparent = vec4(0);
+    // to end position if it goes away from camera 
+    if (reflectedDirectionDotZ > 0) {
+        float endDepth = screenToView(
+            screenSpaceCurrentPosition.xy, 
+            texture2D(depthTexture_opaque, screenSpaceEndPosition.xy).r
+        ).z;
 
-    vec4 reflection_transparent = texture2D(colorTexture_transparent, screenSpaceEndPosition.xy);
-    reflection_transparent.rgb = SRGBtoLinear(reflection_transparent.rgb);
+        if (startPositionDepth > endDepth) {
+            reflection_opaque = texture2D(colorTexture_opaque, screenSpaceEndPosition.xy);
+            reflection_opaque.rgb = SRGBtoLinear(reflection_opaque.rgb);
+
+            // lighten sky emissive object
+            if (endDepth < -far) {
+                vec4 lightData = texture2D(colortex2, screenSpaceCurrentPosition.xy);
+                reflection_opaque.rgb *= (1 + lightData.z*10);
+            }
+
+            reflection_transparent = texture2D(colorTexture_transparent, screenSpaceEndPosition.xy);
+            reflection_transparent.rgb = SRGBtoLinear(reflection_transparent.rgb);
+        }
+    }
 
     // blended with fresnel & avoid abrupt transition
     reflection = vec4(mix(reflection_opaque.rgb, reflection_transparent.rgb, reflection_transparent.a), reflectionVisibility);
@@ -245,7 +269,8 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
             lastPosition, 
             currentPosition,
             viewSpaceStartPosition,
-            reflectedDirectionDotZ
+            reflectedDirectionDotZ,
+            backgroundColor
         );
     if (hitFirstPass_transparent)
         reflection_transparent = SSR_SecondPass(
@@ -258,7 +283,8 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
             lastPosition_transparent, 
             currentPosition_transparent,
             viewSpaceStartPosition,
-            reflectedDirectionDotZ
+            reflectedDirectionDotZ,
+            backgroundColor
         );
 
     // no second hit
@@ -327,17 +353,24 @@ void main() {
     // depth 
     float depth_all = texture2D(depthtex0, uv).x;
 
-    // outColor = colorData_opaque;
-    // return;
+    /* background color estimation */
+    vec3 skyLightColor = getSkyLightColor();
+    vec3 blockLightColor = vec3(1);
+    // 0=sky 0.5=both 1=block
+    float lightAmount_opaque = max(blockLightIntensity_opaque, ambiantSkyLightIntensity_opaque);
+    float lightSourceBlend_opaque = (blockLightIntensity_opaque + (lightAmount_opaque - ambiantSkyLightIntensity_opaque)) / (2*lightAmount_opaque);
+    vec3 backgroundColor_opaque = mix(SRGBtoLinear(skyColor), SRGBtoLinear(blockLightColor), lightSourceBlend_opaque);
+    backgroundColor_opaque = mix(vec3(0), backgroundColor_opaque, lightAmount_opaque);
+    
+    vec3 backgroundColor_transparent = vec3(0);
+    float lightAmount_transparent = max(blockLightIntensity_transparent, ambiantSkyLightIntensity_transparent);
+    float lightSourceBlend_transparent = (blockLightIntensity_transparent + (lightAmount_transparent - ambiantSkyLightIntensity_transparent)) / (2*lightAmount_transparent);
+    backgroundColor_transparent = mix(SRGBtoLinear(skyColor), SRGBtoLinear(blockLightColor), lightSourceBlend_transparent);
+    backgroundColor_transparent = mix(vec3(0), backgroundColor_transparent, lightAmount_transparent);
 
-    // outColor = colorData_transparent;
-    // return;
-
-    // outColor = vec4(vec3(mix(color_opaque, color_transparent, transparency_transparent)), transparency_opaque);
-    // return;
 
 
-
+    //** experiments **//
     // view space pos
     vec3 viewSpacePosition = screenToView(uv, depth_opaque);
     vec3 worldSpacePosition = viewToWorld(viewSpacePosition);
@@ -370,7 +403,9 @@ void main() {
     cul = abs(cul);
 
     vec3 noise = getNoise1(cul.xy);
-    noise = getNoise(uv);
+
+    float random = pseudoRandom(vec2(frameCounter));
+    noise = getNoise(uv + random);
     float zeta1 = noise.x, zeta2 = noise.y;
 
     viewDirection = transpose(TBN) * viewDirection;
@@ -387,7 +422,7 @@ void main() {
     // return;
 
     // -- LIT OPAQUE -- //
-    if (type_opaque == 1) {
+    if (type_opaque > 0.9) {
         vec4 reflectionData = SSR(
             colortex0, 
             colortex4, 
@@ -397,7 +432,9 @@ void main() {
             depth_opaque, 
             sampledNormal,
             smoothness_opaque, 
-            reflectance_opaque
+            reflectance_opaque, 
+            backgroundColor_opaque,
+            ambiantSkyLightIntensity_opaque
         );
 
         vec3 reflectionColor = reflectionData.rgb;
@@ -406,7 +443,7 @@ void main() {
     }
     
     // -- LIT TRANSPARENT -- //
-    if (type_transparent == 1 && depth_all<depth_opaque && transparency_transparent>alphaTestRef) {
+    if (type_transparent > 0.9 && depth_all<depth_opaque && transparency_transparent>alphaTestRef) {
         vec4 reflectionData = SSR(
             colortex0,
             colortex4,
@@ -416,12 +453,20 @@ void main() {
             depth_all,
             normal_transparent,
             smoothness_transparent,
-            reflectance_transparent
+            reflectance_transparent,
+            backgroundColor_transparent,
+            ambiantSkyLightIntensity_transparent
         );
 
         vec3 reflectionColor = reflectionData.rgb;
         float reflectionVisibility = reflectionData.a;
         color_transparent = mix(color_transparent, reflectionColor, reflectionVisibility); 
+        transparency_transparent = max(transparency_transparent, reflectionVisibility);
+
+        // increase reflection on water
+        if (type_transparent < 1) {
+            transparency_transparent = clamp(pow(transparency_transparent, 1.0/2.0), 0, 1); 
+        }
     }
 
     /* mix opaque & transparent */

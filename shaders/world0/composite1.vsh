@@ -7,7 +7,6 @@
 // left right bottom top near far
 out vec3 planes_normal[6];
 out vec3 planes_point[6];
-out vec3 backgroundColor;
 
 out vec2 uv;
 
@@ -57,10 +56,6 @@ void main() {
         planes_normal[i] = normal;
         planes_point[i] = point;
     }
-
-    // background reflection color
-    // TODO: gérer le fog dans les grottes
-    backgroundColor = mix(0.5*SRGBtoLinear(fogColor), SRGBtoLinear(skyColor), float(eyeBrightness.y)/255.);
 
     gl_Position = ftransform();
     uv = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
