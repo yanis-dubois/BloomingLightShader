@@ -64,8 +64,12 @@ vec3 getNoise(vec2 uv) {
     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
     return texelFetch(noisetex, noiseCoord, 0).rgb;
 }
-vec3 getNoise1(vec2 uv) {
-    return texture2D(noisetex, uv).rgb;
+vec3 getNoise(vec2 uv, float seed) {
+    float rand = pseudoRandom(vec2(seed));
+    uv += rand;
+    ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
+    ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
+    return texelFetch(noisetex, noiseCoord, 0).rgb;
 }
 // sample GGX normal
 vec3 sampleGGXNormal(vec2 uv, float alpha) {
@@ -139,6 +143,9 @@ float perspectiveMix(float a, float b, float factor) {
 }
 float sigmoid(float x, float offset, float speed) {
     return (offset / (offset + pow(e, -speed * x)));
+}
+float sigmoid(float x, float offset, float speed, float translation) {
+    return (offset / (offset + pow(e, -speed * (x + translation))));
 }
 float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duration) {
     float normalizedAngle = duration * acos(cosTheta)/PI *4 -1;
@@ -226,6 +233,54 @@ vec3 encodeNormal(vec3 normal) {
 }
 vec3 decodeNormal(vec3 normal) {
     return normal * 2.0 - 1.0; // from [0;1] to [-1;1]
+}
+void getColorData(vec4 colorData, out vec3 albedo, out float transparency) {
+    albedo = colorData.rgb;
+    transparency = colorData.a;
+    albedo = SRGBtoLinear(albedo);
+}
+void getNormalData(vec4 normalData, out vec3 normal) {
+    normal = normalData.xyz;
+    normal = decodeNormal(normal);
+}
+void getLightData(vec4 lightData, out float blockLightIntensity, out float ambiantSkyLightIntensity, out float emissivness) {
+    vec2 receivedLight = lightData.xy;
+    receivedLight = SRGBtoLinear(receivedLight);
+    blockLightIntensity = receivedLight.x;
+    ambiantSkyLightIntensity = receivedLight.y;
+    emissivness = lightData.z;
+}
+void getMaterialData(vec4 materialData, out float type, out float smoothness, out float reflectance) {
+    type = materialData.x;
+    smoothness = materialData.y;
+    reflectance = materialData.z;
+}
+void getDepthData(vec4 depthData, out float depth) {
+    depth = depthData.x;
+}
+
+// -- type checking -- //
+bool areNearlyEqual(float x, float y) {
+    return abs(x-y) < 0.01;
+}
+bool isBasic(float type) {
+    return areNearlyEqual(type, typeBasic);
+}
+bool isGlowing(float type) {
+    return areNearlyEqual(type, typeGlowing);
+}
+bool isWater(float type) {
+    return areNearlyEqual(type, typeWater);
+}
+bool isTransparentLit(float type) {
+    return areNearlyEqual(type, typeTransparentLit) || areNearlyEqual(type, typeWater);
+}
+bool isOpaqueLit(float type) {
+    return areNearlyEqual(type, typeOpaqueLit);
+}
+
+bool isAnimated(int id) {
+    return 10000 <= id && (id <= 20000 || id == 30010 || id == 30020);
 }
 
 #endif

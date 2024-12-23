@@ -47,7 +47,7 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
     vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 
-    if (SHADOW_SOFTNESS <= 0. || SHADOW_QUALITY <= 0.) {
+    if (SHADOW_SOFTNESS <= 0 || SHADOW_QUALITY <= 0) {
         shadowClipPos.z -= bias; // apply bias
         shadowClipPos.xyz = distortShadowClipPos(shadowClipPos.xyz); // apply distortion
         vec3 shadowNDCPos = shadowClipPos.xyz / shadowClipPos.w; // convert to NDC space
@@ -63,28 +63,57 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     range *= blend;
     float increment = range / SHADOW_QUALITY; // distance between each sample
 
-    // get noise
-    float noise = getNoise(uv).r;
-    float theta = noise * 2*PI;
-    float cosTheta = cos(theta);
-    float sinTheta = sin(theta);
-    // rotation matrix
-    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
-
     vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
     int samples = 0;
 
-    for (float x = -range; x <= range; x += increment) {
-        for (float y = -range; y <= range; y += increment) {
-            vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
-            offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
-            vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
-            offsetShadowClipPos.z -= bias; // apply bias
-            offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
-            vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
-            vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
-            shadowAccum += getShadow(shadowScreenPos); // take shadow sample
-            samples++;
+    // stocastic is faster while adding noise
+    if (SHADOW_STOCHASTIC > 0.5) {
+        for (float x = -range; x <= range; x += increment) {
+            float y=0;
+
+            for (int i=0; i<SHADOW_STOCHASTIC_SAMPLE; ++i) {
+                // get noise
+                float noise = pseudoRandom(uv + (float(i)/SHADOW_STOCHASTIC_SAMPLE) + float(frameCounter)/720719.0);
+                float theta = noise * 2*PI;
+                float cosTheta = cos(theta);
+                float sinTheta = sin(theta);
+                // rotation matrix
+                mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+
+                vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
+                offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+                vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
+                offsetShadowClipPos.z -= bias; // apply bias
+                offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
+                vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
+                vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
+                shadowAccum += getShadow(shadowScreenPos); // take shadow sample
+                samples++;
+            }
+        }
+    } 
+    // slower with no noise
+    else {
+        // get noise
+        float noise = pseudoRandom(uv);
+        float theta = noise * 2*PI;
+        float cosTheta = cos(theta);
+        float sinTheta = sin(theta);
+        // rotation matrix
+        mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+
+        for (float x = -range; x <= range; x += increment) {
+            for (float y = -range; y <= range; y += increment) {
+                vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
+                offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+                vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
+                offsetShadowClipPos.z -= bias; // apply bias
+                offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
+                vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
+                vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
+                shadowAccum += getShadow(shadowScreenPos); // take shadow sample
+                samples++;
+            }
         }
     }
     

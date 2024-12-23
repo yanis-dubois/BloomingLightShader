@@ -1,13 +1,9 @@
 #version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
-// uniforms
-uniform float viewHeight;
-uniform float viewWidth;
-uniform mat4 gbufferModelView;
-uniform mat4 gbufferProjectionInverse;
-uniform vec3 fogColor;
-uniform vec3 skyColor;
+// includes
+#includes "/lib/common.glsl"
+#includes "/lib/space_conversion.glsl"
 
 // attribute
 in vec4 starData; //rgb = star color, a = flag for weather or not this pixel is a star.
@@ -20,12 +16,6 @@ float fogify(float x, float w) {
 vec3 calcSkyColor(vec3 pos) {
 	float upDot = dot(pos, gbufferModelView[1].xyz);
 	return mix(skyColor, fogColor, fogify(max(upDot, 0.0), 0.25));
-}
-
-vec3 screenToView(vec3 screenPos) {
-	vec4 ndcPos = vec4(screenPos, 1.0) * 2.0 - 1.0;
-	vec4 tmp = gbufferProjectionInverse * ndcPos;
-	return tmp.xyz / tmp.w;
 }
 
 // results
@@ -43,15 +33,12 @@ void main() {
 		albedo = starData.rgb;
 		emissivness = 1;
 	} else {
-		vec3 pos = screenToView(vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1));
+		vec3 pos = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
 		albedo = calcSkyColor(normalize(pos));
 	}
 	
-	/* type */
-	float type = 0; // basic=0
-
 	/* buffers */
     opaqueAlbedoData = vec4(albedo, 1);
 	opaqueLightData = vec4(0, 0, emissivness, 1);
-    opaqueMaterialData = vec4(type, 0, 0, 1);
+    opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
 }

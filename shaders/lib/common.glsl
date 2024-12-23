@@ -16,7 +16,7 @@ const int colortex7Format = RGBA8; // transparent material
 
 // resolution
 const int noiseTextureResolution = 256;
-const int shadowMapResolution = 2048;
+const int shadowMapResolution = 2048; // 2048
 
 //////////////////////////
 /////// Parameters ///////
@@ -26,14 +26,16 @@ const int shadowMapResolution = 2048;
 const float sunPathRotation = 2;
 
 // shadows
-#define SHADOW_QUALITY 5. // number of samples 
-#define SHADOW_SOFTNESS 1. // width of the sample area
+#define SHADOW_QUALITY 5 // half number of samples 
+#define SHADOW_SOFTNESS 2.0 // width of the sample area
+#define SHADOW_STOCHASTIC_SAMPLE 3 // number of sample per circle
+#define SHADOW_STOCHASTIC 1 // 0=false 1=true
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
 const bool shadowcolor0Nearest = true;
-const float startShadowDecrease = 100; // 100?
-const float endShadowDecrease = 150; // 150?
+const float startShadowDecrease = 100;
+const float endShadowDecrease = 150;
 
 // Screen Space Ambiant Occlusion (SSAO)
 #define SSAO_SAMPLES 0 // number of samples
@@ -43,14 +45,23 @@ const float endShadowDecrease = 150; // 150?
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_ONLY_FRESNEL 0 // 0=no; 1=yes
-#define SSR_RESOLUTION 0.25 // from 0=low to 1=high
+#define SSR_TYPE 2 // 0=off; 1=only fresnl; 2=SSR
+#define SSR_RESOLUTION 0.05 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
+
+// animation
+#define ANIMATION 1 // 0=off; 1=on
 
 //////////////////////////
 //////// Uniforms ////////
 //////////////////////////
+
+const float typeBasic = 0.0;
+const float typeGlowing = 0.8;
+const float typeTransparentLit = 0.5;
+const float typeWater = 0.6;
+const float typeOpaqueLit = 1.0;
 
 uniform sampler2D noisetex;
 

@@ -31,11 +31,8 @@ void main() {
     float emissivness = (0.2126 * albedo.r + 0.7152 * albedo.g + 0.0722 * albedo.b);
     albedo = linearToSRGB(albedo / 1.5);
 
-    /* type */
-    float type = 0; // basic=0
-
     /* buffers */
     opaqueAlbedoData = vec4(albedo, transparency);
     opaqueLightData = vec4(0, 0, emissivness, 1);
-    opaqueMaterialData = vec4(type, 0, 0, 1);
+    opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
 }

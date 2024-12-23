@@ -1,10 +1,11 @@
 #version 140
-
 #extension GL_ARB_explicit_attrib_location : enable
+
+// includes
+#include "/lib/common.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
-uniform float alphaTestRef;
 
 // attributes
 in vec4 tint;
@@ -16,7 +17,7 @@ layout(location = 1) out vec4 opaqueMaterialData;
 
 void main() {
     /* type */
-    float type = 0; // basic=0
+    float type = typeBasic;
 
     /* buffers */
     opaqueAlbedoData = vec4(tint);

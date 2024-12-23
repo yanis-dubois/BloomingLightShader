@@ -1,13 +1,12 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-
-#pragma glslify: snoise3 = require(/ext/glsl-noise/simplex/3d)
-#pragma glslify: snoise4 = require(/ext/glsl-noise/simplex/4d)
+#include "/lib/animation.glsl"
 
 // attributes
 // gl_MultiTexCoord0.xy - block and item texture coordinate
 // gl_MultiTexCoord2.xy - lightmap coordinate
+in vec4 at_tangent;
 in vec3 mc_Entity;
 in vec3 at_midBlock;
 
@@ -15,6 +14,8 @@ in vec3 at_midBlock;
 out vec4 additionalColor;
 out vec3 normal;
 out vec3 viewSpacePosition;
+out vec3 unanimatedWorldPosition;
+out vec3 midBlock;
 out vec2 textureCoordinate;
 out vec2 lightMapCoordinate;
 flat out int id;
@@ -27,9 +28,9 @@ void main() {
     //additionalColor = vec4((gl_Vertex.xyz + at_midBlock)/16, 1);
 
     // geometry infos //
-    // normal
     normal = normalize(gl_NormalMatrix * gl_Normal);
-    normal = mat3(gbufferModelViewInverse) * normal; // from view to world space
+    // from view to world space
+    normal = mat3(gbufferModelViewInverse) * normal;
 
     id = int(mc_Entity.x);
     
@@ -39,18 +40,16 @@ void main() {
 
     gl_Position = ftransform();
 
+    unanimatedWorldPosition = gl_Vertex.xyz + cameraPosition;
+
     // vertex movement (see later)
-    if (id == 20000) {
-        vec3 objectPosition = gl_Vertex.xyz + at_midBlock;
+    vec3 objectPosition = gl_Vertex.xyz + at_midBlock;
+    midBlock = at_midBlock;
+    if (ANIMATION==1 && isAnimated(id)) {
+        objectPosition = gl_Vertex.xyz + at_midBlock;
         vec4 worldSpacePosition = ( (gbufferModelViewInverse) * viewPosition) + vec4(cameraPosition, 0);
 
-        float phi = float(worldTime)/10 + worldSpacePosition.z;
-        float freq = 2;
-        float amp = 0.1;
-
-        //amp *= map(objectPosition.y, -32.0, 32.0, 1.0, 0.0);
-
-        worldSpacePosition.y += amp * sin(phi + 2*PI*freq);
+        worldSpacePosition.xyz = doAnimation(id, float(worldTime), worldSpacePosition.xyz);
 
         viewPosition = (gbufferModelView * (worldSpacePosition - vec4(cameraPosition, 0)));
         viewSpacePosition = viewPosition.xyz;

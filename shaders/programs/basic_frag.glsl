@@ -29,9 +29,6 @@ void main() {
     vec3 albedo = textureColor.xyz * additionalColor.xyz;
     float transparency = textureColor.a;
     if (transparency < alphaTestRef) discard;
-    
-    /* type */
-    float type = 0; // basic=0
 
     #ifdef BEACON_BEAM
     transparency = 0.5;
@@ -42,13 +39,10 @@ void main() {
 
     /* buffers */
     #ifdef GLOWING
-        albedo = SRGBtoLinear(albedo);
-        albedo *= 2;
-        albedo = linearToSRGB(albedo);
         transparentAlbedoData = vec4(albedo, transparency);
-        transparentMaterialData = vec4(type, 0, 0, 1);
+        transparentMaterialData = vec4(typeBasic, 0, 0, 1);
     #else
         opaqueAlbedoData = vec4(albedo, transparency);
-        opaqueMaterialData = vec4(type, 0, 0, 1);
+        opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
     #endif
 }

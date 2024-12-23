@@ -2,6 +2,8 @@
 
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
+#include "/lib/space_conversion.glsl"
+#include "/lib/animation.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
@@ -9,6 +11,8 @@ uniform sampler2D gtexture;
 // attributes
 in vec4 additionalColor; // foliage, water, particules albedo
 in vec3 normal;
+in vec3 unanimatedWorldPosition;
+in vec3 midBlock;
 in vec3 viewSpacePosition;
 in vec2 textureCoordinate; // immuable block & item albedo
 in vec2 lightMapCoordinate; // light map
@@ -18,7 +22,7 @@ flat in int id;
 /* RENDERTARGETS: 0,1,2,3,4,5,6,7 */
 layout(location = 0) out vec4 opaqueAlbedoData;
 layout(location = 1) out vec4 opaqueNormalData;
-layout(location = 2) out vec4 opaqueLightData; // blockLightIntensity, ambiantSkyLightIntensity, emmissivness, type, smoothness, reflectance
+layout(location = 2) out vec4 opaqueLightData;
 layout(location = 3) out vec4 opaqueMaterialData;
 layout(location = 4) out vec4 transparentAlbedoData;
 layout(location = 5) out vec4 transparentNormalData;
@@ -85,12 +89,30 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
-    if (id == 20010) transparency = clamp(transparency, 0.36, 0.75); // uncolored glass
+    if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass 0.36
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
     /* normal */
     vec3 encodedNormal = encodeNormal(normal);
+    
+    if (ANIMATION==1 && isAnimated(id)) {
+        mat3 TBN = generateTBN(normal);
+        vec3 tangent = TBN[0] / 16.0;
+        vec3 bitangent = TBN[1] / 16.0;
+
+        vec3 worldSpacePosition = doAnimation(id, float(worldTime), unanimatedWorldPosition);
+        vec3 tangentDerivative = doAnimation(id, float(worldTime), unanimatedWorldPosition + tangent);
+        vec3 bitangentDerivative = doAnimation(id, float(worldTime), unanimatedWorldPosition + bitangent);
+
+        vec3 newTangent = normalize(tangentDerivative - worldSpacePosition);
+        vec3 newBitangent = normalize(bitangentDerivative - worldSpacePosition);
+
+        vec3 newNormal = normalize(- cross(newTangent, newBitangent));
+        //if (dot(newNormal, normal) < 0) newNormal *= -1;
+
+        encodedNormal = encodeNormal(newNormal);
+    }
 
     /* depth */
     float distanceFromCamera = distance(vec3(0), viewSpacePosition);
@@ -102,19 +124,17 @@ void main() {
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
     /* type */
-    float type = 1; // lit=1
-    if (id == 20000) type = 0.95; // water
+    float type = typeOpaqueLit;
+    #ifdef TRANSPARENT
+    if (id == 20000) type = typeWater;
+    else type = typeTransparentLit;
+    #endif
 
     /* material data */
     vec3 pbr = getMaterialData(id);
     float smoothness = pbr.x;
     float reflectance = pbr.y;
     float emmissivness = pbr.z;
-
-    //// pbr debug 
-    // if (10000 <= id && id < 20000) pbr.x = 1;
-    // if (20000 <= id && id < 30000) pbr.y = 1;
-    // if (30000 <= id) pbr.z = 1;
 
     /* buffers */
     #ifdef TRANSPARENT

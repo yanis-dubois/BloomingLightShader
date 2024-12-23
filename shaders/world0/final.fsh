@@ -20,6 +20,11 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     vec4 color = texture2D(colortex0, uv);
+
+    color.rgb = SRGBtoLinear(color.rgb);
+    //color.rgb *= 1.25;
+    color.rgb = linearToSRGB(color.rgb);
+
     outColor = color;
 
     // outColor = texture2D(shadowcolor0, uv);
