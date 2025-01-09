@@ -1,4 +1,8 @@
 
+float getLightness(vec3 color) {
+    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
+
 vec3 kelvinToRGB(float kelvin) {
     // Normalize the Kelvin value to fit the range.
     float temperature = kelvin / 100.;
@@ -41,7 +45,15 @@ vec3 kelvinToRGB(float kelvin) {
     return vec3(red, green, blue);
 }
 
+vec3 getSkyColor() {
+    
+}
+
 vec3 getSkyLightColor() {
+    // no variations
+    if (SKY_LIGHT_COLOR == 0)
+        return vec3(1);
+
     // day time
     vec3 upDirection = vec3(0,1,0);
     vec3 sunLightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * sunPosition);

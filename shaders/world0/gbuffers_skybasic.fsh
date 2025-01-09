@@ -2,8 +2,10 @@
 #extension GL_ARB_explicit_attrib_location : enable
 
 // includes
-#includes "/lib/common.glsl"
-#includes "/lib/space_conversion.glsl"
+#include "/lib/common.glsl"
+#include "/lib/utils.glsl"
+#include "/lib/space_conversion.glsl"
+#include "/lib/color.glsl"
 
 // attribute
 in vec4 starData; //rgb = star color, a = flag for weather or not this pixel is a star.
@@ -31,7 +33,7 @@ void main() {
 	vec3 albedo = vec3(0);
 	if (starData.a > 0.5) {
 		albedo = starData.rgb;
-		emissivness = 1;
+		emissivness = getLightness(SRGBtoLinear(albedo) * 1.5);
 	} else {
 		vec3 pos = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
 		albedo = calcSkyColor(normalize(pos));

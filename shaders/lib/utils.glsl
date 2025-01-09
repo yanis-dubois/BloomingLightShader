@@ -282,5 +282,8 @@ bool isOpaqueLit(float type) {
 bool isAnimated(int id) {
     return 10000 <= id && (id <= 20000 || id == 30010 || id == 30020);
 }
+bool isWater(int id) {
+    return id == 20000;
+}
 
 #endif

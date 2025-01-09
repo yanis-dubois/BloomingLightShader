@@ -3,6 +3,7 @@
 
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
+#include "/lib/color.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
@@ -27,9 +28,7 @@ void main() {
     if (transparency < alphaTestRef) discard;
 
     /* light */
-    albedo = SRGBtoLinear(albedo) * 1.5;
-    float emissivness = (0.2126 * albedo.r + 0.7152 * albedo.g + 0.0722 * albedo.b);
-    albedo = linearToSRGB(albedo / 1.5);
+    float emissivness = getLightness(SRGBtoLinear(albedo) * 1.5);
 
     /* buffers */
     opaqueAlbedoData = vec4(albedo, transparency);

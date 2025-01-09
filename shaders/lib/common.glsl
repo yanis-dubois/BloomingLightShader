@@ -23,13 +23,17 @@ const int shadowMapResolution = 2048; // 2048
 //////////////////////////
 
 // sun and moon
-const float sunPathRotation = 2;
+const float sunPathRotation = 0;
+#define SKY_LIGHT_COLOR 1 // 0=false 1=true
+
+// fog
+#define FOG_TYPE 2 // 0=false 1=vanilla 2=custom
 
 // shadows
-#define SHADOW_QUALITY 5 // half number of samples 
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
+#define SHADOW_QUALITY 5 // half number of samples
 #define SHADOW_SOFTNESS 2.0 // width of the sample area
 #define SHADOW_STOCHASTIC_SAMPLE 3 // number of sample per circle
-#define SHADOW_STOCHASTIC 1 // 0=false 1=true
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
@@ -45,13 +49,13 @@ const float endShadowDecrease = 150;
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 2 // 0=off; 1=only fresnl; 2=SSR
-#define SSR_RESOLUTION 0.05 // from 0=low to 1=high
+#define SSR_TYPE 2 // 0=off; 1=only_fresnel; 2=SSR
+#define SSR_RESOLUTION 1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 
 // animation
-#define ANIMATION 1 // 0=off; 1=on
+#define ANIMATION_TYPE 2 // 0=off; 1=only_vertex; 2=vertex_and_normal
 
 //////////////////////////
 //////// Uniforms ////////
@@ -70,6 +74,8 @@ uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
 
+uniform vec4 entityColor;
+
 uniform vec3 cameraPosition;
 uniform vec3 sunPosition;
 uniform vec3 shadowLightPosition;
@@ -78,6 +84,7 @@ uniform vec3 fogColor;
 
 uniform ivec2 eyeBrightness;
 
+uniform float rainfall;
 uniform float fogStart;
 uniform float fogEnd;
 uniform float rainStrength;
@@ -87,6 +94,7 @@ uniform float far;
 uniform float viewHeight;
 uniform float viewWidth;
 uniform float gamma;
+uniform float frameTimeCounter;
 
 uniform int frameCounter; // in [0;720719]
 uniform int worldTime; // in tick [0;23999]

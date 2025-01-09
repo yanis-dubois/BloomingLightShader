@@ -3,6 +3,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
+#include "/lib/color.glsl"
 #include "/lib/animation.glsl"
 
 // uniforms
@@ -13,7 +14,7 @@ in vec4 additionalColor; // foliage, water, particules albedo
 in vec3 normal;
 in vec3 unanimatedWorldPosition;
 in vec3 midBlock;
-in vec3 viewSpacePosition;
+in vec3 worldSpacePosition;
 in vec2 textureCoordinate; // immuable block & item albedo
 in vec2 lightMapCoordinate; // light map
 flat in int id;
@@ -29,10 +30,10 @@ layout(location = 5) out vec4 transparentNormalData;
 layout(location = 6) out vec4 transparentLightData;
 layout(location = 7) out vec4 transparentMaterialData;
 
-vec3 getMaterialData(int id) {
+vec3 getMaterialData(int id, vec3 albedo) {
     float smoothness = 0;
     float reflectance = 0;
-    float emmissivness = 0;
+    float emissivness = 0;
 
     float n1 = isEyeInWater == 1 ? 1.33 : 1;
 
@@ -46,7 +47,7 @@ vec3 getMaterialData(int id) {
         reflectance = getReflectance(n1, n2);
     }
     // glass 
-    else if (id == 20010 || id == 20011 || id == 20012 || id == 20013) {
+    else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
         smoothness = 0.95;
         reflectance = getReflectance(n1, 1.5);
     }
@@ -78,10 +79,11 @@ vec3 getMaterialData(int id) {
 
     // -- emmissive -- //
     if (id >= 30000) {
-        emmissivness = 1;
+        emissivness = 1;
+        emissivness = getLightness(albedo);
     }
 
-    return vec3(smoothness, reflectance, emmissivness);
+    return vec3(smoothness, reflectance, emissivness);
 }
 
 void main() {
@@ -89,33 +91,18 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
+    // tweak transparency
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass 0.36
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
+    // apply red flash when mob are hitted
+    albedo.rgb = mix(albedo.rgb, entityColor.rgb, entityColor.a); 
 
     /* normal */
     vec3 encodedNormal = encodeNormal(normal);
-    
-    if (ANIMATION==1 && isAnimated(id)) {
-        mat3 TBN = generateTBN(normal);
-        vec3 tangent = TBN[0] / 16.0;
-        vec3 bitangent = TBN[1] / 16.0;
-
-        vec3 worldSpacePosition = doAnimation(id, float(worldTime), unanimatedWorldPosition);
-        vec3 tangentDerivative = doAnimation(id, float(worldTime), unanimatedWorldPosition + tangent);
-        vec3 bitangentDerivative = doAnimation(id, float(worldTime), unanimatedWorldPosition + bitangent);
-
-        vec3 newTangent = normalize(tangentDerivative - worldSpacePosition);
-        vec3 newBitangent = normalize(bitangentDerivative - worldSpacePosition);
-
-        vec3 newNormal = normalize(- cross(newTangent, newBitangent));
-        //if (dot(newNormal, normal) < 0) newNormal *= -1;
-
-        encodedNormal = encodeNormal(newNormal);
-    }
 
     /* depth */
-    float distanceFromCamera = distance(vec3(0), viewSpacePosition);
+    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     
     /* light */
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2)*1.;
@@ -131,10 +118,33 @@ void main() {
     #endif
 
     /* material data */
-    vec3 pbr = getMaterialData(id);
+    vec3 pbr = getMaterialData(id, albedo);
     float smoothness = pbr.x;
     float reflectance = pbr.y;
     float emmissivness = pbr.z;
+
+    // generate normalmap if animated
+    if (ANIMATION_TYPE==2 && isAnimated(id) && smoothness>alphaTestRef) {
+        mat3 TBN = generateTBN(normal);
+        vec3 tangent = TBN[0] / 16.0;
+        vec3 bitangent = TBN[1] / 16.0;
+
+        vec3 actualPosition = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition, midBlock);
+        vec3 tangentDerivative = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition + tangent, midBlock);
+        vec3 bitangentDerivative = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition + bitangent, midBlock);
+
+        vec3 newTangent = normalize(tangentDerivative - actualPosition);
+        vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
+
+        vec3 newNormal = normalize(- cross(newTangent, newBitangent));
+        if (dot(newNormal, normal) < 0) newNormal *= -1;
+
+        vec3 viewDirection = normalize(cameraPosition - actualPosition);
+        if (dot(viewDirection, newNormal) < 0) newNormal = normal;
+
+        encodedNormal = encodeNormal(newNormal);
+        distanceFromCamera = distance(cameraPosition, actualPosition);
+    }
 
     /* buffers */
     #ifdef TRANSPARENT

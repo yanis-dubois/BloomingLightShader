@@ -173,11 +173,6 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     if (reflectionVisibility <= 0.001)
         return vec4(0);
     
-    // if (isWater(type)) {
-    //     reflectionVisibility = clamp(pow(reflectionVisibility, 1.0/3.0), 0, 1);
-    //     reflectionVisibility = clamp(sigmoid(reflectionVisibility-0.5, 1.0, 15.0), 0, 1);
-    // }
-    
     // lite version (only fresnel)
     vec4 reflection = vec4(backgroundColor, reflectionVisibility);
     if (SSR_TYPE == 1) return reflection;

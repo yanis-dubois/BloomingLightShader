@@ -13,7 +13,7 @@ in vec3 at_midBlock;
 // results
 out vec4 additionalColor;
 out vec3 normal;
-out vec3 viewSpacePosition;
+out vec3 worldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
 out vec2 textureCoordinate;
@@ -21,39 +21,28 @@ out vec2 lightMapCoordinate;
 flat out int id;
 
 void main() {
-    // color & light infos //
+    /* color & light infos */
     textureCoordinate = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     lightMapCoordinate = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     additionalColor = gl_Color;
-    //additionalColor = vec4((gl_Vertex.xyz + at_midBlock)/16, 1);
 
-    // geometry infos //
+    /* geometry infos */
     normal = normalize(gl_NormalMatrix * gl_Normal);
     // from view to world space
     normal = mat3(gbufferModelViewInverse) * normal;
 
     id = int(mc_Entity.x);
-    
-    // depth
-    vec4 viewPosition = (gl_ModelViewMatrix * gl_Vertex); // from player to view space
-    viewSpacePosition = viewPosition.xyz;
 
+    // set position
+    worldSpacePosition = gl_Vertex.xyz + cameraPosition;
+    unanimatedWorldPosition = worldSpacePosition;
     gl_Position = ftransform();
 
-    unanimatedWorldPosition = gl_Vertex.xyz + cameraPosition;
-
-    // vertex movement (see later)
-    vec3 objectPosition = gl_Vertex.xyz + at_midBlock;
+    // update position if animated
     midBlock = at_midBlock;
-    if (ANIMATION==1 && isAnimated(id)) {
-        objectPosition = gl_Vertex.xyz + at_midBlock;
-        vec4 worldSpacePosition = ( (gbufferModelViewInverse) * viewPosition) + vec4(cameraPosition, 0);
-
-        worldSpacePosition.xyz = doAnimation(id, float(worldTime), worldSpacePosition.xyz);
-
-        viewPosition = (gbufferModelView * (worldSpacePosition - vec4(cameraPosition, 0)));
-        viewSpacePosition = viewPosition.xyz;
-
-        gl_Position = gl_ProjectionMatrix * viewPosition; // to clip space
+    if (ANIMATION_TYPE>0 && isAnimated(id)) {
+        worldSpacePosition = doAnimation(id, frameTimeCounter/3600.0, worldSpacePosition, midBlock);
+        vec3 viewSpacePosition = worldToView(worldSpacePosition);
+        gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
     }
 }

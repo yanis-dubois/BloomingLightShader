@@ -31,7 +31,8 @@ void main() {
 
     // fog
     fog_color = SRGBtoLinear(fogColor);
-    fog_density = mix(0.8, 1.5, rainStrength);
+    fog_density = mix(0.6, 1.8, rainStrength);
+    // fog_density += mix(0, 0.5, rainfall); // sucks because of abrupt transition
 
     /* vertex infos */
     gl_Position = ftransform();

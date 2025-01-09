@@ -97,6 +97,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
     // fade into the distance
     shadow.a *= 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
+    shadow.a = mix(shadow.a, 0, emissivness);
 
     /* lighting */
     // direct sky light
@@ -106,7 +107,9 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // ambiant sky light
     vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
     // block light
-    if (emissivness == 1) blockLightIntensity = 2; // enhance emissive light
+    // blockLightIntensity += emissivness; // enhance emissive light
+    if (emissivness > 0) blockLightIntensity *= 1.5;
+    blockLightIntensity *= (1+emissivness);
     vec3 blockLight = blockLightColor * blockLightIntensity;
     // TMP water
     if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
@@ -114,6 +117,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     }
     // perfect diffuse
     vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
+    // color = clamp(color * (emissivness*2 + 1), 0, 1);
 
     /* BRDF */
     // float roughness = pow(1.0 - smoothness, 2.0);
@@ -123,13 +127,25 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     transparency = max(transparency, schlick(reflectance, cosTheta));
 
     /* fog */
-    // custom fog
-    float customFogBlend = clamp(1 - pow(2, -pow((linearDepth*fog_density), 2)), 0, 1); // exponential function
-    color = mix(color, fog_color, customFogBlend);
     // vanilla fog
-    float vanillaFogBlend = clamp((distanceFromCamera - fogStart) / (fogEnd - fogStart), 0, 1);
-    color = mix(color, fog_color, vanillaFogBlend);
+    if (FOG_TYPE > 0) {
+        // linear function 
+        float vanillaFogBlend = clamp((distanceFromCamera - fogStart) / (fogEnd - fogStart), 0, 1);
+        color = mix(color, fog_color, vanillaFogBlend);
+    }
+    // custom fog
+    if (FOG_TYPE == 2) {
+        // water level 62 ; end fogify 122
+        float blendify = map(worldSpacePosition.y, 102, 62, 0, 1);
+        blendify *= blendify;
+        float density = fog_density;
+        density += blendify;
 
+        // exponential function
+        float customFogBlend = clamp(1 - pow(2, -pow((linearDepth * density), 2)), 0, 1); 
+        color = mix(color, fog_color, customFogBlend);
+    }
+    
     return vec4(color, transparency);
 }
 
@@ -208,7 +224,4 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
 void main() {
     process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueNormalData, opaqueLightData, opaqueMaterialData, false);
     process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, true);
-
-    // opaqueColorData.rgb = opaqueNormalData.rgb;
-    // transparentColorData = transparentNormalData;
 }

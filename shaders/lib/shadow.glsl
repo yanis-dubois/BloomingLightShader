@@ -7,7 +7,7 @@ uniform mat4 shadowModelViewInverse;
 uniform mat4 shadowProjection;
 uniform mat4 shadowProjectionInverse;
 
-const float bias = 0.002; // 0.0015 // 0.02
+const float bias = 0.002; // 0.0015 // 0.02 // 0.002
 
 // makes shadows near to the player higher resolution than ones far from them
 vec3 distortShadowClipPos(vec3 shadowClipPos){
@@ -40,6 +40,8 @@ vec4 getShadow(vec3 shadowScreenPos) {
 
 // blur shadow by calling getShadow around actual pixel and average results
 vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbufferModelViewInverse) {
+    if (SHADOW_TYPE == 0) return vec4(0);
+
     // space conversion
     vec3 NDCPos = vec3(uv, depth) * 2.0 - 1.0;
     vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
@@ -66,8 +68,8 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
     int samples = 0;
 
-    // stocastic is faster while adding noise
-    if (SHADOW_STOCHASTIC > 0.5) {
+    // faster but add noise
+    if (SHADOW_TYPE == 1) {
         for (float x = -range; x <= range; x += increment) {
             float y=0;
 
@@ -92,7 +94,7 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
             }
         }
     } 
-    // slower with no noise
+    // without noise but slower
     else {
         // get noise
         float noise = pseudoRandom(uv);
