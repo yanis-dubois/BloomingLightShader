@@ -50,7 +50,7 @@ const float endShadowDecrease = 150;
 
 // Screen Space Reflection (SSR)
 #define SSR_TYPE 2 // 0=off; 1=only_fresnel; 2=SSR
-#define SSR_RESOLUTION 1 // from 0=low to 1=high
+#define SSR_RESOLUTION 0.1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 

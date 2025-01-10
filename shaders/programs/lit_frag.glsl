@@ -30,15 +30,16 @@ layout(location = 5) out vec4 transparentNormalData;
 layout(location = 6) out vec4 transparentLightData;
 layout(location = 7) out vec4 transparentMaterialData;
 
-vec3 getMaterialData(int id, vec3 albedo) {
-    float smoothness = 0;
-    float reflectance = 0;
-    float emissivness = 0;
+void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float subsurface, out float ambient_occlusion) {
+    smoothness = 0;
+    reflectance = 0;
+    subsurface = 0;
+    emissivness = 0;
+    ambient_occlusion = 0;
 
     float n1 = isEyeInWater == 1 ? 1.33 : 1;
 
     // -- smoothness -- //
-
     // water
     if (id == 20000) {
         smoothness = 0.9;
@@ -83,7 +84,26 @@ vec3 getMaterialData(int id, vec3 albedo) {
         emissivness = getLightness(albedo);
     }
 
-    return vec3(smoothness, reflectance, emissivness);
+    // -- subsurface & ao -- //
+    if (10000 <= id && id < 20000) {
+        // leaves
+        if (isFoliage(id)) {
+            subsurface = 0.5;
+            ambient_occlusion = 1;
+        }
+        else if (isColumnSubsurface(id)) {
+            subsurface = 1;
+            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+            ambient_occlusion = distance(vec2(0), objectSpacePosition.xz);
+            ambient_occlusion = sqrt(ambient_occlusion);
+        }
+        // other foliage
+        else {
+            subsurface = 1;
+            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+            ambient_occlusion = distance(vec3(0), objectSpacePosition);
+        }
+    }
 }
 
 void main() {
@@ -118,10 +138,9 @@ void main() {
     #endif
 
     /* material data */
-    vec3 pbr = getMaterialData(id, albedo);
-    float smoothness = pbr.x;
-    float reflectance = pbr.y;
-    float emmissivness = pbr.z;
+    float smoothness = 0, reflectance = 0, emmissivness = 0, subsurface = 0, ambient_occlusion = 0;
+    getMaterialData(id, albedo, smoothness, reflectance, emmissivness, subsurface, ambient_occlusion);
+    ambient_occlusion = map(1 - ambient_occlusion, 0.0, 1.0, 0.5, 1.0);
 
     // generate normalmap if animated
     if (ANIMATION_TYPE==2 && isAnimated(id) && smoothness>alphaTestRef) {
@@ -155,7 +174,7 @@ void main() {
     #else
         opaqueAlbedoData = vec4(albedo, transparency);
         opaqueNormalData = vec4(encodedNormal, 1);
-        opaqueLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, 1);
+        opaqueLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, ambient_occlusion);
         opaqueMaterialData = vec4(type, smoothness, reflectance, 1);
     #endif
 }

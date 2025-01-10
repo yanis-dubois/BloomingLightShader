@@ -143,8 +143,9 @@ vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture, sampler2D li
         screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
 
         vec4 color = texture2D(colorTexture, screenSpaceCurrentPosition.xy);
-        vec4 light = texture2D(lightTexture, screenSpaceCurrentPosition.xy);
-        color.rgb = SRGBtoLinear(color.rgb) * (light.z+1);
+        // vec4 light = texture2D(lightTexture, screenSpaceCurrentPosition.xy);
+        color.rgb = SRGBtoLinear(color.rgb);
+        // color.rgb *= (light.z+1);
 
         reflectionColor += color;
     }
@@ -384,12 +385,12 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     getNormalData(normalData, normal);
     // light
     vec4 lightData = texture2D(lightTexture, uv);
-    float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0;
-    getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness);
+    float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
+    getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
     // material
     vec4 materialData = texture2D(materialTexture, uv);
-    float type = 0, smoothness = 0, reflectance = 0;
-    getMaterialData(materialData, type, smoothness, reflectance);
+    float type = 0, smoothness = 0, reflectance = 0, subsurface = 0;
+    getMaterialData(materialData, type, smoothness, reflectance, subsurface);
     // depth
     vec4 depthData = texture2D(depthTexture, uv);
     float depth = 0;

@@ -69,8 +69,8 @@ float SSAO(vec2 uv, float depth, mat3 TBN) {
     return occlusion;
 }
 
-vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance,
-              float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, bool isTransparent) {
+vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
+              float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
 
     float ambiantFactor = isTransparent ? ambiantFactor_transparent : ambiantFactor_opaque;
 
@@ -96,12 +96,20 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     if (distanceFromCamera < endShadowDecrease)
         shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
     // fade into the distance
-    shadow.a *= 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
+    float shadow_fade = 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
+    shadow.a *= shadow_fade; 
+    // emissive block don't have shadows on them
     shadow.a = mix(shadow.a, 0, emissivness);
 
     /* lighting */
     // direct sky light
     vec3 skyDirectLight = max(lightDirectionDotNormal, 0) * skyLightColor;
+    // subsurface scattering
+    if (ambient_occlusion > 0) {
+        float subsurface_fade = map(distanceFromCamera, endShadowDecrease, startShadowDecrease, 0.2, 1);
+        skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
+        skyDirectLight *= ambient_occlusion;
+    }
     skyDirectLight *= rainFactor * shadowDayNightBlend; // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
     // ambiant sky light
@@ -137,7 +145,8 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     if (FOG_TYPE == 2) {
         // water level 62 ; end fogify 122
         float blendify = map(worldSpacePosition.y, 102, 62, 0, 1);
-        blendify *= blendify;
+        blendify *= blendify; // squared it
+        // blendify *= ambiantSkyLightIntensity; // atenuate if no access to sky
         float density = fog_density;
         density += blendify;
 
@@ -146,6 +155,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         color = mix(color, fog_color, customFogBlend);
     }
     
+    // return vec4(vec3(ambient_occlusion), 1);
     return vec4(color, transparency);
 }
 
@@ -174,12 +184,12 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     getNormalData(normalData, normal);
     // light
     lightData = texture2D(lightTexture, uv);
-    float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0;
-    getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness);
+    float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
+    getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
     // material
     materialData = texture2D(materialTexture, uv);
-    float type = 0, smoothness = 0, reflectance = 0;
-    getMaterialData(materialData, type, smoothness, reflectance);
+    float type = 0, smoothness = 0, reflectance = 0, subsurface = 0;
+    getMaterialData(materialData, type, smoothness, reflectance, subsurface);
     // depth
     vec4 depthData = texture2D(depthTexture, uv);
     float depth = 0;
@@ -206,9 +216,11 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
             depth,
             smoothness,
             reflectance,
+            subsurface,
             ambiantSkyLightIntensity, 
             blockLightIntensity,
             emissivness,
+            ambient_occlusion,
             isTransparentLit(type)
         );
         // colorData = vec4(1,1,0,1);

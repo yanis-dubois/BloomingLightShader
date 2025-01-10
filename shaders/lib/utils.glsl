@@ -151,6 +151,9 @@ float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duratio
     float normalizedAngle = duration * acos(cosTheta)/PI *4 -1;
     return 1 - sigmoid(normalizedAngle, offset, speed);
 }
+float gaussian(float x, float y, float mu, float sigma) {
+    return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2*sigma*sigma)));
+}
 
 // -- gamma correction -- //
 float SRGBtoLinear(float x) {
@@ -243,17 +246,19 @@ void getNormalData(vec4 normalData, out vec3 normal) {
     normal = normalData.xyz;
     normal = decodeNormal(normal);
 }
-void getLightData(vec4 lightData, out float blockLightIntensity, out float ambiantSkyLightIntensity, out float emissivness) {
+void getLightData(vec4 lightData, out float blockLightIntensity, out float ambiantSkyLightIntensity, out float emissivness, out float ambiant_occlusion) {
     vec2 receivedLight = lightData.xy;
     receivedLight = SRGBtoLinear(receivedLight);
     blockLightIntensity = receivedLight.x;
     ambiantSkyLightIntensity = receivedLight.y;
     emissivness = lightData.z;
+    ambiant_occlusion = 1 - map(lightData.w, 0.5, 1, 0, 1);
 }
-void getMaterialData(vec4 materialData, out float type, out float smoothness, out float reflectance) {
+void getMaterialData(vec4 materialData, out float type, out float smoothness, out float reflectance, out float subsurface) {
     type = materialData.x;
     smoothness = materialData.y;
     reflectance = materialData.z;
+    subsurface = materialData.w;
 }
 void getDepthData(vec4 depthData, out float depth) {
     depth = depthData.x;
@@ -280,10 +285,64 @@ bool isOpaqueLit(float type) {
 }
 
 bool isAnimated(int id) {
-    return 10000 <= id && (id <= 20000 || id == 30010 || id == 30020);
+    return 10000 <= id && (id <= 10050 || id == 30010 || id == 30020);
 }
 bool isWater(int id) {
     return id == 20000;
+}
+bool isLeaves(int id) {
+    return id == 10030;
+}
+bool isVines(int id) {
+    return id == 10031;
+}
+// leaves & vines
+bool isFoliage(int id) {
+    return isLeaves(id) || isVines(id);
+}
+// roots, grass, flowers, mushroom, ...
+bool isUnderGrowth(int id) {
+    return 10000 <= id && id < 20000 && !isFoliage(id);
+}
+bool isRooted(int id) {
+    return isUnderGrowth(id) && id != 10021;
+}
+// root type
+bool isCeilingRooted(int id) {
+    return id == 10020;
+}
+bool isTallLower(int id) {
+    return id == 10010;
+}
+bool isTallUpper(int id) {
+    return id == 10011;
+}
+bool isPicherCropLower(int id) {
+    return id == 10002;
+}
+bool isPicherCropUpper(int id) {
+    return id == 10003;
+}
+// subsurface 
+bool isColumnSubsurface(int id) {
+    return id == 10021 || id == 10060;
+}
+bool isCobweb(int id) {
+    return id == 10070;
+}
+
+// offset midBlock coordinate to make the root of foliage the origin
+vec3 midBlockToRoot(int id, vec3 midBlock) {
+    midBlock /= 64.0;
+
+    midBlock.y = -1 * midBlock.y + 0.5;
+    if (isCeilingRooted(id)) midBlock.y = 1 - midBlock.y;
+    else if (isTallLower(id)) midBlock.y *= 0.5;
+    else if (isTallUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5;
+    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.5 - 0.3125, 0);
+    else if (isPicherCropUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5 - 0.3125;
+
+    return midBlock;
 }
 
 #endif

@@ -83,6 +83,10 @@ vec3 screenToView(vec2 uv, float depth) {
     return NDCToView(screenToNDC(uv, depth));
 }
 
+vec3 screenToWorld(vec2 uv, float depth) {
+    return viewToWorld(screenToView(uv, depth));
+}
+
 vec3 viewToScreen(vec3 viewPosition) {
     return NDCToScreen(viewToNDC(viewPosition));
 }

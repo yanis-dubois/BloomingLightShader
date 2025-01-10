@@ -40,6 +40,7 @@ vec4 getShadow(vec3 shadowScreenPos) {
 
 // blur shadow by calling getShadow around actual pixel and average results
 vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbufferModelViewInverse) {
+    // no shadows
     if (SHADOW_TYPE == 0) return vec4(0);
 
     // space conversion
@@ -68,7 +69,7 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
     vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
     int samples = 0;
 
-    // faster but add noise
+    // stochastic shadows (faster but add noise)
     if (SHADOW_TYPE == 1) {
         for (float x = -range; x <= range; x += increment) {
             float y=0;
@@ -94,7 +95,7 @@ vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbu
             }
         }
     } 
-    // without noise but slower
+    // classic shadows (without noise but slower)
     else {
         // get noise
         float noise = pseudoRandom(uv);
