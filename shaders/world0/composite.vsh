@@ -15,7 +15,7 @@ out vec2 uv;
 
 void main() {
     /* attributes infos */
-    skyLightColor = getSkyLightColor();
+    skyLightColor = getSkyLightColor_fast();
 
     // shadow
     vec3 upDirection = vec3(0,1,0);
@@ -24,7 +24,7 @@ void main() {
     shadowDayNightBlend = cosThetaToSigmoid(abs(sunDirectionDotUp), 5.0, 50.0, 0.55);
 
     // emissive block color
-    blockLightColor = getBlockLightColor();
+    blockLightColor = getBlockLightColor_fast();
 
     // rain
     rainFactor = max(1-rainStrength, 0.05);

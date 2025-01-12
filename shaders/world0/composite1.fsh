@@ -5,6 +5,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/color.glsl"
+#include "/lib/shadow.glsl"
 #include "/lib/space_conversion.glsl"
 
 // textures
@@ -25,33 +26,6 @@ in vec3 planes_point[6];
 
 // attributes
 in vec2 uv;
-
-vec4 blur(sampler2D texture, vec2 uv, float softness, float quality) {
-    float range = softness / 2; // how far away from the original position we take our samples from
-    float increment = range / quality; // distance between each sample
-
-    vec3 samples = vec3(0);
-
-    for (float x = -range; x <= range; x += increment) {
-        float y=0;
-        vec2 offset = vec2(x, y);
-        offset = texelToScreen(offset);
-        
-        samples++;
-    }
-    for (float y = -range; y <= range; y += increment) {
-        float x=0;
-        vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
-        offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
-        vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
-        offsetShadowClipPos.z -= bias; // apply bias
-        offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
-        vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
-        vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
-        shadowAccum += getShadow(shadowScreenPos); // take shadow sample
-        samples++;
-    }
-}
 
 vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture, sampler2D lightTexture,
                     vec3 texelSpaceStartPosition, vec3 texelSpaceEndPosition, 
@@ -198,9 +172,14 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     // determine the step length
     // float resolution = mix(0.01, SSR_RESOLUTION, (smoothness*smoothness*smoothness) - (pseudoRandom(uv)*0.5));
     float resolution = mix(0.01, SSR_RESOLUTION, smoothness*smoothness*smoothness);
+    resolution = clamp(resolution, 0, 1);
     float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1 : 0;
-    float stepsNumber = max(abs(delta.x), abs(delta.y)) * clamp(resolution, 0, 1); // check which dimension has the longest to determine the number of steps
+    float stepsNumber = max(abs(delta.x), abs(delta.y)) * resolution; // check which dimension has the longest to determine the number of steps
     vec2 stepLength = delta / stepsNumber;
+
+    // // TMP: some wild stuff
+    // texelSpaceStartPosition.x += (1.0/resolution) - mod(texelSpaceStartPosition.x, (1.0/resolution));
+    // texelSpaceStartPosition.y += (1.0/resolution) - mod(texelSpaceStartPosition.y, (1.0/resolution));
 
     // position used during the intersection search 
     // (factor of linear interpolation between start and end positions)
@@ -367,6 +346,40 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     return reflection;
 }
 
+vec3 lightShaft(vec3 worldPosition, vec3 worldSpaceViewDirection) {
+
+    float dist = distance(cameraPosition, worldPosition);
+    dist = clamp(dist, 0, endShadowDecrease);
+    vec3 rayPosition = worldToPlayer(cameraPosition);
+
+    vec4 shadowAccum = vec4(0);
+    float weightCumulator = 0;
+    int step_number = 50;
+    for (int i=0; i<step_number && distance(worldToPlayer(cameraPosition), rayPosition)<dist; ++i) {
+        rayPosition += worldSpaceViewDirection * (dist/step_number + (pseudoRandom(uv+step_number + float(frameCounter)/720719.0)));
+
+        // space conversion
+        vec3 shadowViewPos = (shadowModelView * vec4(rayPosition, 1.0)).xyz;
+        vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
+
+        // get shadow
+        shadowClipPos.z -= bias; // apply bias
+        shadowClipPos.xyz = distortShadowClipPos(shadowClipPos.xyz); // apply distortion
+        vec3 shadowNDCPos = shadowClipPos.xyz / shadowClipPos.w; // convert to NDC space
+        vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
+
+        float weight = getFogDensity(rayPosition.y);
+        vec4 shadow = getShadow(shadowScreenPos);
+        if (shadow.a > 0) shadowAccum += weight * getShadow(shadowScreenPos);
+        else shadowAccum += weight;
+
+        weightCumulator += weight;
+    }
+
+    if (weightCumulator == 0) return shadowAccum.rgb;
+    return shadowAccum.rgb / weightCumulator;
+}
+
 // results
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 outColor;
@@ -469,6 +482,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     }
     // mix original color with reflection color
     colorData = vec4(mix(color, reflectionColor, reflectionVisibility), transparency);
+
     colorData.rgb = linearToSRGB(colorData.rgb);
 }
 
@@ -483,4 +497,21 @@ void main() {
 
     // -- mix opaque & transparent -- //
     outColor = mix(opaqueColorData, transparentColorData, transparentColorData.a);
+    if (LIGHTSHAFT == 0)
+        return;
+
+    // -- light shaft -- //
+    vec3 viewSpacePosition = screenToView(uv, texture2D(depthtex0, uv).r);
+    vec3 lightShaftColor = lightShaft(viewToWorld(viewSpacePosition), -normalize(cameraPosition - viewToWorld(viewSpacePosition)));
+    lightShaftColor *= mix(getSkyLightColor_fast(), vec3(1), 0.25); //// ???
+    float fogDensity = getFogDensity(viewToWorld(viewSpacePosition).y);
+
+    float cameraSkyLight = float(eyeBrightnessSmooth.y) / 240.0;
+    // fogDensity = mix(fogDensity, fogDensity*100, 1-cameraSkyLight);
+
+    if (isEyeInWater == 1) fogDensity *= 10;
+    float linearDepth = distance(cameraPosition, viewToWorld(viewSpacePosition)) / far;
+    float customFogBlend = clamp((1 - pow(2, - 100 * pow((linearDepth * fogDensity), 2))), 0, 0.5); 
+    // outColor.rgb = mix(outColor.rgb, lightShaftColor, clamp(linearDepth*fogDensity, 0, 1));
+    outColor.rgb += lightShaftColor * clamp(linearDepth * fogDensity, 0, 0.5);
 }

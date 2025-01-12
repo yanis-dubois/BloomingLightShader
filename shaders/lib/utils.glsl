@@ -285,9 +285,9 @@ bool isOpaqueLit(float type) {
 }
 
 bool isAnimated(int id) {
-    return 10000 <= id && (id <= 10050 || id == 30010 || id == 30020);
+    return 10000 <= id && (id <= 10050 || id == 20000 || id == 30010 || id == 30020);
 }
-bool isWater(int id) {
+bool isLiquid(int id) {
     return id == 20000;
 }
 bool isLeaves(int id) {
@@ -299,6 +299,10 @@ bool isVines(int id) {
 // leaves & vines
 bool isFoliage(int id) {
     return isLeaves(id) || isVines(id);
+}
+// bamboo, pumpkin & melon
+bool isSolidFoliage(int id) {
+    return id == 10080;
 }
 // roots, grass, flowers, mushroom, ...
 bool isUnderGrowth(int id) {

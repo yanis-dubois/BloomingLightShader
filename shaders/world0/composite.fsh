@@ -5,6 +5,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
+#include "/lib/color.glsl"
 #include "/lib/sample.glsl"
 #include "/lib/shadow.glsl"
 
@@ -77,19 +78,14 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // TODO: SSAO
     float occlusion = 1;
     
-    // TODO: netoyer ce pavé 
     // directions and angles 
     vec3 LightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(LightDirectionWorldSpace, normal);
-    if (isTransparent) lightDirectionDotNormal = abs(lightDirectionDotNormal);
-    vec3 viewSpacePosition = screenToView(uv, depth);
-    vec3 viewSpaceViewDirection = normalize(viewSpacePosition);
-    vec3 worldSpacePosition = viewToWorld(viewSpacePosition);
-    vec3 viewDirectionWorldSpace = normalize(cameraPosition - worldSpacePosition);
-    float distanceFromCamera = distance(viewToWorld(vec3(0)), worldSpacePosition);
+    vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
+    vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
+    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     float linearDepth = distanceFromCamera / far;
-    vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal);
-    float cosTheta = dot(-viewSpaceViewDirection, viewSpaceNormal);
+    float cosTheta = dot(worldSpaceViewDirection, normal);
 
     /* shadow */
     vec4 shadow = vec4(0);
@@ -115,11 +111,10 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // ambiant sky light
     vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
     // block light
-    // blockLightIntensity += emissivness; // enhance emissive light
     if (emissivness > 0) blockLightIntensity *= 1.5;
     blockLightIntensity *= (1+emissivness);
     vec3 blockLight = blockLightColor * blockLightIntensity;
-    // TMP water
+    // attenuate light underwater
     if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
         skyDirectLight *= ambiantSkyLightIntensity;
     }
@@ -143,18 +138,13 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     }
     // custom fog
     if (FOG_TYPE == 2) {
-        // water level 62 ; end fogify 122
-        float blendify = map(worldSpacePosition.y, 102, 62, 0, 1);
-        blendify *= blendify; // squared it
-        // blendify *= ambiantSkyLightIntensity; // atenuate if no access to sky
-        float density = fog_density;
-        density += blendify;
+        float fogDensity = getFogDensity(worldSpacePosition.y);
 
         // exponential function
-        float customFogBlend = clamp(1 - pow(2, -pow((linearDepth * density), 2)), 0, 1); 
+        float customFogBlend = clamp(1 - pow(2, -pow((linearDepth * fogDensity), 2)), 0, 1); 
         color = mix(color, fog_color, customFogBlend);
     }
-    
+
     // return vec4(vec3(ambient_occlusion), 1);
     return vec4(color, transparency);
 }

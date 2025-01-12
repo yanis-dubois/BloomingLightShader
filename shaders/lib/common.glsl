@@ -57,6 +57,9 @@ const float endShadowDecrease = 150;
 // animation
 #define ANIMATION_TYPE 2 // 0=off; 1=only_vertex; 2=vertex_and_normal
 
+// light shaft
+#define LIGHTSHAFT 1 // 0=off 1=on
+
 //////////////////////////
 //////// Uniforms ////////
 //////////////////////////
@@ -83,6 +86,7 @@ uniform vec3 skyColor;
 uniform vec3 fogColor;
 
 uniform ivec2 eyeBrightness;
+uniform ivec2 eyeBrightnessSmooth;
 
 uniform float rainfall;
 uniform float fogStart;

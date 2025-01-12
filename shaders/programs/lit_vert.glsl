@@ -38,10 +38,12 @@ void main() {
     unanimatedWorldPosition = worldSpacePosition;
     gl_Position = ftransform();
 
+    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
+
     // update position if animated
     midBlock = at_midBlock;
     if (ANIMATION_TYPE>0 && isAnimated(id)) {
-        worldSpacePosition = doAnimation(id, frameTimeCounter/3600.0, worldSpacePosition, midBlock);
+        worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock);
         vec3 viewSpacePosition = worldToView(worldSpacePosition);
         gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
     }

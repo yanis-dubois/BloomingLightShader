@@ -30,10 +30,9 @@ layout(location = 5) out vec4 transparentNormalData;
 layout(location = 6) out vec4 transparentLightData;
 layout(location = 7) out vec4 transparentMaterialData;
 
-void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float subsurface, out float ambient_occlusion) {
+void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
     smoothness = 0;
     reflectance = 0;
-    subsurface = 0;
     emissivness = 0;
     ambient_occlusion = 0;
 
@@ -44,12 +43,15 @@ void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflec
     if (id == 20000) {
         smoothness = 0.9;
 
+        ambient_occlusion = 1;
+
         float n2 = isEyeInWater == 0 ? 1.33 : 1;
         reflectance = getReflectance(n1, n2);
     }
     // glass 
     else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
         smoothness = 0.95;
+        ambient_occlusion = 1;
         reflectance = getReflectance(n1, 1.5);
     }
     // metal
@@ -87,19 +89,17 @@ void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflec
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
         // leaves
-        if (isFoliage(id)) {
-            subsurface = 0.5;
+        if (isFoliage(id) || isSolidFoliage(id)) {
             ambient_occlusion = 1;
         }
+        // sugar cane
         else if (isColumnSubsurface(id)) {
-            subsurface = 1;
             vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
             ambient_occlusion = distance(vec2(0), objectSpacePosition.xz);
-            ambient_occlusion = sqrt(ambient_occlusion);
+            ambient_occlusion = min(ambient_occlusion*5, 1);
         }
         // other foliage
         else {
-            subsurface = 1;
             vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
             ambient_occlusion = distance(vec3(0), objectSpacePosition);
         }
@@ -125,8 +125,8 @@ void main() {
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     
     /* light */
-    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2)*1.;
-    float heldBlockLight = heldLightValue>1 ? max(1-(distanceFromCamera/max(heldLightValue,1)), 0) : 0;
+    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
+    float heldBlockLight = heldLightValue>1 ? max(1 - (distanceFromCamera / max(heldLightValue,1)), 0) : 0;
     float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
@@ -138,8 +138,8 @@ void main() {
     #endif
 
     /* material data */
-    float smoothness = 0, reflectance = 0, emmissivness = 0, subsurface = 0, ambient_occlusion = 0;
-    getMaterialData(id, albedo, smoothness, reflectance, emmissivness, subsurface, ambient_occlusion);
+    float smoothness = 0, reflectance = 0, emmissivness = 0, ambient_occlusion = 0;
+    getMaterialData(id, albedo, smoothness, reflectance, emmissivness, ambient_occlusion);
     ambient_occlusion = map(1 - ambient_occlusion, 0.0, 1.0, 0.5, 1.0);
 
     // generate normalmap if animated
@@ -148,9 +148,9 @@ void main() {
         vec3 tangent = TBN[0] / 16.0;
         vec3 bitangent = TBN[1] / 16.0;
 
-        vec3 actualPosition = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition, midBlock);
-        vec3 tangentDerivative = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition + tangent, midBlock);
-        vec3 bitangentDerivative = doAnimation(id, frameTimeCounter/3600.0, unanimatedWorldPosition + bitangent, midBlock);
+        vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock);
+        vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent, midBlock);
+        vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent, midBlock);
 
         vec3 newTangent = normalize(tangentDerivative - actualPosition);
         vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
