@@ -15,7 +15,7 @@ const int colortex7Format = RGBA8; // transparent material
 */
 
 // resolution
-const int noiseTextureResolution = 256;
+// const int noiseTextureResolution = 256;
 const int shadowMapResolution = 2048; // 2048
 
 //////////////////////////
@@ -33,7 +33,6 @@ const float sunPathRotation = 0;
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
 #define SHADOW_QUALITY 5 // half number of samples
 #define SHADOW_SOFTNESS 2.0 // width of the sample area
-#define SHADOW_STOCHASTIC_SAMPLE 3 // number of sample per circle
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
@@ -58,7 +57,8 @@ const float endShadowDecrease = 150;
 #define ANIMATION_TYPE 2 // 0=off; 1=only_vertex; 2=vertex_and_normal
 
 // light shaft
-#define LIGHTSHAFT 1 // 0=off 1=on
+#define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
+#define VOLUMETRIC_LIGHT_RESOLUTION 0.8 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 
 //////////////////////////
 //////// Uniforms ////////
@@ -70,12 +70,16 @@ const float typeTransparentLit = 0.5;
 const float typeWater = 0.6;
 const float typeOpaqueLit = 1.0;
 
-uniform sampler2D noisetex;
+// uniform sampler2D noisetex;
 
-uniform mat4 gbufferProjection;
-uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
+uniform mat4 gbufferProjection;
+uniform mat4 gbufferProjectionInverse;
+uniform mat4 shadowModelView;
+uniform mat4 shadowModelViewInverse;
+uniform mat4 shadowProjection;
+uniform mat4 shadowProjectionInverse;
 
 uniform vec4 entityColor;
 
@@ -88,6 +92,7 @@ uniform vec3 fogColor;
 uniform ivec2 eyeBrightness;
 uniform ivec2 eyeBrightnessSmooth;
 
+uniform float sunAngle;
 uniform float rainfall;
 uniform float fogStart;
 uniform float fogEnd;

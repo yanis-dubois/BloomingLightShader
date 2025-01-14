@@ -117,7 +117,7 @@ vec3 getSkyLightColor_fast() {
     vec3 moonFullMidnightColor = vec3(0.9013970605078236, 0.9209247435099642, 1.0);
     vec3 moonNewMidnightColor = vec3(0.6694260712462251, 0.7779863207340414, 1.0);
     vec3 moonMidnightColor = mix(moonFullMidnightColor, moonNewMidnightColor, moonPhaseBlend);
-    vec3 moonLightColor = 0.35 * mix(moonDawnColor, moonMidnightColor, cosThetaToSigmoid(abs(sunDirectionDotUp), 5.0, 5.5, 1.0));
+    vec3 moonLightColor = 0.66 * mix(moonDawnColor, moonMidnightColor, cosThetaToSigmoid(abs(sunDirectionDotUp), 5.0, 5.5, 1.0));
     // 0.5
 
     // sky color 
@@ -145,13 +145,24 @@ vec3 getBlockLightColor_fast() {
     return blockLightColor;
 }
 
+const float minimumFogDensity = 1;
+const float maximumFogDensity = 2;
+const float densityDelta = 0.5;
 float getFogDensity(float worldSpaceHeight) {
-    float density = mix(0.6, 1.8, rainStrength);
+    vec3 upDirection = vec3(0,1,0);
+    vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
 
-    // from water level
-    float heightDensity = map(worldSpaceHeight, 102, 62, 0, 1);
-    heightDensity *= heightDensity; // squared it
-    // blendify *= ambiantSkyLightIntensity; // atenuate if no access to sky
+    float density = mix(minimumFogDensity, maximumFogDensity, 1-lightDirectionDotUp);
+    density = mix(density, maximumFogDensity, rainStrength);
 
-    return density + heightDensity;
+    // reduce density as height increase
+    float height = map(worldSpaceHeight, 62, 152, 0, 1);
+    density *= exp(-height);
+
+    return density;
+}
+
+float getFogAmount(float linearDepth, float fogDensity) {
+    return clamp(1 - pow(2, -pow((linearDepth * fogDensity), 2)), 0, 1);
 }

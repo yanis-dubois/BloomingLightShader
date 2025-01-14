@@ -1,5 +1,7 @@
-#ifndef "/lib/common.glsl"
-#define "/lib/common.glsl"
+/* INFO
+player space refer to the feet player coordinate system
+eye space refer to the player camera coordinate system
+*/
 
 vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
 
@@ -26,6 +28,14 @@ vec3 viewToEye(vec3 viewPosition) {
 
 vec3 eyeToView(vec3 eyePosition) {
     return mat3(gbufferModelView) * eyePosition;
+}
+
+vec3 viewToPlayer(vec3 viewPosition) {
+    return (gbufferModelViewInverse * vec4(viewPosition, 1.0)).xyz;
+}
+
+vec3 playerToView(vec3 playerPosition) {
+    return (gbufferModelView * vec4(playerPosition, 1.0)).xyz;
 }
 
 vec3 eyeToWorld(vec3 eyePosition) {
@@ -107,6 +117,10 @@ vec2 texelToScreen(vec2 texelPosition) {
     return texelPosition / vec2(viewWidth, viewHeight);
 }
 
+vec3 screenToPlayer(vec2 uv, float depth) {
+    return viewToPlayer(screenToView(uv, depth));
+}
+
 vec3 toTangentSpace(vec3 position, mat3 TBN) {
     return transpose(TBN) * position;
 }
@@ -119,4 +133,26 @@ vec3 tangentToWorld(vec3 tangentPosition, mat3 TBN, vec3 midBlockPosition) {
     return playerToWorld(objectToPlayer(fromTangentSpace(tangentPosition, TBN), midBlockPosition));
 }
 
-#endif
+vec3 playerToShadowView(vec3 playerPosition) {
+    return (shadowModelView * vec4(playerPosition, 1.0)).xyz;
+}
+
+vec4 shadowViewToShadowClip(vec3 shadowViewPosition) {
+    return shadowProjection * vec4(shadowViewPosition, 1.0);
+}
+
+vec4 playerToShadowClip(vec3 playerPosition) {
+    return shadowViewToShadowClip(playerToShadowView(playerPosition));
+}
+
+vec3 shadowClipToShadowNDC(vec4 shadowClipPosition) {
+    return shadowClipPosition.xyz / shadowClipPosition.w;
+}
+
+vec3 shadowNDCToShadowScreen(vec3 shadowNDCPosition) {
+    return shadowNDCPosition * 0.5 + 0.5;
+}
+
+vec3 shadowClipToShadowScreen(vec4 shadowClipPosition) {
+    return shadowNDCToShadowScreen(shadowClipToShadowNDC(shadowClipPosition));
+}

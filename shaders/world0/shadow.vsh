@@ -2,6 +2,7 @@
 
 // includes
 #include "/lib/common.glsl"
+#include "/lib/space_conversion.glsl"
 #include "/lib/shadow.glsl"
 
 // attributes
@@ -12,7 +13,6 @@ in vec3 mc_Entity;
 out vec4 additionalColor;
 out vec2 textureCoordinate;
 flat out int id;
-out vec3 playerSpacePosition;
 
 void main() {
     // get render attributes infos
@@ -22,10 +22,6 @@ void main() {
 
     id = int(mc_Entity.x);
     
-    vec3 shadowViewPosition = (shadowProjectionInverse * gl_Position).xyz;
-    playerSpacePosition = (shadowModelViewInverse * vec4(shadowViewPosition, 1.0)).xyz;
-
     // apply distortion to shadow map
-    gl_Position.xyz = distortShadowClipPos(gl_Position.xyz);
-    
+    gl_Position.xyz = distortShadowClipPosition(gl_Position.xyz);
 }
