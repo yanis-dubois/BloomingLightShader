@@ -1,14 +1,6 @@
 #version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
-// includes
-#include "/lib/common.glsl"
-#include "/lib/utils.glsl"
-#include "/lib/space_conversion.glsl"
-#include "/lib/color.glsl"
-#include "/lib/sample.glsl"
-#include "/lib/shadow.glsl"
-
 // textures
 uniform sampler2D colortex0; // opaque albedo
 uniform sampler2D colortex1; // opaque normal
@@ -34,6 +26,15 @@ in float rainFactor;
 in float fog_density;
 
 in vec2 uv;
+
+// includes
+#include "/lib/common.glsl"
+#include "/lib/utils.glsl"
+#include "/lib/space_conversion.glsl"
+#include "/lib/color.glsl"
+#include "/lib/sample.glsl"
+#include "/lib/shadow.glsl"
+#include "/lib/lighting.glsl"
 
 // TODO: be sure to normalize sample vec par rapport à l'espace view
 float SSAO(vec2 uv, float depth, mat3 TBN) {
@@ -68,86 +69,6 @@ float SSAO(vec2 uv, float depth, mat3 TBN) {
     }
 
     return occlusion;
-}
-
-vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
-              float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
-
-    float ambiantFactor = isTransparent ? ambiantFactor_transparent : ambiantFactor_opaque;
-
-    // TODO: SSAO
-    float occlusion = 1;
-    
-    // directions and angles 
-    vec3 LightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float lightDirectionDotNormal = dot(LightDirectionWorldSpace, normal);
-    vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
-    vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
-    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-    float linearDepth = distanceFromCamera / far;
-    float cosTheta = dot(worldSpaceViewDirection, normal);
-
-    /* shadow */
-    vec4 shadow = vec4(0);
-    if (distanceFromCamera < endShadowDecrease)
-        shadow = getSoftShadow(uv, depth, gbufferProjectionInverse, gbufferModelViewInverse);
-    // fade into the distance
-    float shadow_fade = 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
-    shadow *= shadow_fade; 
-    // emissive block don't have shadows on them
-    shadow *= 1-emissivness;
-
-    /* lighting */
-    // direct sky light
-    vec3 skyDirectLight = max(lightDirectionDotNormal, 0) * skyLightColor;
-    // subsurface scattering
-    if (ambient_occlusion > 0) {
-        float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
-        skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
-        skyDirectLight *= ambient_occlusion;
-    }
-    skyDirectLight *= rainFactor * shadowDayNightBlend; // reduce contribution as it rains or during day-night transition
-    skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
-    // ambiant sky light
-    vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
-    // block light
-    if (emissivness > 0) blockLightIntensity *= 1.5;
-    blockLightIntensity *= (1+emissivness);
-    vec3 blockLight = blockLightColor * blockLightIntensity;
-    // attenuate light underwater
-    if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
-        skyDirectLight *= ambiantSkyLightIntensity;
-    }
-    // perfect diffuse
-    vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
-    // color = clamp(color * (emissivness*2 + 1), 0, 1);
-
-    /* BRDF */
-    // float roughness = pow(1.0 - smoothness, 2.0);
-    // vec3 BRDF = albedo * (ambiantSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
-
-    /* fresnel */
-    transparency = max(transparency, schlick(reflectance, cosTheta));
-
-    /* fog */
-    // custom fog
-    if (FOG_TYPE == 2) {
-        float fogDensity = getFogDensity(worldSpacePosition.y);
-
-        // exponential function
-        float fogAmount = getFogAmount(linearDepth, fogDensity);
-        color = mix(color, vec3(0.5) * skyLightColor, fogAmount);
-    }
-    // vanilla fog
-    if (FOG_TYPE > 0) {
-        // linear function 
-        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
-        color = mix(color, fog_color, vanillaFogBlend);
-    }
-
-    // return vec4(vec3(ambient_occlusion), 1);
-    return vec4(color, transparency);
 }
 
 // results

@@ -346,77 +346,6 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     return reflection;
 }
 
-vec3 lightShaft(vec3 worldPosition, vec3 worldSpaceViewDirection) {
-    if (VOLUMETRIC_LIGHT_TYPE == 0)
-        return vec3(0);
-
-    // tweak for caves ??
-    float cameraSkyLight = float(eyeBrightnessSmooth.y) / 240.0;
-    
-    // parameters
-    float absorptionCoefficient = 0.05;
-    float scatteringCoefficient = 0.42; //0=vaccumSpace 0.42=clearSky 1=fggyest 
-    float sunIntensity = 1;
-
-    float fragmentDistance = distance(cameraPosition, worldPosition);
-    fragmentDistance = clamp(fragmentDistance, 0, endShadowDecrease);
-
-    vec3 playerSpaceCameraPosition = worldToPlayer(cameraPosition);
-
-    //
-    vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
-
-    // init loop
-    vec3 accumulatedLight = vec3(0);
-    float stepsCount = max(fragmentDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16); // nb steps (minimum 32)
-    float stepSize = fragmentDistance / stepsCount;
-    vec2 seed = uv + (float(frameCounter) / 720719.0);
-    float randomizedStepSize = stepSize * pseudoRandom(seed);
-    float weights = 0;
-    vec3 rayPlayerSpacePosition = playerSpaceCameraPosition;
-    rayPlayerSpacePosition += worldSpaceViewDirection * randomizedStepSize;
-    float rayDistance = distance(playerSpaceCameraPosition, rayPlayerSpacePosition);
-    int count = 0;
-
-    // loop
-    for (; count<stepsCount; ++count) {
-        // ray goes beneath block
-        rayDistance = distance(playerSpaceCameraPosition, rayPlayerSpacePosition);
-        if (rayDistance>fragmentDistance) {
-            break;
-        }
-
-        float density = map(getFogDensity(rayPlayerSpacePosition.y), minimumFogDensity, maximumFogDensity, 0.2, 1);
-        scatteringCoefficient = density;
-
-        // get shadow
-        vec4 shadowClipPos = playerToShadowClip(rayPlayerSpacePosition);
-        vec4 shadow = getShadow(shadowClipPos);
-        vec3 shadowedLight = mix(shadow.rgb, vec3(0), shadow.a);
-        
-        // compute inscattered light 
-        float scattering = exp(-absorptionCoefficient * rayDistance);
-        vec3 inscatteredLight = sunIntensity * shadowedLight * scatteringCoefficient * scattering;
-        inscatteredLight *= randomizedStepSize;
-
-        // add light contribution
-        accumulatedLight += inscatteredLight;
-        weights += randomizedStepSize;
-
-        // go a step further
-        seed ++;
-        randomizedStepSize = stepSize * pseudoRandom(seed);
-        rayPlayerSpacePosition += worldSpaceViewDirection * randomizedStepSize;
-    }
-
-    // decrease volumetric light effect as light and view vector are align
-    // -> avoid player volume shadow monster 
-    accumulatedLight *= pow(LdotV*0.5+0.5, 0.2);
-
-    return accumulatedLight / pow(far, 0.75);
-}
-
 // results
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 outColor;
@@ -534,12 +463,4 @@ void main() {
 
     // -- mix opaque & transparent -- //
     outColor = mix(opaqueColorData, transparentColorData, transparentColorData.a);
-
-    // -- light shaft -- //
-    vec3 viewSpacePosition = screenToView(uv, texture2D(depthtex0, uv).r);
-    vec3 skyLightColor = getSkyLightColor_fast();
-    vec3 lightShaftColor = lightShaft(viewToWorld(viewSpacePosition), -normalize(cameraPosition - viewToWorld(viewSpacePosition)));
-    lightShaftColor *= skyLightColor;
-    
-    outColor.rgb += lightShaftColor;
 }
