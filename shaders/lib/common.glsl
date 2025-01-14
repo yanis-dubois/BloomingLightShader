@@ -54,7 +54,7 @@ const float endShadowDecrease = 150;
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 
 // animation
-#define ANIMATION_TYPE 2 // 0=off; 1=only_vertex; 2=vertex_and_normal
+#define ANIMATION_TYPE 1 // 0=off; 1=only_vertex; 2=vertex_and_normal
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on

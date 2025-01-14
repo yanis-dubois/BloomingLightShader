@@ -147,18 +147,20 @@ vec3 getBlockLightColor_fast() {
 
 const float minimumFogDensity = 0.5;
 const float maximumFogDensity = 2;
-const float densityDelta = 0.5;
 float getFogDensity(float worldSpaceHeight) {
+    float minFogDensity = sunAngle > 0.5 ? minimumFogDensity*2 : minimumFogDensity;
+    float maxFogDensity = maximumFogDensity;
+
     vec3 upDirection = vec3(0,1,0);
     vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
-    lightDirectionDotUp = sqrt(lightDirectionDotUp);
+    if (sunAngle < 0.5) lightDirectionDotUp = sqrt(lightDirectionDotUp);
 
-    float density = mix(minimumFogDensity, maximumFogDensity, 1-lightDirectionDotUp);
-    density = mix(density, maximumFogDensity, rainStrength);
+    float density = mix(minFogDensity, maxFogDensity, 1-lightDirectionDotUp);
+    density = mix(density, maxFogDensity, rainStrength);
 
     // reduce density as height increase
-    float height = map(worldSpaceHeight, 62, 152, 0, 1);
+    float height = map(worldSpaceHeight, 62, 102, 0, 1);
     density *= exp(-height);
 
     return density;

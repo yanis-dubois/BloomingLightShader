@@ -7,6 +7,7 @@
 #include "/lib/color.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/shadow.glsl"
+#include "/lib/lighting.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
@@ -133,7 +134,7 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
                  vec2 uv, float depth, vec3 normal, float smoothness, float reflectance, vec3 backgroundColor, float type) {
     
     // no reflections for perfectly rough surface
-    if (smoothness <= 0.01) return vec4(0);
+    if (smoothness <= 0.01 || isEyeInWater==1) return vec4(0);
 
     // directions and angles in view space
     vec3 viewSpacePosition = screenToView(uv, depth);
@@ -463,4 +464,15 @@ void main() {
 
     // -- mix opaque & transparent -- //
     outColor = mix(opaqueColorData, transparentColorData, transparentColorData.a);
+
+    /* volumetric light */
+    if (VOLUMETRIC_LIGHT_TYPE > 0) {
+        vec3 skyLightColor = getSkyLightColor();
+        vec3 worldSpacePosition = viewToWorld(screenToView(uv, texture2D(depthtex0, uv).r));
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
+        vec3 volumetricLight = volumetricLighting(uv, worldSpacePosition, -worldSpaceViewDirection);
+        volumetricLight *= vec3(0.5) * skyLightColor;
+        
+        outColor.rgb += volumetricLight;
+    }
 }
