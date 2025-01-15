@@ -90,6 +90,10 @@ vec3 getSkyLightColor() {
     skyLightColor = mix(skyLightColor, skyLightColor*rainySkyColor, rainStrength); // reduce contribution if it rain
     skyLightColor = SRGBtoLinear(skyLightColor);
 
+    // sky color if under water
+    if (isEyeInWater==1) 
+        skyLightColor = vec3(getLightness(skyLightColor));
+
     return skyLightColor;
 }
 
@@ -126,6 +130,10 @@ vec3 getSkyLightColor_fast() {
     vec3 skyLightColor = mix(moonLightColor, sunLightColor, skyDayNightBlend);
     skyLightColor = mix(skyLightColor, skyLightColor*rainySkyColor, rainStrength); // reduce contribution if it rain
     
+    // sky color if under water
+    if (isEyeInWater==1) 
+        skyLightColor = vec3(getLightness(skyLightColor));
+
     skyLightColor = SRGBtoLinear(skyLightColor);
     return skyLightColor;
 }
@@ -145,16 +153,23 @@ vec3 getBlockLightColor_fast() {
     return blockLightColor;
 }
 
+vec3 getFogColor() {
+    if (isEyeInWater == 1) return vec3(0.0,0.1,0.3);
+    return vec3(0.5);
+}
+
 const float minimumFogDensity = 0.5;
-const float maximumFogDensity = 2;
+const float maximumFogDensity = 4;
 float getFogDensity(float worldSpaceHeight) {
+    if (isEyeInWater == 1) return maximumFogDensity * 1.5;
+
     float minFogDensity = sunAngle > 0.5 ? minimumFogDensity*2 : minimumFogDensity;
     float maxFogDensity = maximumFogDensity;
 
     vec3 upDirection = vec3(0,1,0);
     vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
-    if (sunAngle < 0.5) lightDirectionDotUp = sqrt(lightDirectionDotUp);
+    if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
 
     float density = mix(minFogDensity, maxFogDensity, 1-lightDirectionDotUp);
     density = mix(density, maxFogDensity, rainStrength);

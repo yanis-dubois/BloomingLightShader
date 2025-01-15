@@ -348,11 +348,14 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
 }
 
 // results
-/* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 outColor;
+/* RENDERTARGETS: 0,2,4,6 */
+layout(location = 0) out vec4 opaqueColorData;
+layout(location = 1) out vec4 opaqueLightData;
+layout(location = 2) out vec4 transparentColorData;
+layout(location = 3) out vec4 transparentLightData;
 
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
-            out vec4 colorData) {
+            out vec4 colorData, out vec4 lightData) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
@@ -364,7 +367,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     vec3 normal = vec3(0);
     getNormalData(normalData, normal);
     // light
-    vec4 lightData = texture2D(lightTexture, uv);
+    lightData = texture2D(lightTexture, uv);
     float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
     getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
     // material
@@ -377,102 +380,87 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     getDepthData(depthData, depth);
 
     // basic and perfectly rough material have no reflection
-    if (SSR_TYPE == 0 || isBasic(type) || smoothness < alphaTestRef) {
-        return;
+    if (SSR_TYPE > 0 && !isBasic(type) && smoothness > 0.01) {
+        // -- view space direction & normal -- //
+        // view direction
+        vec3 viewSpacePosition = screenToView(uv, depth);
+        vec3 viewDirection = normalize(viewSpacePosition);
+        // view space normal
+        vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal);
+
+        // -- sample VNDF -- //
+        if (smoothness < 0.95) { // TODO: revoir ce threshold ?
+            // sampling data
+            float roughness = pow(1.0 - smoothness, 2.0);
+            roughness *= roughness; 
+            float zeta1 = pseudoRandom(uv + float(frameCounter)/720719.0);
+            float zeta2 = pseudoRandom(uv + 1.0 + float(frameCounter)/720719.0);
+            // tbn - tangent to view 
+            mat3 TBN = generateTBN(viewSpaceNormal); 
+            // view direction from view to tangent space
+            vec3 tangentSpaceViewDirection = transpose(TBN) * -viewDirection;
+            // sample normal & convert to view
+            vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
+            viewSpaceNormal = TBN * sampledNormal;
+        }
+        
+        // -- reflect ray -- //
+        vec3 reflectedDirection = normalize(reflect(viewDirection, viewSpaceNormal));
+        float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0,0,-1));
+        
+        // -- background color estimation -- // TODO: full bugé de nuit 
+        // colors
+        vec3 skyLightColor = getSkyLightColor();
+        vec3 blockLightColor = vec3(1);
+        skyLightColor = SRGBtoLinear(skyColor);
+        blockLightColor = getBlockLightColor() * 0.5;
+        // blend
+        float lightAmount = max(blockLightIntensity, ambiantSkyLightIntensity);
+        float lightSourceBlend = (blockLightIntensity + (lightAmount - ambiantSkyLightIntensity)) / (2*lightAmount);
+        // estimate
+        vec3 backgroundColor = mix(skyLightColor, blockLightColor, lightSourceBlend);
+        backgroundColor = mix(vec3(0), backgroundColor, lightAmount);
+        // background color goes to black if ray go towards camera
+        vec3 towardReflectionColor = mix(vec3(0), backgroundColor, ambiantSkyLightIntensity);
+        backgroundColor = mix(towardReflectionColor, backgroundColor, (reflectedDirectionDotZ+1)/2);
+
+        // -- SSR -- //
+        vec4 reflectionData = SSR(
+            colortex0,
+            colortex4,
+            depthtex2,
+            depthtex0,
+            uv,
+            depth,
+            viewSpaceNormal,
+            smoothness,
+            reflectance,
+            backgroundColor,
+            type
+        );
+        vec3 reflectionColor = reflectionData.rgb;
+        float reflectionVisibility = reflectionData.a;
+
+        // -- apply reflection -- //
+        // update transparency for transparent material
+        if (isTransparentLit(type)) {
+            // add opacity as the reflection intensify
+            transparency = max(transparency, reflectionVisibility);
+        }
+        // mix original color with reflection color
+        colorData = vec4(mix(color, reflectionColor, reflectionVisibility), transparency);
+
+        colorData.rgb = linearToSRGB(colorData.rgb);
     }
 
-    // -- view space direction & normal -- //
-    // view direction
-    vec3 viewSpacePosition = screenToView(uv, depth);
-    vec3 viewDirection = normalize(viewSpacePosition);
-    // view space normal
-    vec3 viewSpaceNormal = normalize(mat3(gbufferModelView) * normal);
-
-    // -- sample VNDF -- //
-    if (smoothness < 0.95) { // TODO: revoir ce threshold ?
-        // sampling data
-        float roughness = pow(1.0 - smoothness, 2.0);
-        roughness *= roughness; 
-        float zeta1 = pseudoRandom(uv + float(frameCounter)/720719.0);
-        float zeta2 = pseudoRandom(uv + 1.0 + float(frameCounter)/720719.0);
-        // tbn - tangent to view 
-        mat3 TBN = generateTBN(viewSpaceNormal); 
-        // view direction from view to tangent space
-        vec3 tangentSpaceViewDirection = transpose(TBN) * -viewDirection;
-        // sample normal & convert to view
-        vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
-        viewSpaceNormal = TBN * sampledNormal;
-    }
-    
-    // -- reflect ray -- //
-    vec3 reflectedDirection = normalize(reflect(viewDirection, viewSpaceNormal));
-    float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0,0,-1));
-    
-    // -- background color estimation -- // TODO: full bugé de nuit 
-    // colors
-    vec3 skyLightColor = getSkyLightColor();
-    vec3 blockLightColor = vec3(1);
-    skyLightColor = SRGBtoLinear(skyColor);
-    blockLightColor = getBlockLightColor() * 0.5;
-    // blend
-    float lightAmount = max(blockLightIntensity, ambiantSkyLightIntensity);
-    float lightSourceBlend = (blockLightIntensity + (lightAmount - ambiantSkyLightIntensity)) / (2*lightAmount);
-    // estimate
-    vec3 backgroundColor = mix(skyLightColor, blockLightColor, lightSourceBlend);
-    backgroundColor = mix(vec3(0), backgroundColor, lightAmount);
-    // background color goes to black if ray go towards camera
-    vec3 towardReflectionColor = mix(vec3(0), backgroundColor, ambiantSkyLightIntensity);
-    backgroundColor = mix(towardReflectionColor, backgroundColor, (reflectedDirectionDotZ+1)/2);
-
-    // -- SSR -- //
-    vec4 reflectionData = SSR(
-        colortex0,
-        colortex4,
-        depthtex2,
-        depthtex0,
-        uv,
-        depth,
-        viewSpaceNormal,
-        smoothness,
-        reflectance,
-        backgroundColor,
-        type
-    );
-    vec3 reflectionColor = reflectionData.rgb;
-    float reflectionVisibility = reflectionData.a;
-
-    // -- apply reflection -- //
-    // update transparency for transparent material
-    if (isTransparentLit(type)) {
-        // add opacity as the reflection intensify
-        transparency = max(transparency, reflectionVisibility);
-    }
-    // mix original color with reflection color
-    colorData = vec4(mix(color, reflectionColor, reflectionVisibility), transparency);
-
-    colorData.rgb = linearToSRGB(colorData.rgb);
+    float lightness = getLightness(colorData.rgb);
+    lightData = vec4(colorData.rgb * max(pow(lightness, 2), emissivness), transparency);
 }
 
 /******************************************
 ****** SSR & transparency-opaque mix ******
 *******************************************/
 void main() {
-    vec4 opaqueColorData = vec4(0);
-    vec4 transparentColorData = vec4(0);
-    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData);
-
-    // -- mix opaque & transparent -- //
-    outColor = mix(opaqueColorData, transparentColorData, transparentColorData.a);
-
-    /* volumetric light */
-    if (VOLUMETRIC_LIGHT_TYPE > 0) {
-        vec3 skyLightColor = getSkyLightColor();
-        vec3 worldSpacePosition = viewToWorld(screenToView(uv, texture2D(depthtex0, uv).r));
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
-        vec3 volumetricLight = volumetricLighting(uv, worldSpacePosition, -worldSpaceViewDirection);
-        volumetricLight *= vec3(0.5) * skyLightColor;
-        
-        outColor.rgb += volumetricLight;
-    }
+    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueLightData);
+    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentLightData);
 }

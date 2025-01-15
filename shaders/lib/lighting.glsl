@@ -39,9 +39,8 @@ vec3 volumetricLighting(vec2 uv, vec3 worldPosition, vec3 worldSpaceViewDirectio
             break;
         }
 
-        float density = map(getFogDensity(rayPlayerSpacePosition.y), minimumFogDensity, maximumFogDensity, 0.1, 1);
-        scatteringCoefficient = density;
-        if (isEyeInWater == 1) scatteringCoefficient = 10;
+        // density 
+        scatteringCoefficient = isEyeInWater==1 ? 30 : map(getFogDensity(rayPlayerSpacePosition.y), minimumFogDensity, maximumFogDensity, 0.1, 1);
 
         // get shadow
         vec4 shadowClipPos = playerToShadowClip(rayPlayerSpacePosition);
@@ -78,6 +77,27 @@ vec3 volumetricLighting(vec2 uv, vec3 worldPosition, vec3 worldSpaceViewDirectio
     return accumulatedLight / pow(far, 0.75);
 }
 
+vec3 foggify(vec3 color, vec3 worldSpacePosition, float normalizedLinearDepth) {
+
+    // custom fog
+    if (FOG_TYPE == 2) {
+        float fogDensity = getFogDensity(worldSpacePosition.y);
+
+        // exponential function
+        float fogAmount = getFogAmount(normalizedLinearDepth, fogDensity);
+        color = mix(color, getFogColor() * getSkyLightColor(), fogAmount);
+    }
+    // vanilla fog (not applied when camera is under water) // TODO: remplacer fogColor 
+    if (FOG_TYPE == 1 || (FOG_TYPE == 2 && isEyeInWater!=1)) {
+        // linear function 
+        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+        float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
+        color = mix(color, getFogColor() * getSkyLightColor(), vanillaFogBlend);
+    }
+
+    return color;
+}
+
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
               float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
 
@@ -92,7 +112,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
     vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-    float linearDepth = distanceFromCamera / far;
+    float normalizedLinearDepth = distanceFromCamera / far;
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
     /* shadow */
@@ -109,7 +129,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // direct sky light
     vec3 skyDirectLight = max(lightDirectionDotNormal, 0) * skyLightColor;
     // subsurface scattering
-    if (ambient_occlusion > 0) {
+    if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
         float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
@@ -138,21 +158,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     transparency = max(transparency, schlick(reflectance, cosTheta));
 
     /* fog */
-    // custom fog
-    if (FOG_TYPE == 2) {
-        float fogDensity = getFogDensity(worldSpacePosition.y);
-
-        // exponential function
-        float fogAmount = getFogAmount(linearDepth, fogDensity);
-        color = mix(color, vec3(0.5) * skyLightColor, fogAmount);
-    }
-    // vanilla fog
-    if (FOG_TYPE > 0) {
-        // linear function 
-        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
-        color = mix(color, fog_color, vanillaFogBlend);
-    }
+    color = foggify(color, worldSpacePosition, normalizedLinearDepth);
 
     return vec4(color, transparency);
 }

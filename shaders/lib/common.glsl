@@ -24,10 +24,10 @@ const int shadowMapResolution = 2048; // 2048
 
 // sun and moon
 const float sunPathRotation = 0;
-#define SKY_LIGHT_COLOR 1 // 0=false 1=true
+#define SKY_LIGHT_COLOR 1 // 0=off 1=on
 
 // fog
-#define FOG_TYPE 2 // 0=false 1=vanilla 2=custom
+#define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
@@ -48,17 +48,24 @@ const float endShadowDecrease = 150;
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 2 // 0=off; 1=only_fresnel; 2=SSR
+#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
 #define SSR_RESOLUTION 0.1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 
 // animation
-#define ANIMATION_TYPE 1 // 0=off; 1=only_vertex; 2=vertex_and_normal
+#define ANIMATION_TYPE 2 // 0=off 1=only_vertex 2=vertex_and_normal
+
+// subsurface scattering
+#define SUBSURFACE_TYPE 1 // 0=off 1=on
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
 #define VOLUMETRIC_LIGHT_RESOLUTION 0.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+
+// bloom
+#define BLOOM_TYPE 1 // 0=off 1=on
+#define BLOOM_FACTOR 0.8 // from 0=none to 1=too_much
 
 //////////////////////////
 //////// Uniforms ////////

@@ -90,6 +90,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     colorData = texture2D(albedoTexture, uv);
     vec3 albedo = vec3(0); float transparency = 0;
     getColorData(colorData, albedo, transparency);
+    // if (transparency<0.01) return;
     // normal
     normalData = texture2D(normalTexture, uv);
     vec3 normal = vec3(0);
@@ -110,11 +111,22 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     // -- light computation -- //
     // basic or glowing
     if (isBasic(type)) {
-        if (isTransparent) {
-            opaqueColorData += vec4(albedo, transparency) * 1.5;
+        // glowing
+        if (isTransparent && getLightness(albedo) > 0.01) {
+            vec3 worldSpacePosition = screenToWorld(uv, depth);
+            float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
+            albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
+            opaqueColorData.rgb = linearToSRGB(albedo);
+            opaqueLightData.z = 1;
         }
         else {
             colorData = vec4(albedo, transparency);
+
+            if (isEyeInWater==1) {
+                vec3 worldSpacePosition = screenToWorld(uv, depth);
+                float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
+                colorData.rgb = foggify(colorData.rgb, worldSpacePosition, normalizedLinearDepth);
+            }
         }
         
     } 
@@ -138,6 +150,18 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
         // colorData = vec4(1,1,0,1);
     }
 
+    // -- volumetric light -- //
+    if (VOLUMETRIC_LIGHT_TYPE > 0) {
+        vec3 skyLightColor = getSkyLightColor();
+        vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
+        vec3 volumetricLight = volumetricLighting(uv, worldSpacePosition, -worldSpaceViewDirection);
+        volumetricLight *= getFogColor() * skyLightColor;
+        if (isEyeInWater == 1) volumetricLight *= ambiantSkyLightIntensity *0.5 +0.5;
+        
+        colorData.rgb += volumetricLight;
+    }
+
     // convert back to SRGB
     colorData.rgb = linearToSRGB(colorData.rgb);
 }
@@ -147,5 +171,5 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
 ******************************************/
 void main() {
     process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueNormalData, opaqueLightData, opaqueMaterialData, false);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, true);
+    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, true);    
 }
