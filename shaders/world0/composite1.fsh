@@ -4,10 +4,8 @@
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
-#include "/lib/color.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/shadow.glsl"
-#include "/lib/lighting.glsl"
+#include "/lib/color.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
@@ -454,7 +452,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     }
 
     float lightness = getLightness(colorData.rgb);
-    lightData = vec4(colorData.rgb * max(pow(lightness, 2), emissivness), transparency);
+    lightData = vec4(colorData.rgb * max(pow(lightness, 3), emissivness), transparency);
 }
 
 /******************************************

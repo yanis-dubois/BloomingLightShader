@@ -38,4 +38,6 @@ void main() {
     // blend opaque and transparent texture
     outColorData = mix(opaqueColorData, transparentColorData, transparentColorData.a);
     outColorData.rgb = linearToSRGB(outColorData.rgb);
+
+    //outColorData.rgb = linearToSRGB(opaqueColorData.rgb);
 }

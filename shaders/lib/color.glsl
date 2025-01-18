@@ -153,15 +153,15 @@ vec3 getBlockLightColor_fast() {
     return blockLightColor;
 }
 
-vec3 getFogColor() {
-    if (isEyeInWater == 1) return vec3(0.0,0.1,0.3);
+vec3 getFogColor(bool isInWater) {
+    if (isInWater) return vec3(0.0,0.1,0.3);
     return vec3(0.5);
 }
 
 const float minimumFogDensity = 0.5;
 const float maximumFogDensity = 4;
-float getFogDensity(float worldSpaceHeight) {
-    if (isEyeInWater == 1) return maximumFogDensity * 1.5;
+float getFogDensity(float worldSpaceHeight, bool isInWater) {
+    if (isInWater) return maximumFogDensity * 1.5;
 
     float minFogDensity = sunAngle > 0.5 ? minimumFogDensity*2 : minimumFogDensity;
     float maxFogDensity = maximumFogDensity;

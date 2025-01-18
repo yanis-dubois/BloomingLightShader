@@ -61,11 +61,11 @@ const float endShadowDecrease = 150;
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_RESOLUTION 0.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_RESOLUTION 1 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 
 // bloom
-#define BLOOM_TYPE 1 // 0=off 1=on
-#define BLOOM_FACTOR 0.8 // from 0=none to 1=too_much
+#define BLOOM_TYPE 0 // 0=off 1=on
+#define BLOOM_FACTOR 0.75 // from 0=none to 1=too_much
 
 //////////////////////////
 //////// Uniforms ////////

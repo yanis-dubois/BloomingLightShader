@@ -1,107 +1,153 @@
-vec3 volumetricLighting(vec2 uv, vec3 worldPosition, vec3 worldSpaceViewDirection) {
+void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity, bool isWater,
+                        inout vec4 opaqueColorData, inout vec4 transparentColorData) {
+    
     if (VOLUMETRIC_LIGHT_TYPE == 0)
-        return vec3(0);
-
-    // tweak for caves ??
-    float cameraSkyLight = float(eyeBrightnessSmooth.y) / 240.0;
+        return;
     
     // parameters
     float absorptionCoefficient = 0.00;
-    float scatteringCoefficient = 0; //0=vaccumSpace 0.42=clearSky 1=fggyest 
+    float scatteringCoefficient = 0;
     float sunIntensity = 1;
+    
+    // does ray as a medium change in its trajectory ?
+    bool asMediumChange = isWater && depthAll<depthOpaque;
 
-    float fragmentDistance = distance(cameraPosition, worldPosition);
-    fragmentDistance = clamp(fragmentDistance, 0, endShadowDecrease);
-
-    vec3 playerSpaceCameraPosition = worldToPlayer(cameraPosition);
-
-    //
-    vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
+    // distances
+    vec3 opaqueWorldSpacePosition = viewToWorld(screenToView(uv, depthOpaque));
+    vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
+    float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
+    float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
+    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0, endShadowDecrease);
+    // direction
+    vec3 worldSpaceViewDirection = - normalize(cameraPosition - opaqueWorldSpacePosition);
 
     // init loop
-    vec3 accumulatedLight = vec3(0);
-    float stepsCount = max(fragmentDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16); // nb steps (minimum 32)
-    float stepSize = fragmentDistance / stepsCount;
+    vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
+    float stepsCount = max(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16); // nb steps (minimum 16)
+    float stepSize = clampedMaxDistance / stepsCount; // born max distance and divide by step count
     vec2 seed = uv + (float(frameCounter) / 720719.0);
     float randomizedStepSize = stepSize * pseudoRandom(seed);
-    float weights = 0;
-    vec3 rayPlayerSpacePosition = playerSpaceCameraPosition;
-    rayPlayerSpacePosition += worldSpaceViewDirection * randomizedStepSize;
-    float rayDistance = distance(playerSpaceCameraPosition, rayPlayerSpacePosition);
-    int count = 0;
+    vec3 rayWorldSpacePosition = cameraPosition;
+    float rayDistance = 0;
+    rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
+    bool transparentHit = false;
+
+    // tweak for caves ??
+    float cameraSkyLight = float(eyeBrightnessSmooth.y) / 240.0;
 
     // loop
-    for (; count<stepsCount; ++count) {
+    for (int i=0; i<stepsCount; ++i) {
+        rayDistance = distance(cameraPosition, rayWorldSpacePosition);
+
         // ray goes beneath block
-        rayDistance = distance(playerSpaceCameraPosition, rayPlayerSpacePosition);
-        if (rayDistance>fragmentDistance) {
+        if (!transparentHit && rayDistance>transparentFragmentDistance) {
+            transparentHit = true;
+            transparentAccumulatedLight = opaqueAccumulatedLight;
+        }
+        if (rayDistance>opaqueFragmentDistance) {
             break;
         }
 
+        // if in camera in water and ray inside it, or camera outside water but ray goes beneath it
+        bool isInWater = 
+               (!asMediumChange && isEyeInWater==1) 
+            || (asMediumChange && isEyeInWater==1 && rayDistance<transparentFragmentDistance) 
+            || (asMediumChange && isEyeInWater!=1 && rayDistance>transparentFragmentDistance);
+
         // density 
-        scatteringCoefficient = isEyeInWater==1 ? 30 : map(getFogDensity(rayPlayerSpacePosition.y), minimumFogDensity, maximumFogDensity, 0.1, 1);
+        // water density 
+        if (isInWater && isEyeInWater==1) {
+            // when camera inside water (broke rendering equation by creating energy, but it looks better)
+            if (isEyeInWater==1) {
+                scatteringCoefficient = 20;
+            }
+            // when camera outside water (avoid adding energy)
+            else {
+                scatteringCoefficient = 1;
+            }
+        }
+        // air density depending at altitude
+        else {
+            scatteringCoefficient = map(getFogDensity(rayWorldSpacePosition.y, false), minimumFogDensity, maximumFogDensity, 0.1, 1);
+        }
+
+        if (sunAngle > 0.5) {
+            scatteringCoefficient *= isInWater ? 0.5 : 0.1;
+        }
 
         // get shadow
-        vec4 shadowClipPos = playerToShadowClip(rayPlayerSpacePosition);
+        vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
         vec4 shadow = getShadow(shadowClipPos);
         vec3 shadowedLight = mix(shadow.rgb, vec3(0), shadow.a);
 
         // compute inscattered light 
         float scattering = exp(-absorptionCoefficient * rayDistance);
-        vec3 inscatteredLight = sunIntensity * shadowedLight * scatteringCoefficient * scattering;
+        scattering = 1;
+        vec3 inscatteredLight = shadowedLight * scatteringCoefficient * scattering;
+        // integrate over distance
         inscatteredLight *= randomizedStepSize;
+        inscatteredLight *= getFogColor(isInWater);
 
         // add light contribution
-        if (VOLUMETRIC_LIGHT_TYPE == 2) {
-            scatteringCoefficient = getFogDensity(rayPlayerSpacePosition.y);
-            accumulatedLight += shadowedLight * scatteringCoefficient;
-            weights += scatteringCoefficient;
-        }
-        else accumulatedLight += inscatteredLight;
+        opaqueAccumulatedLight += inscatteredLight;
 
         // go a step further
         seed ++;
         randomizedStepSize = stepSize * pseudoRandom(seed);
-        rayPlayerSpacePosition += worldSpaceViewDirection * randomizedStepSize;
+        rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
+    }
+
+    // 
+    if (!transparentHit) {
+        transparentAccumulatedLight = opaqueAccumulatedLight;
     }
 
     // decrease volumetric light effect as light source and view vector are align
     // -> avoid player shadow monster 
-    accumulatedLight *= pow(LdotV*0.5+0.5, 0.2);
+    vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
+    float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.35);
+    opaqueAccumulatedLight *= attenuationFactor;
+    transparentAccumulatedLight *= attenuationFactor;
 
-    if (VOLUMETRIC_LIGHT_TYPE == 2) {
-        float cal = clamp(1.0 / float(weights), 0, 1);
-        return accumulatedLight * cal * clamp(fragmentDistance/far * scatteringCoefficient, 0, 1);
-    }
-    return accumulatedLight / pow(far, 0.75);
+    // color adjustment
+    opaqueAccumulatedLight *= skyLightColor * rainFactor;
+    transparentAccumulatedLight *= skyLightColor * rainFactor;
+    // reduce intensity as it goes deep under water
+    // if (isEyeInWater == 1) {
+    //     opaqueAccumulatedLight *= ambientSkyLightIntensity * 0.5 + 0.5;
+    //     transparentAccumulatedLight *= ambientSkyLightIntensity * 0.5 + 0.5;
+    // }
+
+    opaqueColorData.rgb += opaqueAccumulatedLight / pow(far, 0.75);
+    transparentColorData.rgb += transparentAccumulatedLight / pow(far, 0.75);
 }
 
 vec3 foggify(vec3 color, vec3 worldSpacePosition, float normalizedLinearDepth) {
 
     // custom fog
     if (FOG_TYPE == 2) {
-        float fogDensity = getFogDensity(worldSpacePosition.y);
+        float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater==1);
 
         // exponential function
         float fogAmount = getFogAmount(normalizedLinearDepth, fogDensity);
-        color = mix(color, getFogColor() * getSkyLightColor(), fogAmount);
+        color = mix(color, getFogColor(isEyeInWater==1) * getSkyLightColor(), fogAmount);
     }
     // vanilla fog (not applied when camera is under water) // TODO: remplacer fogColor 
     if (FOG_TYPE == 1 || (FOG_TYPE == 2 && isEyeInWater!=1)) {
         // linear function 
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
-        color = mix(color, getFogColor() * getSkyLightColor(), vanillaFogBlend);
+        color = mix(color, getFogColor(isEyeInWater==1) * getSkyLightColor(), vanillaFogBlend);
     }
 
     return color;
 }
 
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
-              float ambiantSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
+              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
 
-    float ambiantFactor = 0.2;
+    float ambientFactor = 0.2;
 
     // TODO: SSAO
     float occlusion = 1;
@@ -136,23 +182,21 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     }
     skyDirectLight *= rainFactor * shadowDayNightBlend; // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
-    // ambiant sky light
-    vec3 ambiantSkyLight = ambiantFactor * skyLightColor * ambiantSkyLightIntensity;
-    // block light
-    if (emissivness > 0) blockLightIntensity *= 1.5;
-    blockLightIntensity *= (1+emissivness);
-    vec3 blockLight = blockLightColor * blockLightIntensity;
-    // attenuate light underwater
+    // attenuate sky light underwater
     if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
-        skyDirectLight *= ambiantSkyLightIntensity;
+        skyDirectLight *= ambientSkyLightIntensity;
     }
+    // ambient sky light
+    vec3 ambientSkyLight = ambientFactor * skyLightColor * ambientSkyLightIntensity;
+    // block light
+    vec3 blockLight = blockLightColor * blockLightIntensity;
+    
     // perfect diffuse
-    vec3 color = albedo * occlusion * (skyDirectLight + ambiantSkyLight + blockLight);
-    // color = clamp(color * (emissivness*2 + 1), 0, 1);
+    vec3 color = albedo * occlusion * (skyDirectLight + ambientSkyLight + blockLight);
 
     /* BRDF */
     // float roughness = pow(1.0 - smoothness, 2.0);
-    // vec3 BRDF = albedo * (ambiantSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
+    // vec3 BRDF = albedo * (ambientSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
 
     /* fresnel */
     transparency = max(transparency, schlick(reflectance, cosTheta));

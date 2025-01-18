@@ -83,7 +83,7 @@ layout(location = 6) out vec4 transparentLightData;
 layout(location = 7) out vec4 transparentMaterialData;
 
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
-            out vec4 colorData, out vec4 normalData, out vec4 lightData, out vec4 materialData, bool isTransparent) {
+            out vec4 colorData, out vec4 normalData, out vec4 lightData, out vec4 materialData, out float depth, bool isTransparent) {
     
     // -- get input buffer values & init output buffers -- //
     // albedo
@@ -97,15 +97,15 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     getNormalData(normalData, normal);
     // light
     lightData = texture2D(lightTexture, uv);
-    float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
-    getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
+    float blockLightIntensity = 0, ambientSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
+    getLightData(lightData, blockLightIntensity, ambientSkyLightIntensity, emissivness, ambient_occlusion);
     // material
     materialData = texture2D(materialTexture, uv);
     float type = 0, smoothness = 0, reflectance = 0, subsurface = 0;
     getMaterialData(materialData, type, smoothness, reflectance, subsurface);
     // depth
     vec4 depthData = texture2D(depthTexture, uv);
-    float depth = 0;
+    depth = 0;
     getDepthData(depthData, depth);
 
     // -- light computation -- //
@@ -141,35 +141,35 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
             smoothness,
             reflectance,
             subsurface,
-            ambiantSkyLightIntensity, 
+            ambientSkyLightIntensity, 
             blockLightIntensity,
             emissivness,
             ambient_occlusion,
             isTransparentLit(type)
         );
-        // colorData = vec4(1,1,0,1);
     }
-
-    // -- volumetric light -- //
-    if (VOLUMETRIC_LIGHT_TYPE > 0) {
-        vec3 skyLightColor = getSkyLightColor();
-        vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
-        vec3 volumetricLight = volumetricLighting(uv, worldSpacePosition, -worldSpaceViewDirection);
-        volumetricLight *= getFogColor() * skyLightColor;
-        if (isEyeInWater == 1) volumetricLight *= ambiantSkyLightIntensity *0.5 +0.5;
-        
-        colorData.rgb += volumetricLight;
-    }
-
-    // convert back to SRGB
-    colorData.rgb = linearToSRGB(colorData.rgb);
 }
 
 /*****************************************
 ************* lighting & fog *************
 ******************************************/
 void main() {
-    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueNormalData, opaqueLightData, opaqueMaterialData, false);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, true);    
+    float depthAll=0, depthOpaque=0;
+    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueNormalData, opaqueLightData, opaqueMaterialData, depthOpaque, false);
+    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, depthAll, true); 
+
+    // -- volumetric light -- //
+    if (VOLUMETRIC_LIGHT_TYPE > 0) {
+        volumetricLighting(uv, depthAll, depthOpaque, min(opaqueLightData.y, transparentLightData.y), isWater(transparentMaterialData.x), opaqueColorData, transparentColorData);
+    }
+
+    vec3 opaqueWorldSpacePosition = viewToWorld(screenToView(uv, depthOpaque));
+    vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
+    float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
+    float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
+    vec3 bloup = vec3(transparentFragmentDistance < opaqueFragmentDistance);
+
+    // convert back to SRGB
+    opaqueColorData.rgb = linearToSRGB(opaqueColorData.rgb);
+    transparentColorData.rgb = linearToSRGB(transparentColorData.rgb);
 }
