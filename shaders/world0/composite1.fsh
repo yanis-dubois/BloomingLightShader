@@ -5,7 +5,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/color.glsl"
+#include "/lib/atmospheric.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
@@ -170,7 +170,7 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     // TODO: 
     // determine the step length
     // float resolution = mix(0.01, SSR_RESOLUTION, (smoothness*smoothness*smoothness) - (pseudoRandom(uv)*0.5));
-    float resolution = mix(0.01, SSR_RESOLUTION, smoothness*smoothness*smoothness);
+    float resolution = mix(0.05, SSR_RESOLUTION, smoothness*smoothness*smoothness);
     resolution = clamp(resolution, 0, 1);
     float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1 : 0;
     float stepsNumber = max(abs(delta.x), abs(delta.y)) * resolution; // check which dimension has the longest to determine the number of steps
@@ -353,7 +353,7 @@ layout(location = 2) out vec4 transparentColorData;
 layout(location = 3) out vec4 transparentLightData;
 
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
-            out vec4 colorData, out vec4 lightData) {
+            out vec4 colorData, out vec4 lightData, bool isTransparent) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
@@ -441,7 +441,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
 
         // -- apply reflection -- //
         // update transparency for transparent material
-        if (isTransparentLit(type)) {
+        if (isTransparent) {
             // add opacity as the reflection intensify
             transparency = max(transparency, reflectionVisibility);
         }
@@ -452,13 +452,13 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     }
 
     float lightness = getLightness(colorData.rgb);
-    lightData = vec4(colorData.rgb * max(pow(lightness, 3), emissivness), transparency);
+    lightData = vec4(colorData.rgb * max(pow(lightness, 9), emissivness), transparency);
 }
 
 /******************************************
 ****** SSR & transparency-opaque mix ******
 *******************************************/
 void main() {
-    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueLightData);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentLightData);
+    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueLightData, false);
+    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentLightData, true);
 }

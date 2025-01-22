@@ -1,5 +1,5 @@
 #version 140
 
-#define GLOWING
+#define GLINT
 
 #include "/programs/basic_frag.glsl"

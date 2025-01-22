@@ -5,7 +5,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/color.glsl"
+#include "/lib/atmospheric.glsl"
 
 // attribute
 in vec4 starData; //rgb = star color, a = flag for weather or not this pixel is a star.

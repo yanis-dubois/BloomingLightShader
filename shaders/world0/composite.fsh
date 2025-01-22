@@ -21,7 +21,6 @@ const float ambiantFactor_transparent = 1;
 in vec3 skyLightColor;
 in vec3 blockLightColor;
 in vec3 fog_color;
-in float shadowDayNightBlend;
 in float rainFactor;
 in float fog_density;
 
@@ -31,45 +30,10 @@ in vec2 uv;
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/color.glsl"
-#include "/lib/sample.glsl"
+#include "/lib/atmospheric.glsl"
+#include "/lib/animation.glsl"
 #include "/lib/shadow.glsl"
 #include "/lib/lighting.glsl"
-
-// TODO: be sure to normalize sample vec par rapport à l'espace view
-float SSAO(vec2 uv, float depth, mat3 TBN) {
-    // handle SSAO_SAMPLES<1 by skipping SSAO
-    if (SSAO_SAMPLES<1)
-        return 1;
-
-    vec3 viewSpacePosition = screenToView(uv, depth);
-
-    float occlusion = 0;
-    float weigthts = 0;
-    for (int i=0; i<SSAO_SAMPLES; ++i) {
-        vec3 sampleTangentSpace = getSample(uv, i);
-        vec3 sampleViewSpace = tangentToView(sampleTangentSpace, TBN);
-
-        // offset and scale
-        sampleViewSpace = sampleViewSpace * SSAO_RADIUS + viewSpacePosition;
-
-        // convert from view to screen space
-        vec3 sampleUV = viewToScreen(sampleViewSpace);
-
-        // test if occluded
-        float sampleDepth = texture2D(depthtex0, sampleUV.xy).r;
-        if (sampleDepth + SSAO_BIAS > depth) {
-            float weight = length(sampleTangentSpace);
-            weigthts += weight;
-            occlusion += mix(0, 1, weight/SSAO_RADIUS); // atenuate depending on sample radius
-        }
-    }
-    if (weigthts > 0) {
-        occlusion /= weigthts;
-    }
-
-    return occlusion;
-}
 
 // results
 /* RENDERTARGETS: 0,1,2,3,4,5,6,7 */
@@ -84,13 +48,13 @@ layout(location = 7) out vec4 transparentMaterialData;
 
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
             out vec4 colorData, out vec4 normalData, out vec4 lightData, out vec4 materialData, out float depth, bool isTransparent) {
-    
+
     // -- get input buffer values & init output buffers -- //
     // albedo
     colorData = texture2D(albedoTexture, uv);
     vec3 albedo = vec3(0); float transparency = 0;
     getColorData(colorData, albedo, transparency);
-    // if (transparency<0.01) return;
+    //if (transparency<0.01) return;
     // normal
     normalData = texture2D(normalTexture, uv);
     vec3 normal = vec3(0);
@@ -113,23 +77,28 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     if (isBasic(type)) {
         // glowing
         if (isTransparent && getLightness(albedo) > 0.01) {
+            // apply fog
             vec3 worldSpacePosition = screenToWorld(uv, depth);
             float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
             albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
+
+            // write in opaque buffer
             opaqueColorData.rgb = linearToSRGB(albedo);
-            opaqueLightData.z = 1;
+            opaqueLightData.z = 1; // add emissivness
         }
-        else {
+        // sky
+        else if (!isTransparent) {
+            // write value as it is
             colorData = vec4(albedo, transparency);
 
+            // foggify if camera in water
             if (isEyeInWater==1) {
                 vec3 worldSpacePosition = screenToWorld(uv, depth);
                 float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
                 colorData.rgb = foggify(colorData.rgb, worldSpacePosition, normalizedLinearDepth);
             }
         }
-        
-    } 
+    }
     // lit
     else {
         colorData = lighting(
@@ -145,7 +114,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
             blockLightIntensity,
             emissivness,
             ambient_occlusion,
-            isTransparentLit(type)
+            isTransparent
         );
     }
 }
@@ -162,12 +131,6 @@ void main() {
     if (VOLUMETRIC_LIGHT_TYPE > 0) {
         volumetricLighting(uv, depthAll, depthOpaque, min(opaqueLightData.y, transparentLightData.y), isWater(transparentMaterialData.x), opaqueColorData, transparentColorData);
     }
-
-    vec3 opaqueWorldSpacePosition = viewToWorld(screenToView(uv, depthOpaque));
-    vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
-    float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
-    float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
-    vec3 bloup = vec3(transparentFragmentDistance < opaqueFragmentDistance);
 
     // convert back to SRGB
     opaqueColorData.rgb = linearToSRGB(opaqueColorData.rgb);

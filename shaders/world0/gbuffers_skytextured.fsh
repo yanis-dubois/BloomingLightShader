@@ -3,7 +3,7 @@
 
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
-#include "/lib/color.glsl"
+#include "/lib/atmospheric.glsl"
 
 // uniforms
 uniform sampler2D gtexture;

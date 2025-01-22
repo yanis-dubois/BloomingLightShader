@@ -31,10 +31,12 @@ void main() {
     if (transparency < alphaTestRef) discard;
 
     #ifdef BEACON_BEAM
-    transparency = 0.5;
-    albedo = SRGBtoLinear(albedo);
-    albedo *= 1.5;
-    albedo = linearToSRGB(albedo);
+        transparency = 0.5;
+        // add emissivness !!!
+    #endif
+
+    #ifdef GLINT
+        opaqueLightData = vec4(0.66,0,0.66,1);
     #endif
 
     /* buffers */

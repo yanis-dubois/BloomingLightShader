@@ -14,6 +14,15 @@ const int colortex6Format = RGBA8; // transparent light
 const int colortex7Format = RGBA8; // transparent material
 */
 
+const bool colortex0Clear = true;
+const bool colortex1Clear = true;
+const bool colortex2Clear = true;
+const bool colortex3Clear = true;
+const bool colortex4Clear = true;
+const bool colortex5Clear = true;
+const bool colortex6Clear = true;
+const bool colortex7Clear = true;
+
 // resolution
 // const int noiseTextureResolution = 256;
 const int shadowMapResolution = 2048; // 2048
@@ -33,6 +42,7 @@ const float sunPathRotation = 0;
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
 #define SHADOW_QUALITY 5 // half number of samples
 #define SHADOW_SOFTNESS 2.0 // width of the sample area
+#define SHADOW_WATER_ANIMATED 1 // 0=off 1=on
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
@@ -48,7 +58,7 @@ const float endShadowDecrease = 150;
 #define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
+#define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
 #define SSR_RESOLUTION 0.1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
@@ -61,21 +71,20 @@ const float endShadowDecrease = 150;
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_RESOLUTION 1 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_RESOLUTION 20 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
 #define BLOOM_TYPE 0 // 0=off 1=on
-#define BLOOM_FACTOR 0.75 // from 0=none to 1=too_much
+#define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
 //////////////////////////
 //////// Uniforms ////////
 //////////////////////////
 
 const float typeBasic = 0.0;
-const float typeGlowing = 0.8;
-const float typeTransparentLit = 0.5;
-const float typeWater = 0.6;
-const float typeOpaqueLit = 1.0;
+const float typeWater = 0.67;
+const float typeLit = 1.0;
 
 // uniform sampler2D noisetex;
 
@@ -99,6 +108,7 @@ uniform vec3 fogColor;
 uniform ivec2 eyeBrightness;
 uniform ivec2 eyeBrightnessSmooth;
 
+uniform float shadowAngle;
 uniform float sunAngle;
 uniform float rainfall;
 uniform float fogStart;
@@ -111,6 +121,7 @@ uniform float viewHeight;
 uniform float viewWidth;
 uniform float gamma;
 uniform float frameTimeCounter;
+uniform float ambientLight;
 
 uniform int frameCounter; // in [0;720719]
 uniform int worldTime; // in tick [0;23999]

@@ -11,6 +11,7 @@ in vec3 mc_Entity;
 
 // results
 out vec4 additionalColor;
+out vec4 clipSpacePosition;
 out vec2 textureCoordinate;
 flat out int id;
 
@@ -19,6 +20,7 @@ void main() {
     textureCoordinate = gl_MultiTexCoord0.xy;
     additionalColor = gl_Color;
     gl_Position = ftransform();
+    clipSpacePosition = gl_Position;
 
     id = int(mc_Entity.x);
     

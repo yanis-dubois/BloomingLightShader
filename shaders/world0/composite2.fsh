@@ -4,8 +4,8 @@
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
-#include "/lib/color.glsl"
 #include "/lib/space_conversion.glsl"
+#include "/lib/atmospheric.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color

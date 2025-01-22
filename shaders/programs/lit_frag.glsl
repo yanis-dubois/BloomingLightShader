@@ -3,7 +3,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/color.glsl"
+#include "/lib/atmospheric.glsl"
 #include "/lib/animation.glsl"
 
 // uniforms
@@ -131,10 +131,9 @@ void main() {
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
     /* type */
-    float type = typeOpaqueLit;
+    float type = typeLit;
     #ifdef TRANSPARENT
     if (id == 20000) type = typeWater;
-    else type = typeTransparentLit;
     #endif
 
     /* material data */

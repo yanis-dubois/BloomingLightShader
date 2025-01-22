@@ -8,11 +8,19 @@ float getNoise(vec3 seed, float amplitude, float speed) {
     return amplitude * noise;
 }
 
+// used during shadow rendering to simulate caustic
+float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
+    float amplitude = 0.33;
+    float speed = time * 0.15;
+    vec3 seed = vec3(worldSpacePosition.xz * 0.5, speed);
+    
+    return amplitude * snoise(seed + speed);
+}
+
 vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     vec3 seed = vec3(worldSpacePosition.xz/20.0, 0);
     float amplitude = 1.0/32.0;
-    float speed = time;
-    speed *= 0.25;
+    float speed = time * 0.25;
     
     worldSpacePosition.y += amplitude * snoise(seed + speed);
     return worldSpacePosition;
@@ -21,8 +29,7 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
 vec3 doLeafAnimation(float time, vec3 worldSpacePosition) {
     vec3 seed = vec3(worldSpacePosition.xz/20.0, worldSpacePosition.y/50.0);
     float amplitude = 1.0 / 8.0;
-    float speed = time; 
-    speed *= 0.2;
+    float speed = time * 0.2;
 
     worldSpacePosition.x += getNoise(seed, amplitude, speed);
     worldSpacePosition.y += getNoise(seed+1, amplitude, speed);
@@ -34,8 +41,7 @@ vec3 doLeafAnimation(float time, vec3 worldSpacePosition) {
 vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id) {
     vec3 seed = vec3(worldSpacePosition.xz/20.0, worldSpacePosition.y/50.0);
     float amplitude = 1.0 / 4.0;
-    float speed = time; 
-    speed *= 0.2;
+    float speed = time * 0.2;
 
     // attuenuate amplitude if rooted
     if (isRooted(id)) {

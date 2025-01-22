@@ -256,6 +256,8 @@ void getMaterialData(vec4 materialData, out float type, out float smoothness, ou
     smoothness = materialData.y;
     reflectance = materialData.z;
     subsurface = materialData.w;
+
+    //type = SRGBtoLinear(type);
 }
 void getDepthData(vec4 depthData, out float depth) {
     depth = depthData.x;
@@ -263,22 +265,16 @@ void getDepthData(vec4 depthData, out float depth) {
 
 // -- type checking -- //
 bool areNearlyEqual(float x, float y) {
-    return abs(x-y) < 0.01;
+    return abs(x-y) < 0.15;
 }
 bool isBasic(float type) {
     return areNearlyEqual(type, typeBasic);
 }
-bool isGlowing(float type) {
-    return areNearlyEqual(type, typeGlowing);
-}
 bool isWater(float type) {
     return areNearlyEqual(type, typeWater);
 }
-bool isTransparentLit(float type) {
-    return areNearlyEqual(type, typeTransparentLit) || areNearlyEqual(type, typeWater);
-}
-bool isOpaqueLit(float type) {
-    return areNearlyEqual(type, typeOpaqueLit);
+bool isLit(float type) {
+    return areNearlyEqual(type, typeLit);
 }
 
 bool isAnimated(int id) {
@@ -313,10 +309,10 @@ bool isCeilingRooted(int id) {
     return id == 10020;
 }
 bool isTallLower(int id) {
-    return id == 10010;
+    return id == 10010 || id == 10051;
 }
 bool isTallUpper(int id) {
-    return id == 10011;
+    return id == 10011 || id == 10052;
 }
 bool isPicherCropLower(int id) {
     return id == 10002;
@@ -326,7 +322,7 @@ bool isPicherCropUpper(int id) {
 }
 // subsurface 
 bool isColumnSubsurface(int id) {
-    return id == 10021 || id == 10060;
+    return id == 10021 || id == 10055 || id == 10060;
 }
 bool isCobweb(int id) {
     return id == 10070;

@@ -155,11 +155,11 @@ vec3 getBlockLightColor_fast() {
 
 vec3 getFogColor(bool isInWater) {
     if (isInWater) return vec3(0.0,0.1,0.3);
-    return vec3(0.5);
+    return vec3(0.8);
 }
 
 const float minimumFogDensity = 0.5;
-const float maximumFogDensity = 4;
+const float maximumFogDensity = 3;
 float getFogDensity(float worldSpaceHeight, bool isInWater) {
     if (isInWater) return maximumFogDensity * 1.5;
 
@@ -182,5 +182,5 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
 }
 
 float getFogAmount(float linearDepth, float fogDensity) {
-    return clamp(1 - pow(2, -pow((linearDepth * fogDensity), 2)), 0, 1);
+    return clamp(1 - pow(2, -pow((linearDepth * fogDensity), 2)), 0, 0.9);
 }

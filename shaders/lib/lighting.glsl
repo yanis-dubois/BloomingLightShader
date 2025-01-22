@@ -1,3 +1,7 @@
+float getDayNightBlend() {
+    return map(shadowAngle, 0.0, 0.01, 0, 1) * map(shadowAngle, 0.5, 0.49, 0, 1);
+}
+
 void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity, bool isWater,
                         inout vec4 opaqueColorData, inout vec4 transparentColorData) {
     
@@ -5,9 +9,9 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         return;
     
     // parameters
-    float absorptionCoefficient = 0.00;
+    float absorptionCoefficient = 0.0;
     float scatteringCoefficient = 0;
-    float sunIntensity = 1;
+    float sunIntensity = VOLUMETRIC_LIGHT_INTENSITY;
     
     // does ray as a medium change in its trajectory ?
     bool asMediumChange = isWater && depthAll<depthOpaque;
@@ -17,13 +21,13 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
     float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
     float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
-    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0, endShadowDecrease);
+    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0.001, endShadowDecrease);
     // direction
-    vec3 worldSpaceViewDirection = - normalize(cameraPosition - opaqueWorldSpacePosition);
+    vec3 worldSpaceViewDirection = normalize(opaqueWorldSpacePosition - cameraPosition);
 
     // init loop
     vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
-    float stepsCount = max(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16); // nb steps (minimum 16)
+    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16, 64); // nb steps (minimum 16)
     float stepSize = clampedMaxDistance / stepsCount; // born max distance and divide by step count
     vec2 seed = uv + (float(frameCounter) / 720719.0);
     float randomizedStepSize = stepSize * pseudoRandom(seed);
@@ -81,9 +85,8 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         vec3 shadowedLight = mix(shadow.rgb, vec3(0), shadow.a);
 
         // compute inscattered light 
-        float scattering = exp(-absorptionCoefficient * rayDistance);
-        scattering = 1;
-        vec3 inscatteredLight = shadowedLight * scatteringCoefficient * scattering;
+        // float scattering = exp(-absorptionCoefficient * rayDistance);
+        vec3 inscatteredLight = shadowedLight * scatteringCoefficient * sunIntensity;
         // integrate over distance
         inscatteredLight *= randomizedStepSize;
         inscatteredLight *= getFogColor(isInWater);
@@ -97,7 +100,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     }
 
-    // 
+    // in case ray didn't goes through water
     if (!transparentHit) {
         transparentAccumulatedLight = opaqueAccumulatedLight;
     }
@@ -110,15 +113,11 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     opaqueAccumulatedLight *= attenuationFactor;
     transparentAccumulatedLight *= attenuationFactor;
 
-    // color adjustment
-    opaqueAccumulatedLight *= skyLightColor * rainFactor;
-    transparentAccumulatedLight *= skyLightColor * rainFactor;
-    // reduce intensity as it goes deep under water
-    // if (isEyeInWater == 1) {
-    //     opaqueAccumulatedLight *= ambientSkyLightIntensity * 0.5 + 0.5;
-    //     transparentAccumulatedLight *= ambientSkyLightIntensity * 0.5 + 0.5;
-    // }
+    // color adjustment & day-night blend
+    opaqueAccumulatedLight *= skyLightColor * rainFactor * getDayNightBlend();
+    transparentAccumulatedLight *= skyLightColor * rainFactor * getDayNightBlend();
 
+    // write values
     opaqueColorData.rgb += opaqueAccumulatedLight / pow(far, 0.75);
     transparentColorData.rgb += transparentAccumulatedLight / pow(far, 0.75);
 }
@@ -180,16 +179,20 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
-    skyDirectLight *= rainFactor * shadowDayNightBlend; // reduce contribution as it rains or during day-night transition
+    skyDirectLight *= rainFactor * getDayNightBlend(); // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
-    // attenuate sky light underwater
-    if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
-        skyDirectLight *= ambientSkyLightIntensity;
-    }
     // ambient sky light
     vec3 ambientSkyLight = ambientFactor * skyLightColor * ambientSkyLightIntensity;
     // block light
     vec3 blockLight = blockLightColor * blockLightIntensity;
+    // filter underwater light
+    if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
+        skyDirectLight *= map(ambientSkyLightIntensity, 0, 1, 0.01, 1);
+        vec3 waterColor = mix(getFogColor(true), vec3(0.5), 0.5);
+        skyDirectLight = getLightness(skyDirectLight) * waterColor;
+        ambientSkyLight = getLightness(ambientSkyLight) * waterColor;
+        blockLight = getLightness(blockLight) * waterColor;
+    }
     
     // perfect diffuse
     vec3 color = albedo * occlusion * (skyDirectLight + ambientSkyLight + blockLight);
