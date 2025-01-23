@@ -17,9 +17,10 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     else if (animatedLight_isLow(id)) amplitude = 0.2;
     
     float speed = time * 0.25;
-    vec4 seed = vec4(worldSpacePosition.xyz * 0.5, 0) + speed;
-    
-    return amplitude * snoise(seed);
+    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.25, 0) + speed;
+    float noise = snoise(seed);
+
+    return amplitude * noise ;
 }
 
 // used during shadow rendering to simulate caustic

@@ -137,6 +137,9 @@ float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duratio
 float gaussian(float x, float y, float mu, float sigma) {
     return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2*sigma*sigma)));
 }
+float gaussian(float x, float mu, float sigma) {
+    return exp(- (((x-mu)*(x-mu)) / (2*sigma*sigma)));
+}
 
 // -- gamma correction -- //
 float SRGBtoLinear(float x) {

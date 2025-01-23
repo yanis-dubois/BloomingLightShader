@@ -74,15 +74,16 @@ const float endShadowDecrease = 150;
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
 #define VOLUMETRIC_LIGHT_RESOLUTION 0.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
-#define VOLUMETRIC_LIGHT_MIN_SAMPLE 16
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 64
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 8
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 16
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 1 // 0=off 1=stochastic 2=classic
+#define BLOOM_TYPE 3 // 0=off 1=stochastic 2=classic 3=classic_optimized
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
-#define BLOOM_RANGE 12 // extent of the kernel
-#define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
+#define BLOOM_STD 0.4
+#define BLOOM_RANGE 8 // extent of the kernel
+#define BLOOM_RESOLTUION 0.25 // range * resolution = half number of samples 
 #define BLOOM_FACTOR 1 // from 0=none to 1=too_much
 
 //////////////////////////

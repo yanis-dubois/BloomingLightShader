@@ -1,8 +1,6 @@
 #version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
-#define BLOOM_FIRST_PASS
-
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
@@ -23,35 +21,32 @@ uniform sampler2D depthtex2; // only opaque depth and no hand
 in vec2 uv;
 
 // results
-/* RENDERTARGETS: 0,2,6 */
+/* RENDERTARGETS: 0,4 */
 layout(location = 0) out vec4 opaqueColorData;
-layout(location = 1) out vec4 opaqueBloomData;
-layout(location = 2) out vec4 transparentBloomData;
+layout(location = 1) out vec4 transparentColorData;
 
-
-
-void process(sampler2D bloomTexture,
-            out vec4 bloomData) {
+void process(sampler2D colorTexture, sampler2D bloomTexture,
+            out vec4 colorData) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
-    bloomData = texture2D(bloomTexture, uv);
+    colorData = texture2D(colorTexture, uv);
     vec3 color = vec3(0); float transparency = 0;
-    getColorData(bloomData, color, transparency);
+    getColorData(colorData, color, transparency);
 
     /* bloom */
-    
     vec3 bloomColor = bloom(uv, bloomTexture);
+    color += bloomColor * BLOOM_FACTOR;
 
-    bloomData.rgb = linearToSRGB(bloomColor);
+    colorData.rgb = linearToSRGB(color);
 }
 
 /******************************************
 ****************** Bloom ******************
 *******************************************/
 void main() {
-    process(colortex2, opaqueBloomData);
-    process(colortex6, transparentBloomData);
+    process(colortex0, colortex2, opaqueColorData);
+    process(colortex4, colortex6, transparentColorData);
 
     //opaqueColorData = texture2D(colortex2, uv);
 }

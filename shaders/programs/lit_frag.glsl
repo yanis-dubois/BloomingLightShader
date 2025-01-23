@@ -175,7 +175,7 @@ void main() {
     // light animation
     if (LIGHT_EMISSION_ANIMATION == 1 && emissivness > 0) {
         float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
-        emissivness += noise;
+        emissivness -= noise;
     }
 
     /* buffers */
