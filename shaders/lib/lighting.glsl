@@ -184,7 +184,9 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // ambient sky light
     vec3 ambientSkyLight = ambientFactor * skyLightColor * ambientSkyLightIntensity;
     // block light
-    vec3 blockLight = blockLightColor * blockLightIntensity;
+    vec3 BLC = getBlockLightColor_fast(blockLightIntensity, emissivness);
+    //vec3 blockLight = blockLightColor * blockLightIntensity;
+    vec3 blockLight = BLC * blockLightIntensity;
     // filter underwater light
     if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
         skyDirectLight *= map(ambientSkyLightIntensity, 0, 1, 0.01, 1);
@@ -193,9 +195,12 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         ambientSkyLight = getLightness(ambientSkyLight) * waterColor;
         blockLight = getLightness(blockLight) * waterColor;
     }
+    // ambient light
+    vec3 ambiantLightColor = vec3(0.7909974347833513, 0.8551792944545848, 1.0);
+    vec3 ambientLight = 0.007 * ambiantLightColor * (1 - ambientSkyLightIntensity);
     
     // perfect diffuse
-    vec3 color = albedo * occlusion * (skyDirectLight + ambientSkyLight + blockLight);
+    vec3 color = albedo * occlusion * (skyDirectLight + ambientSkyLight + blockLight + ambientLight);
 
     /* BRDF */
     // float roughness = pow(1.0 - smoothness, 2.0);

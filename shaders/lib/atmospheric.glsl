@@ -147,10 +147,24 @@ vec3 getBlockLightColor() {
 }
 
 vec3 getBlockLightColor_fast() {
-    vec3 blockLightColor = vec3(1.0, 0.8530674700617857, 0.7350351155108239);
+    //vec3 blockLightColor = vec3(1.0, 0.8530674700617857, 0.7350351155108239);
+    vec3 blockLightColor = vec3(1.0, 0.8071224775607361, 0.6512994196827054);
     blockLightColor = SRGBtoLinear(blockLightColor);
 
     return blockLightColor;
+}
+
+vec3 getBlockLightColor_fast(float blockLightIntensity, float emissivness) {
+    vec3 blockLightColorBright = vec3(1.0, 0.9652869470673199, 0.9287833665638421);
+    vec3 blockLightColorLow = vec3(1.0, 0.6949030005552019, 0.4310480202110507);
+
+    blockLightColorBright = SRGBtoLinear(blockLightColorBright);
+    blockLightColorLow = SRGBtoLinear(blockLightColorLow);
+
+    blockLightColorBright *= max((1-emissivness) * 1.5, 1) * exp(- 10 * (blockLightIntensity-1)*(blockLightIntensity-1));
+    blockLightColorLow *= blockLightIntensity;
+
+    return blockLightColorBright + blockLightColorLow;
 }
 
 vec3 getFogColor(bool isInWater) {

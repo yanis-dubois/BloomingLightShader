@@ -25,7 +25,7 @@ const bool colortex7Clear = true;
 
 // resolution
 // const int noiseTextureResolution = 256;
-const int shadowMapResolution = 2048; // 2048
+const int shadowMapResolution = 2048; // 1024 1536 2048
 
 //////////////////////////
 /////// Parameters ///////
@@ -42,20 +42,13 @@ const float sunPathRotation = 0;
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
 #define SHADOW_KERNEL 1 // 0=box 1=gaussian
 #define SHADOW_RANGE 1 // width of the sample area
-#define SHADOW_RESOLUTION 8 // half number of samples
+#define SHADOW_RESOLUTION 4 // half number of samples
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
 const bool shadowcolor0Nearest = true;
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
-
-// Screen Space Ambiant Occlusion (SSAO)
-#define SSAO_SAMPLES 0 // number of samples
-#define SSAO_RADIUS 1
-#define SSAO_BIAS 0
-#define SSAO_MAGNITUDE 1.5
-#define SSAO_CONTRAST 1.5
 
 // Screen Space Reflection (SSR)
 #define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
@@ -83,8 +76,8 @@ const float endShadowDecrease = 150;
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.4
 #define BLOOM_RANGE 8 // extent of the kernel
-#define BLOOM_RESOLTUION 0.25 // range * resolution = half number of samples 
-#define BLOOM_FACTOR 1 // from 0=none to 1=too_much
+#define BLOOM_RESOLTUION 0.5 // range * resolution = half number of samples 
+#define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
 //////////////////////////
 //////// Uniforms ////////

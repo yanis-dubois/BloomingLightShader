@@ -17,7 +17,7 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     else if (animatedLight_isLow(id)) amplitude = 0.2;
     
     float speed = time * 0.25;
-    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.25, 0) + speed;
+    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.125, 0) + speed;
     float noise = snoise(seed);
 
     return amplitude * noise ;

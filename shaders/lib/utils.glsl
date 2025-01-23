@@ -235,6 +235,7 @@ void getNormalData(vec4 normalData, out vec3 normal) {
 void getLightData(vec4 lightData, out float blockLightIntensity, out float ambiantSkyLightIntensity, out float emissivness, out float ambiant_occlusion) {
     vec2 receivedLight = lightData.xy;
     receivedLight = SRGBtoLinear(receivedLight);
+    //receivedLight = pow(receivedLight, vec2(4.4));
     blockLightIntensity = receivedLight.x;
     ambiantSkyLightIntensity = receivedLight.y;
     emissivness = lightData.z;

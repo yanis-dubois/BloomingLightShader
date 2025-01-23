@@ -33,7 +33,7 @@ void main() {
 	vec3 albedo = vec3(0);
 	if (starData.a > 0.5) {
 		albedo = starData.rgb;
-		emissivness = getLightness(SRGBtoLinear(albedo) * 1.5);
+		emissivness = getLightness(SRGBtoLinear(albedo) * 2);
 	} else {
 		vec3 pos = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
 		albedo = calcSkyColor(normalize(pos));
