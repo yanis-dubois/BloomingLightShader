@@ -83,8 +83,8 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
             albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
 
             // write in opaque buffer
-            opaqueColorData.rgb = linearToSRGB(albedo);
-            opaqueLightData.z = 1; // add emissivness
+            opaqueColorData.rgb = albedo;
+            opaqueLightData.z = emissivness; // add emissivness
         }
         // sky
         else if (!isTransparent) {
@@ -114,7 +114,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
             blockLightIntensity,
             emissivness,
             ambient_occlusion,
-            isTransparent
+            isTransparent, type
         );
     }
 }
@@ -135,4 +135,6 @@ void main() {
     // convert back to SRGB
     opaqueColorData.rgb = linearToSRGB(opaqueColorData.rgb);
     transparentColorData.rgb = linearToSRGB(transparentColorData.rgb);
+
+    //opaqueColorData = vec4(0);
 }

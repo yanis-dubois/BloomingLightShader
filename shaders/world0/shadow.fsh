@@ -28,7 +28,7 @@ void main() {
 
     if (transparency < alphaTestRef) discard;
 
-    if (SHADOW_WATER_ANIMATED==1 && isLiquid(id)) {
+    if (SHADOW_WATER_ANIMATION == 1 && isLiquid(id)) {
         vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
         float noise = doShadowWaterAnimation(frameTimeCounter, worldSpacePosition);
         transparency += noise;

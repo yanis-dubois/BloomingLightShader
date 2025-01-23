@@ -33,6 +33,7 @@ void main() {
     #ifdef BEACON_BEAM
         transparency = 0.5;
         // add emissivness !!!
+        opaqueLightData = vec4(0,0,1,1);
     #endif
 
     #ifdef GLINT
@@ -43,6 +44,7 @@ void main() {
     #ifdef GLOWING
         transparentAlbedoData = vec4(albedo, transparency);
         transparentMaterialData = vec4(typeBasic, 0, 0, 1);
+        transparentLightData = vec4(0,0,1,1);
     #else
         opaqueAlbedoData = vec4(albedo, transparency);
         opaqueMaterialData = vec4(typeBasic, 0, 0, 1);

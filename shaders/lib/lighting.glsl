@@ -27,7 +27,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
 
     // init loop
     vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
-    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16, 64); // nb steps (minimum 16)
+    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, 16, 256); // nb steps (minimum 16)
     float stepSize = clampedMaxDistance / stepsCount; // born max distance and divide by step count
     vec2 seed = uv + (float(frameCounter) / 720719.0);
     float randomizedStepSize = stepSize * pseudoRandom(seed);
@@ -144,7 +144,7 @@ vec3 foggify(vec3 color, vec3 worldSpacePosition, float normalizedLinearDepth) {
 }
 
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
-              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
+              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent, float type) {
 
     float ambientFactor = 0.2;
 
@@ -205,7 +205,8 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     transparency = max(transparency, schlick(reflectance, cosTheta));
 
     /* fog */
-    color = foggify(color, worldSpacePosition, normalizedLinearDepth);
+    if (!isParticle(type))
+        color = foggify(color, worldSpacePosition, normalizedLinearDepth);
 
     return vec4(color, transparency);
 }

@@ -452,7 +452,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     }
 
     float lightness = getLightness(colorData.rgb);
-    lightData = vec4(colorData.rgb * max(pow(lightness, 9), emissivness), transparency);
+    lightData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
 }
 
 /******************************************

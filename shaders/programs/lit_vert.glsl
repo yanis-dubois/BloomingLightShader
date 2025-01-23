@@ -42,7 +42,7 @@ void main() {
 
     // update position if animated
     midBlock = at_midBlock;
-    if (ANIMATION_TYPE>0 && isAnimated(id)) {
+    if (VERTEX_ANIMATION>0 && isAnimated(id)) {
         worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock);
         vec3 viewSpacePosition = worldToView(worldSpacePosition);
         gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space

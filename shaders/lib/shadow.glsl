@@ -57,70 +57,96 @@ vec4 getShadow(vec4 shadowClipPosition) {
 
 // blur shadow by calling getShadow around actual pixel and average the results
 vec4 getSoftShadow(vec2 uv, float depth, mat4 gbufferProjectionInverse, mat4 gbufferModelViewInverse) {
-    // no shadows
-    if (SHADOW_TYPE == 0) return vec4(0);
 
-    // space conversion
-    vec3 playerPosition = screenToPlayer(uv, depth);
-    vec4 shadowClipPosition = playerToShadowClip(playerPosition);
+    // no shadows
+    #if SHADOW_TYPE == 0
+        return vec4(0);
 
     // hard shadowing
-    if (SHADOW_SOFTNESS <= 0 || SHADOW_QUALITY <= 0) {
+    #elif float(SHADOW_RANGE) <= 0 || float(SHADOW_RESOLUTION) <= 0
         return getShadow(shadowClipPosition);
-    }
 
-    // distant shadows are smoother
-    float distanceToPlayer = distance(vec3(0), playerPosition);
-    float blend = map(distanceToPlayer, 0, startShadowDecrease, 1, 20);
+    // soft shadowing
+    #else
 
-    float range = SHADOW_SOFTNESS / 2; // how far away from the original position we take our samples from
-    range *= blend;
-    float increment = range / SHADOW_QUALITY; // distance between each sample
+        // space conversion
+        vec3 playerPosition = screenToPlayer(uv, depth);
+        vec4 shadowClipPosition = playerToShadowClip(playerPosition);
 
-    vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
-    int samples = 0;
+        // distant shadows are smoother
+        float distanceToPlayer = distance(vec3(0), playerPosition);
+        float blend = map(distanceToPlayer, 0, startShadowDecrease, 1, 20);
 
-    // stochastic shadows (faster but add noise)
-    if (SHADOW_TYPE == 1) {
-        for (int i=0; i<SHADOW_QUALITY*SHADOW_QUALITY; ++i) {
-            // get noise
-            vec2 seed = uv + i + (float(frameCounter)/720719.0);
-            float zeta1 = pseudoRandom(seed);
-            float zeta2 = pseudoRandom(seed + 0.5);
-            float theta = zeta1 * 2*PI;
-            float radius = range * sqrt(zeta2);
-            float x = radius * cos(theta);
-            float y = radius * sin(theta);
-            
-            // offset
-            vec2 offset = vec2(x, y); // apply random rotation to offset
-            offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+        float range = SHADOW_RANGE; // how far away from the original position we take our samples from
+        range *= blend;
+        float samples = range * SHADOW_RESOLUTION;
+        float step_length = range / samples; // distance between each sample
 
-            vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
-            shadowAccum += getShadow(offsetShadowClipPosition); // take shadow sample
-            samples++;
-        }
-    } 
-    // classic shadows (without noise but slower)
-    else {
-        // get noise
-        float noise = pseudoRandom(uv);
-        float theta = noise * 2*PI;
-        float cosTheta = cos(theta);
-        float sinTheta = sin(theta);
-        // rotation matrix
-        mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
- 
-        for (float x = -range; x <= range; x += increment) {
-            for (float y = -range; y <= range; y += increment) {
-                vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
-                offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+        vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
+        float count = 0;
+
+        // stochastic shadows (faster but add noise)
+        #if SHADOW_TYPE == 1
+            for (float i=0; i<samples; ++i) {
+
+                // random offset by sampling disk area
+                vec2 seed = uv + i + (frameTimeCounter / 60);
+                vec2 offset = sampleDiskArea(seed);
+
+                // gaussian
+                #if SHADOW_KERNEL == 1
+                    float weight = gaussian(offset.x, offset.y, 0, 0.5);
+                // box
+                #else
+                    float weight = 1;
+                #endif
+
+                // divide by the resolution so offset is in terms of pixels
+                offset = offset * range / shadowMapResolution;
                 vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
-                shadowAccum += getShadow(offsetShadowClipPosition); // take shadow sample
-                samples++;
+                shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
+                count += weight;
             }
-        }
-    }
-    
-    return shadowAccum / float(samples); // divide sum by count, getting average shadow
+
+        // classic shadows (without noise but slower)
+        #elif SHADOW_TYPE == 2
+            // get noise
+            float noise = pseudoRandom(uv);
+            float theta = noise * 2*PI;
+            float cosTheta = cos(theta);
+            float sinTheta = sin(theta);
+            // rotation matrix
+            mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+
+            for (float x=-range; x<=range; x+=step_length) {
+                for (float y=-range; y<=range; y+=step_length) {
+                    // vec2 offset = rotation * vec2(x, y); // apply random rotation to offset
+                    // offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+                    // vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
+                    // shadowAccum += getShadow(offsetShadowClipPosition); // take shadow sample
+                    // count++;
+
+                    vec2 offset = vec2(x, y); 
+
+                    // gaussian
+                    #if SHADOW_KERNEL == 1
+                        float weight = gaussian(offset.x / range, offset.y / range, 0, 0.5);
+                    // box
+                    #else
+                        float weight = 1;
+                    #endif
+
+                    // apply random rotation to offset
+                    offset = rotation * offset;
+
+                    offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
+                    vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
+                    shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
+                    count += weight;
+                }
+            }
+        #endif
+
+        return shadowAccum / count; // divide sum by count, getting average shadow
+    #endif
 }

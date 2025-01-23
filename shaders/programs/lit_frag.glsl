@@ -120,6 +120,9 @@ void main() {
 
     /* normal */
     vec3 encodedNormal = encodeNormal(normal);
+    #ifdef PARTICLE 
+        encodedNormal = encodeNormal(normalize(cameraPosition - unanimatedWorldPosition));
+    #endif
 
     /* depth */
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
@@ -130,19 +133,13 @@ void main() {
     float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
-    /* type */
-    float type = typeLit;
-    #ifdef TRANSPARENT
-    if (id == 20000) type = typeWater;
-    #endif
-
     /* material data */
-    float smoothness = 0, reflectance = 0, emmissivness = 0, ambient_occlusion = 0;
-    getMaterialData(id, albedo, smoothness, reflectance, emmissivness, ambient_occlusion);
+    float smoothness = 0, reflectance = 0, emissivness = 0, ambient_occlusion = 0;
+    getMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);
     ambient_occlusion = map(1 - ambient_occlusion, 0.0, 1.0, 0.5, 1.0);
 
     // generate normalmap if animated
-    if (ANIMATION_TYPE==2 && isAnimated(id) && smoothness>alphaTestRef) {
+    if (VERTEX_ANIMATION==2 && isAnimated(id) && smoothness>alphaTestRef) {
         mat3 TBN = generateTBN(normal);
         vec3 tangent = TBN[0] / 16.0;
         vec3 bitangent = TBN[1] / 16.0;
@@ -164,16 +161,33 @@ void main() {
         distanceFromCamera = distance(cameraPosition, actualPosition);
     }
 
+    /* type */
+    float type = typeLit;
+    #ifdef TRANSPARENT
+        if (id == 20000) type = typeWater;
+    #endif
+    #ifdef PARTICLE
+        type = typeParticle;
+        ambient_occlusion = 1;
+        emissivness = 1;
+    #endif
+
+    // light animation
+    if (LIGHT_EMISSION_ANIMATION == 1 && emissivness > 0) {
+        float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
+        emissivness += noise;
+    }
+
     /* buffers */
     #ifdef TRANSPARENT
         transparentAlbedoData = vec4(albedo, transparency);
         transparentNormalData = vec4(encodedNormal, 1);
-        transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, 1);
+        transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emissivness, 1);
         transparentMaterialData = vec4(type, smoothness, reflectance, 1);
     #else
         opaqueAlbedoData = vec4(albedo, transparency);
         opaqueNormalData = vec4(encodedNormal, 1);
-        opaqueLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emmissivness, ambient_occlusion);
+        opaqueLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
         opaqueMaterialData = vec4(type, smoothness, reflectance, 1);
     #endif
 }

@@ -40,9 +40,9 @@ const float sunPathRotation = 0;
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
-#define SHADOW_QUALITY 5 // half number of samples
-#define SHADOW_SOFTNESS 2.0 // width of the sample area
-#define SHADOW_WATER_ANIMATED 1 // 0=off 1=on
+#define SHADOW_KERNEL 1 // 0=box 1=gaussian
+#define SHADOW_RANGE 1 // width of the sample area
+#define SHADOW_RESOLUTION 8 // half number of samples
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
@@ -64,26 +64,34 @@ const float endShadowDecrease = 150;
 #define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
 
 // animation
-#define ANIMATION_TYPE 2 // 0=off 1=only_vertex 2=vertex_and_normal
+#define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
+#define SHADOW_WATER_ANIMATION 1 // 0=off 1=on
+#define LIGHT_EMISSION_ANIMATION 1 // 0=off 1=on
 
 // subsurface scattering
 #define SUBSURFACE_TYPE 1 // 0=off 1=on
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_RESOLUTION 20 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_RESOLUTION 0.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 16
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 64
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 0 // 0=off 1=on
-#define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
+#define BLOOM_TYPE 1 // 0=off 1=stochastic 2=classic
+#define BLOOM_KERNEL 1 // 0=box 1=gaussian
+#define BLOOM_RANGE 12 // extent of the kernel
+#define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
+#define BLOOM_FACTOR 1 // from 0=none to 1=too_much
 
 //////////////////////////
 //////// Uniforms ////////
 //////////////////////////
 
 const float typeBasic = 0.0;
-const float typeWater = 0.67;
+const float typeParticle = 0.33;
+const float typeWater = 0.66;
 const float typeLit = 1.0;
 
 // uniform sampler2D noisetex;

@@ -52,38 +52,24 @@ vec3 brdf(vec3 lightDirection, vec3 viewDirection, vec3 normal, vec3 albedo, flo
 }
 
 // -- random generator -- //
-// return 3 random value from uv coordinates
 float pseudoRandom(vec2 uv) {
     return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
 }
-// vec3 getNoise(vec2 uv) {
-//     ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
-//     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
-//     return texelFetch(noisetex, noiseCoord, 0).rgb;
-// }
-// vec3 getNoise(vec2 uv, float seed) {
-//     float rand = pseudoRandom(vec2(seed));
-//     uv += rand;
-//     ivec2 screenCoord = ivec2(uv * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
-//     ivec2 noiseCoord = screenCoord % noiseTextureResolution; // wrap to range of noiseTextureResolution
-//     return texelFetch(noisetex, noiseCoord, 0).rgb;
-// }
-// // sample GGX normal
-// vec3 sampleGGXNormal(vec2 uv, float alpha) {
-//     vec2 zeta = getNoise(uv).xy;
+vec2 sampleDiskArea(vec2 seed) {
+    // pseudo uniform 
+    float zeta1 = pseudoRandom(seed);
+    float zeta2 = pseudoRandom(seed + 0.5);
 
-//     // Étape 1 : Calcul de θ_h et φ_h
-//     float theta_h = atan(alpha * sqrt(zeta.x) / sqrt(1.0 - zeta.x));
-//     float phi_h = 2.0 * PI * zeta.y;
+    // uniform to polar
+    float theta = zeta1 * 2*PI;
+    float radius = sqrt(zeta2);
 
-//     // Étape 2 : Conversion en coordonnées cartésiennes
-//     vec3 h_local;
-//     h_local.x = sin(theta_h) * cos(phi_h);
-//     h_local.y = sin(theta_h) * sin(phi_h);
-//     h_local.z = cos(theta_h);
+    // polar to cartesian
+    float x = radius * cos(theta);
+    float y = radius * sin(theta);
 
-//     return h_local;
-// }
+    return vec2(x,y);
+}
 // sample GGX visible normal (used to reduce noise on GGX sampling)
 vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
 
@@ -256,8 +242,6 @@ void getMaterialData(vec4 materialData, out float type, out float smoothness, ou
     smoothness = materialData.y;
     reflectance = materialData.z;
     subsurface = materialData.w;
-
-    //type = SRGBtoLinear(type);
 }
 void getDepthData(vec4 depthData, out float depth) {
     depth = depthData.x;
@@ -270,6 +254,9 @@ bool areNearlyEqual(float x, float y) {
 bool isBasic(float type) {
     return areNearlyEqual(type, typeBasic);
 }
+bool isParticle(float type) {
+    return areNearlyEqual(type, typeParticle);
+}
 bool isWater(float type) {
     return areNearlyEqual(type, typeWater);
 }
@@ -277,6 +264,9 @@ bool isLit(float type) {
     return areNearlyEqual(type, typeLit);
 }
 
+// ---------------------- //
+// -- vertex animation -- //
+// ---------------------- //
 bool isAnimated(int id) {
     return 10000 <= id && (id <= 10050 || id == 20000 || id == 30010 || id == 30020);
 }
@@ -320,12 +310,26 @@ bool isPicherCropLower(int id) {
 bool isPicherCropUpper(int id) {
     return id == 10003;
 }
-// subsurface 
+// ---------------------- //
+// ----- subsurface ----- //
+// ---------------------- //
 bool isColumnSubsurface(int id) {
     return id == 10021 || id == 10055 || id == 10060;
 }
 bool isCobweb(int id) {
     return id == 10070;
+}
+// ---------------------- //
+// --- animated light --- //
+// ---------------------- //
+bool animatedLight_isHigh(int id) {
+    return true;
+}
+bool animatedLight_isMedium(int id) {
+    return true;
+}
+bool animatedLight_isLow(int id) {
+    return true;
 }
 
 // offset midBlock coordinate to make the root of foliage the origin
