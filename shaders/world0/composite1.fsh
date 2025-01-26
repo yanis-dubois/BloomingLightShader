@@ -411,7 +411,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
         vec3 skyLightColor = getSkyLightColor();
         vec3 blockLightColor = vec3(1);
         skyLightColor = SRGBtoLinear(skyColor);
-        blockLightColor = getBlockLightColor() * 0.5;
+        blockLightColor = getBlockLightColor(blockLightIntensity, emissivness) * 0.5;
         // blend
         float lightAmount = max(blockLightIntensity, ambiantSkyLightIntensity);
         float lightSourceBlend = (blockLightIntensity + (lightAmount - ambiantSkyLightIntensity)) / (2*lightAmount);

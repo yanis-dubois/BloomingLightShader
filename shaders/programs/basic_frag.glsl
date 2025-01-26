@@ -32,7 +32,6 @@ void main() {
 
     #ifdef BEACON_BEAM
         transparency = 0.5;
-        // add emissivness !!!
         opaqueLightData = vec4(0,0,1,1);
     #endif
 

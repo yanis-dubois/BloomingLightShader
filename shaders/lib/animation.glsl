@@ -1,8 +1,8 @@
-// #include "/ext/glsl-noise/simplex/3d.glsl"
+#include "/ext/glsl-noise/simplex/3d.glsl"
 #include "/ext/glsl-noise/simplex/4d.glsl"
 
 float getNoise(vec3 seed, float amplitude) {
-    float noise = snoise(vec4(seed, 0));
+    float noise = snoise_3D(seed);
     // squared noise for calm moment
     noise *= noise;
 
@@ -18,9 +18,9 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     
     float speed = time * 0.25;
     vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.125, 0) + speed;
-    float noise = snoise(seed);
+    float noise = snoise_4D(seed);
 
-    return amplitude * noise ;
+    return amplitude * noise;
 }
 
 // used during shadow rendering to simulate caustic
@@ -29,7 +29,7 @@ float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
     float speed = time * 0.15;
     vec3 seed = vec3(worldSpacePosition.xz, speed) + speed;
     
-    return amplitude * snoise(vec4(seed, 0));
+    return amplitude * snoise_3D(seed);
 }
 
 vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
@@ -37,7 +37,7 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     float speed = time * 0.25;
     vec3 seed = vec3(worldSpacePosition.xz/20.0, 0) + speed;
     
-    worldSpacePosition.y += amplitude * snoise(vec4(seed, 0));
+    worldSpacePosition.y += amplitude * snoise_3D(seed);
     return worldSpacePosition;
 }
 

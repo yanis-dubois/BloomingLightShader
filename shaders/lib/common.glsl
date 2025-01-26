@@ -33,7 +33,8 @@ const int shadowMapResolution = 2048; // 1024 1536 2048
 
 // sun and moon
 const float sunPathRotation = 0;
-#define SKY_LIGHT_COLOR 1 // 0=off 1=on
+#define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
+#define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
 
 // fog
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
@@ -101,6 +102,7 @@ uniform mat4 shadowProjectionInverse;
 
 uniform vec4 entityColor;
 
+uniform vec3 eyePosition;
 uniform vec3 cameraPosition;
 uniform vec3 sunPosition;
 uniform vec3 shadowLightPosition;

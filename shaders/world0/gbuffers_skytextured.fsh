@@ -32,6 +32,6 @@ void main() {
 
     /* buffers */
     opaqueAlbedoData = vec4(albedo, transparency);
-    opaqueLightData = vec4(0, 0, emissivness, 1);
-    opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
+    opaqueLightData = vec4(0, 0, emissivness, transparency);
+    opaqueMaterialData = vec4(typeBasic, 0, 0, transparency);
 }

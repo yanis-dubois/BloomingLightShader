@@ -101,6 +101,10 @@ vec3 viewToScreen(vec3 viewPosition) {
     return NDCToScreen(viewToNDC(viewPosition));
 }
 
+vec3 worldToScreen(vec3 worldSpacePosition) {
+    return viewToScreen(worldToView(worldSpacePosition));
+}
+
 vec3 screenToTexel(vec3 screenPosition) {
     return screenPosition * vec3(viewWidth, viewHeight, 1);
 }

@@ -2,6 +2,7 @@
 
 // includes
 #include "/lib/common.glsl"
+#include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/shadow.glsl"
 

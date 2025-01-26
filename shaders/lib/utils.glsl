@@ -235,7 +235,6 @@ void getNormalData(vec4 normalData, out vec3 normal) {
 void getLightData(vec4 lightData, out float blockLightIntensity, out float ambiantSkyLightIntensity, out float emissivness, out float ambiant_occlusion) {
     vec2 receivedLight = lightData.xy;
     receivedLight = SRGBtoLinear(receivedLight);
-    //receivedLight = pow(receivedLight, vec2(4.4));
     blockLightIntensity = receivedLight.x;
     ambiantSkyLightIntensity = receivedLight.y;
     emissivness = lightData.z;
@@ -296,27 +295,45 @@ bool isUnderGrowth(int id) {
     return 10000 <= id && id < 20000 && !isFoliage(id);
 }
 bool isRooted(int id) {
-    return isUnderGrowth(id) && id != 10021;
+    return isUnderGrowth(id) && id != 10021 && id != 10022;
 }
 // root type
+bool isThin(int id) {
+    return id == 10001 || id == 10012 || id == 10013;
+}
+bool isSmall(int id) {
+    return id == 10002;
+}
+bool isTiny(int id) {
+    return id == 10003;
+}
+bool isTeensy(int id) {
+    return id == 10004 || id == 10040;
+}
 bool isCeilingRooted(int id) {
     return id == 10020;
 }
 bool isTallLower(int id) {
-    return id == 10010 || id == 10051;
+    return id == 10010 || id == 10051 || id == 10012;
 }
 bool isTallUpper(int id) {
-    return id == 10011 || id == 10052;
+    return id == 10011 || id == 10052 || id == 10013;
 }
 bool isPicherCropLower(int id) {
-    return id == 10002;
+    return id == 10008;
 }
 bool isPicherCropUpper(int id) {
-    return id == 10003;
+    return id == 10009;
 }
 // ---------------------- //
 // ----- subsurface ----- //
 // ---------------------- //
+bool hasNoAmbiantOcclusion(int id) {
+    return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022;
+}
+bool hasSubsurface(int id) {
+    return 10000 <= id && id < 20000;
+}
 bool isColumnSubsurface(int id) {
     return id == 10021 || id == 10055 || id == 10060;
 }
@@ -341,11 +358,13 @@ vec3 midBlockToRoot(int id, vec3 midBlock) {
     midBlock /= 64.0;
 
     midBlock.y = -1 * midBlock.y + 0.5;
-    if (isCeilingRooted(id)) midBlock.y = 1 - midBlock.y;
+    if (isSmall(id)) midBlock.y *= 2;
+    else if (isTiny(id)) midBlock.y *= 4;
+    else if (isCeilingRooted(id)) midBlock.y = 1 - midBlock.y;
     else if (isTallLower(id)) midBlock.y *= 0.5;
     else if (isTallUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5;
-    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.5 - 0.3125, 0);
-    else if (isPicherCropUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5 - 0.3125;
+    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.6875 - 0.3125, 0);
+    else if (isPicherCropUpper(id)) midBlock.y = midBlock.y * 0.6875 + 0.6875 - 0.3125;
 
     return midBlock;
 }

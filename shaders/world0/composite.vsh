@@ -5,7 +5,6 @@
 #include "/lib/atmospheric.glsl"
 
 out vec3 skyLightColor;
-out vec3 blockLightColor;
 out vec3 fog_color;
 out float rainFactor;
 out float fog_density;
@@ -15,8 +14,7 @@ out vec2 uv;
 void main() {
     /* attributes infos */
     // light colors
-    skyLightColor = getSkyLightColor_fast();
-    blockLightColor = getBlockLightColor_fast();
+    skyLightColor = getSkyLightColor();
     // rain - light attenuation factor
     rainFactor = max(1-rainStrength, 0.05);
     // fog

@@ -89,8 +89,14 @@ void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflec
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
         // leaves
-        if (isFoliage(id) || isSolidFoliage(id)) {
+        if (hasNoAmbiantOcclusion(id)) {
             ambient_occlusion = 1;
+        }
+        // flowers
+        else if (isThin(id)) {
+            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+            ambient_occlusion = distance(0, objectSpacePosition.y);
+            ambient_occlusion = min(ambient_occlusion, 1);
         }
         // sugar cane
         else if (isColumnSubsurface(id)) {
@@ -123,14 +129,13 @@ void main() {
     #ifdef PARTICLE 
         encodedNormal = encodeNormal(normalize(cameraPosition - unanimatedWorldPosition));
     #endif
-
-    /* depth */
-    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     
     /* light */
+    float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
-    float heldBlockLight = heldLightValue>1 ? max(1 - (distanceFromCamera / max(heldLightValue,1)), 0) : 0;
-    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
+    float heldBlockLight = heldLightValue>=1 ? max(1 - (distanceFromEye / max(heldLightValue, 1)), 0) : 0;
+    float blockLightIntensity = max( (lightMapCoordinate.x), heldBlockLight);
+    //blockLightIntensity = linearToSRGB(blockLightIntensity)
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
     /* material data */
@@ -158,7 +163,7 @@ void main() {
         if (dot(viewDirection, newNormal) < 0) newNormal = normal;
 
         encodedNormal = encodeNormal(newNormal);
-        distanceFromCamera = distance(cameraPosition, actualPosition);
+        //distanceFromCamera = distance(cameraPosition, actualPosition);
     }
 
     /* type */
