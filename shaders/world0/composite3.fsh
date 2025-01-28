@@ -26,7 +26,7 @@ layout(location = 0) out vec4 opaqueColorData;
 layout(location = 1) out vec4 transparentColorData;
 
 void process(sampler2D colorTexture, sampler2D bloomTexture,
-            out vec4 colorData) {
+            out vec4 colorData, bool isTransparent) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
@@ -35,18 +35,19 @@ void process(sampler2D colorTexture, sampler2D bloomTexture,
     getColorData(colorData, color, transparency);
 
     /* bloom */
-    vec3 bloomColor = bloom(uv, bloomTexture);
-    color += bloomColor * BLOOM_FACTOR;
-
-    colorData.rgb = linearToSRGB(color);
+    vec4 bloomColor = bloom(uv, bloomTexture);
+    color += bloomColor.rgb * BLOOM_FACTOR;
+    
+    if (isTransparent && length(bloomColor.rgb) > 0.001 && transparency < 0.1)
+        opaqueColorData.rgb = linearToSRGB(SRGBtoLinear(opaqueColorData.rgb) + bloomColor.rgb * BLOOM_FACTOR);
+    else
+        colorData.rgb = linearToSRGB(color);
 }
 
 /******************************************
 ****************** Bloom ******************
 *******************************************/
 void main() {
-    process(colortex0, colortex2, opaqueColorData);
-    process(colortex4, colortex6, transparentColorData);
-
-    //opaqueColorData = texture2D(colortex2, uv);
+    process(colortex0, colortex2, opaqueColorData, false);
+    process(colortex4, colortex6, transparentColorData, true);
 }

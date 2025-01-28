@@ -124,20 +124,22 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
 
 vec3 foggify(vec3 color, vec3 worldSpacePosition, float normalizedLinearDepth) {
 
+    vec3 skyLightColor = mix(getSkyLightColor(), vec3(1), 1);
+
     // custom fog
     if (FOG_TYPE == 2) {
         float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater==1);
 
         // exponential function
         float fogAmount = getFogAmount(normalizedLinearDepth, fogDensity);
-        color = mix(color, getFogColor(isEyeInWater==1) * getSkyLightColor(), fogAmount);
+        color = mix(color, getFogColor(isEyeInWater==1) * skyLightColor, fogAmount);
     }
     // vanilla fog (not applied when camera is under water) // TODO: remplacer fogColor 
     if (FOG_TYPE == 1 || (FOG_TYPE == 2 && isEyeInWater!=1)) {
         // linear function 
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
-        color = mix(color, getFogColor(isEyeInWater==1) * getSkyLightColor(), vanillaFogBlend);
+        color = mix(color, getFogColor(isEyeInWater==1) * skyLightColor, vanillaFogBlend);
     }
 
     return color;

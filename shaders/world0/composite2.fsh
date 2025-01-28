@@ -23,27 +23,24 @@ uniform sampler2D depthtex2; // only opaque depth and no hand
 in vec2 uv;
 
 // results
-/* RENDERTARGETS: 0,2,6 */
+/* RENDERTARGETS: 0,2,4,6 */
 layout(location = 0) out vec4 opaqueColorData;
 layout(location = 1) out vec4 opaqueBloomData;
-layout(location = 2) out vec4 transparentBloomData;
-
-
+layout(location = 2) out vec4 transparentColorData;
+layout(location = 3) out vec4 transparentBloomData;
 
 void process(sampler2D bloomTexture,
             out vec4 bloomData) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
-    bloomData = texture2D(bloomTexture, uv);
-    vec3 color = vec3(0); float transparency = 0;
-    getColorData(bloomData, color, transparency);
+    // bloomData = texture2D(bloomTexture, uv);
+    // vec3 color = vec3(0); float transparency = 0;
+    // getColorData(bloomData, color, transparency);
 
     /* bloom */
-    
-    vec3 bloomColor = bloom(uv, bloomTexture);
-
-    bloomData.rgb = linearToSRGB(bloomColor);
+    bloomData = bloom(uv, bloomTexture);
+    bloomData.rgb = linearToSRGB(bloomData.rgb);
 }
 
 /******************************************
@@ -53,5 +50,6 @@ void main() {
     process(colortex2, opaqueBloomData);
     process(colortex6, transparentBloomData);
 
-    //opaqueColorData = texture2D(colortex2, uv);
+    opaqueColorData = texture2D(colortex0, uv);
+    transparentColorData = texture2D(colortex4, uv);
 }

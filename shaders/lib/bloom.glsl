@@ -1,16 +1,16 @@
-vec3 bloom(vec2 uv, sampler2D bloomTexture) {
+vec4 bloom(vec2 uv, sampler2D bloomTexture) {
 
     // no bloom
     #if BLOOM_TYPE == 0
-        return vec3(0,0,0);
+        return vec4(0);
     
     // avoid first pass for bloom type that don't require it
     #elif BLOOM_TYPE < 3 && defined BLOOM_FIRST_PASS
-        return SRGBtoLinear(texture2D(bloomTexture, uv).rgb);
+        return SRGBtoLinear(texture2D(bloomTexture, uv));
 
     // only lightness increase
     #elif float(BLOOM_RANGE) <= 0.0 || float(BLOOM_RESOLTUION) <= 0.0
-        return SRGBtoLinear(texture2D(bloomTexture, uv).rgb);
+        return SRGBtoLinear(texture2D(bloomTexture, uv));
 
     // bloom
     #else
@@ -19,7 +19,7 @@ vec3 bloom(vec2 uv, sampler2D bloomTexture) {
         float range = BLOOM_RANGE;
         float samples = range * BLOOM_RESOLTUION;
         float step_length = range / samples;
-        vec3 color = vec3(0);
+        vec4 color = vec4(0);
         float count = 0;
 
         // stocastic
@@ -38,7 +38,7 @@ vec3 bloom(vec2 uv, sampler2D bloomTexture) {
                     float weight = gaussian(offset.x, offset.y, 0, BLOOM_STD);
                 #endif
 
-                color += weight * SRGBtoLinear(texture2D(bloomTexture, coord).rgb);
+                color += weight * SRGBtoLinear(texture2D(bloomTexture, coord));
                 count += weight;
             }
 
@@ -57,7 +57,7 @@ vec3 bloom(vec2 uv, sampler2D bloomTexture) {
                         float weight = gaussian(offset.x / range, offset.y / range, 0, BLOOM_STD);
                     #endif
 
-                    color += weight * SRGBtoLinear(texture2D(bloomTexture, coord).rgb);
+                    color += weight * SRGBtoLinear(texture2D(bloomTexture, coord));
                     count += weight;
                 }
             }
@@ -82,7 +82,7 @@ vec3 bloom(vec2 uv, sampler2D bloomTexture) {
                     float weight = gaussian(x / range, 0, BLOOM_STD);
                 #endif
 
-                color += weight * SRGBtoLinear(texture2D(bloomTexture, coord).rgb);
+                color += weight * SRGBtoLinear(texture2D(bloomTexture, coord));
                 count += weight;
             }
 
@@ -91,7 +91,7 @@ vec3 bloom(vec2 uv, sampler2D bloomTexture) {
         #ifdef BLOOM_FIRST_PASS
             return color / count;
         #else
-            return color / count + SRGBtoLinear(texture2D(bloomTexture, uv).rgb) * 0.75;
+            return color / count + SRGBtoLinear(texture2D(bloomTexture, uv)) * 0.75;
         #endif
     #endif
 }

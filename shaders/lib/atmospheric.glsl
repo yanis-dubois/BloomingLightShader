@@ -76,7 +76,7 @@ vec3 getBlockLightColor(float blockLightIntensity, float emissivness) {
 
 vec3 getFogColor(bool isInWater) {
     if (isInWater) return vec3(0.0,0.1,0.3);
-    return vec3(0.8);
+    return vec3(0.9);
 }
 
 const float minimumFogDensity = 0.5;

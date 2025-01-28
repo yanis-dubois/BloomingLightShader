@@ -130,7 +130,7 @@ vec4 SSR_SecondPass(sampler2D colorTexture, sampler2D depthTexture, sampler2D li
 vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent, 
                  sampler2D depthTexture_opaque, sampler2D depthTexture_transparent, 
                  vec2 uv, float depth, vec3 normal, float smoothness, float reflectance, vec3 backgroundColor, float type) {
-    
+
     // no reflections for perfectly rough surface
     if (smoothness <= 0.01 || isEyeInWater==1) return vec4(0);
 
@@ -194,6 +194,10 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     float depthDifference = SSR_THICKNESS;
     bool hitFirstPass_opaque = false, hitFirstPass_transparent = false, hitSecondPass = false;
 
+    bool hasTMPhit = false;
+    vec3 screenSpaceCurrentPositionTMP = screenSpaceStartPosition;
+    float actualPositionDepth_opaqueTMP = actualPositionDepth_opaque;
+
     // 1st pass
     for (int i=0; i<int(stepsNumber); ++i) {
         texelSpaceCurrentPosition += vec3(stepLength, 0);
@@ -229,10 +233,15 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         }
 
         // hit opaque surface
-        if (currentPositionDepth > actualPositionDepth_opaque) {
+        if (actualPositionDepth_opaque < currentPositionDepth && currentPositionDepth < actualPositionDepth_opaque + SSR_THICKNESS) {
             hitFirstPass_opaque = true;
             break;
-        } 
+        }
+        else if (actualPositionDepth_opaque < currentPositionDepth) {
+            screenSpaceCurrentPositionTMP = screenSpaceCurrentPosition;
+            actualPositionDepth_opaqueTMP = actualPositionDepth_opaque;
+            hasTMPhit = true;
+        }
         // hit transparent surface
         else if (!hitFirstPass_transparent && currentPositionDepth > actualPositionDepth_transparent) {
             hitFirstPass_transparent = true;
@@ -241,6 +250,11 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
         }
         
         lastPosition = currentPosition;
+    }
+    if (!hitFirstPass_opaque && hasTMPhit) {
+        screenSpaceCurrentPosition = screenSpaceCurrentPositionTMP;
+        actualPositionDepth_opaque = actualPositionDepth_opaqueTMP;
+        hitFirstPass_opaque = true;
     }
 
     // set default reflection to background color if ray goes towards camera 
@@ -298,9 +312,22 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
 
     // no hit
     if (!hitFirstPass_opaque && !hitFirstPass_transparent) {
-        //return vec4(1,0,0,1);
+        // return vec4(1,0,0,1);
         return reflection;
     }
+
+    //// TMP ////
+    if (- startPositionDepth < actualPositionDepth_opaque) {
+        reflection_transparent = texture2D(colorTexture_transparent, screenSpaceCurrentPosition.xy);
+        reflection_transparent.rgb = SRGBtoLinear(reflection_transparent.rgb);
+        reflection_opaque = texture2D(colorTexture_opaque, screenSpaceCurrentPosition.xy);
+        reflection_opaque.rgb = SRGBtoLinear(reflection_opaque.rgb);
+    }
+    // set reflection to hitted position
+    reflection.rgb = mix(reflection_opaque.rgb, reflection_transparent.rgb, reflection_transparent.a);
+    reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
+    return reflection;
+    //// TMP ////
 
     // second pass for opaque and transparent blocks
     if (hitFirstPass_opaque)
@@ -448,11 +475,18 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
         // mix original color with reflection color
         colorData = vec4(mix(color, reflectionColor, reflectionVisibility), transparency);
 
+        // colorData = reflectionData;
         colorData.rgb = linearToSRGB(colorData.rgb);
     }
 
-    float lightness = getLightness(colorData.rgb);
-    lightData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
+    // prepare bloom texture 
+    if (isTransparent) {
+        lightData = vec4(colorData.rgb * emissivness, transparency);
+    }
+    else {
+        float lightness = getLightness(colorData.rgb);
+        lightData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
+    }
 }
 
 /******************************************

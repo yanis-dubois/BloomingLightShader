@@ -32,6 +32,7 @@ void main() {
     normal = mat3(gbufferModelViewInverse) * normal;
 
     id = int(mc_Entity.x);
+    if (blockEntityId == 30041) id = 30041;
 
     // set position
     worldSpacePosition = gl_Vertex.xyz + cameraPosition;

@@ -23,6 +23,8 @@ const bool colortex5Clear = true;
 const bool colortex6Clear = true;
 const bool colortex7Clear = true;
 
+const bool colortex0MipmapEnabled = true;
+
 // resolution
 // const int noiseTextureResolution = 256;
 const int shadowMapResolution = 2048; // 1024 1536 2048
@@ -53,9 +55,9 @@ const float endShadowDecrease = 150;
 
 // Screen Space Reflection (SSR)
 #define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
-#define SSR_RESOLUTION 0.1 // from 0=low to 1=high
+#define SSR_RESOLUTION 1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
-#define SSR_THICKNESS 0.5 // from 0=too_precise to inf=awful
+#define SSR_THICKNESS 5 // from 0=too_precise to inf=awful
 
 // animation
 #define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
@@ -67,17 +69,17 @@ const float endShadowDecrease = 150;
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_RESOLUTION 0.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 8
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 16
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 12
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
 #define BLOOM_TYPE 3 // 0=off 1=stochastic 2=classic 3=classic_optimized
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
-#define BLOOM_STD 0.4
-#define BLOOM_RANGE 8 // extent of the kernel
-#define BLOOM_RESOLTUION 0.5 // range * resolution = half number of samples 
+#define BLOOM_STD 0.5
+#define BLOOM_RANGE 12 // extent of the kernel
+#define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
 #define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
 //////////////////////////
@@ -104,6 +106,7 @@ uniform vec4 entityColor;
 
 uniform vec3 eyePosition;
 uniform vec3 cameraPosition;
+uniform vec3 playerLookVector;
 uniform vec3 sunPosition;
 uniform vec3 shadowLightPosition;
 uniform vec3 skyColor;
@@ -127,6 +130,7 @@ uniform float gamma;
 uniform float frameTimeCounter;
 uniform float ambientLight;
 
+uniform int blockEntityId;
 uniform int frameCounter; // in [0;720719]
 uniform int worldTime; // in tick [0;23999]
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous

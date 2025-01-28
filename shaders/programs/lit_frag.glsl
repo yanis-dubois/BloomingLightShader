@@ -30,7 +30,7 @@ layout(location = 5) out vec4 transparentNormalData;
 layout(location = 6) out vec4 transparentLightData;
 layout(location = 7) out vec4 transparentMaterialData;
 
-void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
+void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
     smoothness = 0;
     reflectance = 0;
     emissivness = 0;
@@ -82,8 +82,13 @@ void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflec
 
     // -- emmissive -- //
     if (id >= 30000) {
-        emissivness = 1;
-        emissivness = getLightness(albedo);
+        if (id < 30040) {
+            emissivness = getLightness(albedo);
+        }
+        else {
+            emissivness = 1;
+            albedo *= 1.5;
+        }
     }
 
     // -- subsurface & ao -- //
@@ -112,6 +117,17 @@ void getMaterialData(int id, vec3 albedo, out float smoothness, out float reflec
     }
 }
 
+// end portal texture colors
+vec3[7] endPortalColors = vec3[](
+    vec3(0.098, 0.196, 0.255), // dark cyan
+    vec3(0.118, 0.235, 0.275), // greenish dark cyan
+    vec3(0.075, 0.196, 0.153)*1.5, // dark green
+    vec3(0.196, 0.118, 0.392), // dark blue purple
+    vec3(0.075, 0.196, 0.153), // dark green
+    vec3(0.157, 0.220, 0.333), // dark blue
+    vec3(0.075, 0.196, 0.153)*2  // dark green
+);
+
 void main() {
     /* albedo */
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
@@ -122,12 +138,43 @@ void main() {
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
     // apply red flash when mob are hitted
-    albedo.rgb = mix(albedo.rgb, entityColor.rgb, entityColor.a); 
+    albedo = mix(albedo, entityColor.rgb, entityColor.a); 
+
+    // end portal
+    if (blockEntityId == 30041 && blockEntityId != 65535) {
+
+        albedo = vec3(0);
+        vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
+        float speed = frameTimeCounter * 0.005;
+
+        screenPos *= 0.75;
+        vec3 bloup = vec3(0.098, 0.196, 0.255);
+
+        for (int i=0; i<8; ++i) {
+            for (int j=0; j<3; ++j) {
+                float angle = j * PI/3;
+                float Cos = cos(angle);
+                float Sin = sin(angle);
+                mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
+
+                vec2 uv = mod(rotation * screenPos.xy + speed, 1);
+                vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;
+                portalColor *= map(1 - (float(i) / 8.0), 0, 1, 0.33, 1);
+                albedo += portalColor * length(portalColor);
+            }
+
+            screenPos *= 1.4;
+        }
+
+        albedo *= bloup;
+        albedo = mix(albedo*2, bloup, length(albedo));
+        albedo += bloup*0.08;
+    }
 
     /* normal */
     vec3 encodedNormal = encodeNormal(normal);
     #ifdef PARTICLE 
-        encodedNormal = encodeNormal(normalize(cameraPosition - unanimatedWorldPosition));
+        encodedNormal = encodeNormal(-normalize(playerLookVector));
     #endif
     
     /* light */
@@ -173,8 +220,16 @@ void main() {
     #endif
     #ifdef PARTICLE
         type = typeParticle;
-        ambient_occlusion = 1;
-        emissivness = 1;
+
+        // is glowing particle ?
+        bool isGray = (albedo.r - albedo.g)*(albedo.r - albedo.g) + (albedo.r - albedo.b)*(albedo.r - albedo.b) + (albedo.b - albedo.g)*(albedo.b - albedo.g) < 0.05;
+        bool isUnderwaterParticle = (albedo.r == albedo.g && albedo.r - 0.5 * albedo.b < 0.06);
+        bool isWaterParticle = (albedo.b > 1.15 * (albedo.r + albedo.g) && albedo.g > albedo.r * 1.25 && albedo.g < 0.425 && albedo.b > 0.75);
+        if (getLightness(textureColor.rgb) > 0.8 && !isGray && !isWaterParticle && !isUnderwaterParticle) {
+            ambient_occlusion = 1;
+            emissivness = 1;
+            albedo *= 1.5;
+        }
     #endif
 
     // light animation
