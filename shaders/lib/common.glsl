@@ -83,6 +83,10 @@ const float endShadowDecrease = 150;
 #define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
 #define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
+// quantization
+#define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
+#define QUANTIZATION_AMOUNT 1.0 // number of color used
+
 //////////////////////////
 //////// Uniforms ////////
 //////////////////////////
