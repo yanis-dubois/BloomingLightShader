@@ -229,9 +229,6 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // float roughness = pow(1.0 - smoothness, 2.0);
     // vec3 BRDF = albedo * (ambientSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
 
-    /* fresnel */
-    transparency = max(transparency, schlick(reflectance, cosTheta));
-
     /* fog */
     if (!isParticle(type))
         color = foggify(color, worldSpacePosition, normalizedLinearDepth);

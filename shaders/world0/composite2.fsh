@@ -8,7 +8,7 @@
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/atmospheric.glsl"
-#include "/lib/bloom.glsl"
+#include "/lib/blur.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
@@ -32,15 +32,13 @@ layout(location = 3) out vec4 transparentBloomData;
 void process(sampler2D bloomTexture,
             out vec4 bloomData) {
 
-    // -- get input buffer values & init output buffers -- //
-    // albedo
-    // bloomData = texture2D(bloomTexture, uv);
-    // vec3 color = vec3(0); float transparency = 0;
-    // getColorData(bloomData, color, transparency);
-
-    /* bloom */
-    bloomData = bloom(uv, bloomTexture);
-    bloomData.rgb = linearToSRGB(bloomData.rgb);
+    #if BLOOM_TYPE < 3
+        return;
+    #else
+        // 1st pass blur to bloom texture
+        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLTUION, BLOOM_KERNEL == 1, true);
+        bloomData.rgb = linearToSRGB(bloomData.rgb);
+    #endif
 }
 
 /******************************************

@@ -6,6 +6,7 @@
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/atmospheric.glsl"
+#include "/lib/blur.glsl"
 #include "/lib/bloom.glsl"
 
 // textures
@@ -34,12 +35,19 @@ void process(sampler2D colorTexture, sampler2D bloomTexture,
     vec3 color = vec3(0); float transparency = 0;
     getColorData(colorData, color, transparency);
 
+    vec4 bloomData  = vec4(0);
+
+    #if BLOOM_TYPE == 3
+        // 2nd pass blur to bloom texture
+        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLTUION, BLOOM_KERNEL == 1, false);
+    #endif
+
     /* bloom */
-    vec4 bloomColor = bloom(uv, bloomTexture);
-    color += bloomColor.rgb * BLOOM_FACTOR;
-    
-    if (isTransparent && length(bloomColor.rgb) > 0.001 && transparency < 0.1)
-        opaqueColorData.rgb = linearToSRGB(SRGBtoLinear(opaqueColorData.rgb) + bloomColor.rgb * BLOOM_FACTOR);
+    bloomData = bloom(uv, bloomTexture, bloomData);
+    color += bloomData.rgb * BLOOM_FACTOR;
+
+    if (isTransparent && length(bloomData.rgb) > 0.001 && transparency < 0.1)
+        opaqueColorData.rgb = linearToSRGB(SRGBtoLinear(opaqueColorData.rgb) + bloomData.rgb * BLOOM_FACTOR);
     else
         colorData.rgb = linearToSRGB(color);
 }
@@ -50,4 +58,6 @@ void process(sampler2D colorTexture, sampler2D bloomTexture,
 void main() {
     process(colortex0, colortex2, opaqueColorData, false);
     process(colortex4, colortex6, transparentColorData, true);
+
+    //opaqueColorData = texture2D(colortex2, uv);
 }

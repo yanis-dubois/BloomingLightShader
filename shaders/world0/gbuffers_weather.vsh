@@ -2,5 +2,6 @@
 
 #define TRANSPARENT
 #define PARTICLE
+#define WEATHER
 
 #include "/programs/lit_vert.glsl"

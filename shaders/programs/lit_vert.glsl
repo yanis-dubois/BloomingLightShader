@@ -32,7 +32,9 @@ void main() {
     normal = mat3(gbufferModelViewInverse) * normal;
 
     id = int(mc_Entity.x);
-    if (blockEntityId == 30041) id = 30041;
+    #ifdef TERRAIN
+        if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
+    #endif
 
     // set position
     worldSpacePosition = gl_Vertex.xyz + cameraPosition;

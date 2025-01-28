@@ -28,6 +28,7 @@ const bool colortex0MipmapEnabled = true;
 // resolution
 // const int noiseTextureResolution = 256;
 const int shadowMapResolution = 2048; // 1024 1536 2048
+const bool shadowHardwareFiltering = true;
 
 //////////////////////////
 /////// Parameters ///////

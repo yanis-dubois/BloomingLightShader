@@ -85,7 +85,7 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
         if (id < 30040) {
             emissivness = getLightness(albedo);
         }
-        else {
+        else if (id == 30040 || id == 31000) {
             emissivness = 1;
             albedo *= 1.5;
         }
@@ -140,36 +140,37 @@ void main() {
     // apply red flash when mob are hitted
     albedo = mix(albedo, entityColor.rgb, entityColor.a); 
 
-    // end portal
-    if (blockEntityId == 30041 && blockEntityId != 65535) {
+    #ifdef TERRAIN
+        // end portal & end gates
+        if (id == 31000) {
+            albedo = vec3(0);
+            vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
+            float speed = frameTimeCounter * 0.005;
 
-        albedo = vec3(0);
-        vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
-        float speed = frameTimeCounter * 0.005;
+            screenPos *= 0.75;
+            vec3 bloup = vec3(0.098, 0.196, 0.255);
 
-        screenPos *= 0.75;
-        vec3 bloup = vec3(0.098, 0.196, 0.255);
+            for (int i=0; i<8; ++i) {
+                for (int j=0; j<3; ++j) {
+                    float angle = j * PI/3 + i * PI/8;
+                    float Cos = cos(angle);
+                    float Sin = sin(angle);
+                    mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
 
-        for (int i=0; i<8; ++i) {
-            for (int j=0; j<3; ++j) {
-                float angle = j * PI/3;
-                float Cos = cos(angle);
-                float Sin = sin(angle);
-                mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
+                    vec2 uv = mod(rotation * screenPos.xy + speed, 1);
+                    vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;
+                    portalColor *= map(1 - (float(i) / 8.0), 0, 1, 0.33, 1);
+                    albedo += portalColor * length(portalColor);
+                }
 
-                vec2 uv = mod(rotation * screenPos.xy + speed, 1);
-                vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;
-                portalColor *= map(1 - (float(i) / 8.0), 0, 1, 0.33, 1);
-                albedo += portalColor * length(portalColor);
+                screenPos *= 1.4;
             }
 
-            screenPos *= 1.4;
+            albedo *= bloup;
+            albedo = mix(albedo*2, bloup, length(albedo));
+            albedo += bloup*0.08;
         }
-
-        albedo *= bloup;
-        albedo = mix(albedo*2, bloup, length(albedo));
-        albedo += bloup*0.08;
-    }
+    #endif
 
     /* normal */
     vec3 encodedNormal = encodeNormal(normal);
@@ -210,7 +211,6 @@ void main() {
         if (dot(viewDirection, newNormal) < 0) newNormal = normal;
 
         encodedNormal = encodeNormal(newNormal);
-        //distanceFromCamera = distance(cameraPosition, actualPosition);
     }
 
     /* type */
@@ -230,6 +230,11 @@ void main() {
             emissivness = 1;
             albedo *= 1.5;
         }
+    #endif
+
+    // weather smooth transition
+    #ifdef WEATHER
+        transparency = rainStrength;
     #endif
 
     // light animation
