@@ -76,14 +76,23 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     if (isBasic(type)) {
         // glowing
         if (isTransparent && getLightness(albedo) > 0.01) {
-            // apply fog
+            // depth check
             vec3 worldSpacePosition = screenToWorld(uv, depth);
-            float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
-            albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
+            float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
 
-            // write in opaque buffer
-            opaqueColorData.rgb = albedo;
-            opaqueLightData.z = emissivness; // add emissivness
+            // apply glow 
+            if (distanceFromCamera > 0.3) {
+                // apply fog
+                float normalizedLinearDepth = distanceFromCamera / far;
+                albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
+
+                // write in opaque buffer
+                opaqueColorData.rgb = albedo;
+                opaqueLightData.z = emissivness; // add emissivness
+            }
+
+            // delete it from transparent ('cause its transfered from transparent to opaque)
+            colorData = vec4(0);
         }
         // sky
         else if (!isTransparent) {
@@ -134,6 +143,4 @@ void main() {
     // convert back to SRGB
     opaqueColorData.rgb = linearToSRGB(opaqueColorData.rgb);
     transparentColorData.rgb = linearToSRGB(transparentColorData.rgb);
-
-    //opaqueColorData = vec4(0);
 }
