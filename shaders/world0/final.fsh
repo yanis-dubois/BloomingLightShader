@@ -10,6 +10,7 @@
 uniform sampler2D colortex0; // opaque color
 uniform sampler2D colortex4; // transparent color
 uniform sampler2D depthtex0; // all depth
+uniform sampler2D depthtex1; // opaque depth
 uniform sampler2D shadowtex0; // all shadow
 uniform sampler2D shadowtex1; // only opaque shadow
 uniform sampler2D shadowcolor0; // shadow color

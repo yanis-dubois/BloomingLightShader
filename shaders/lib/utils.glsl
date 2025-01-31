@@ -51,9 +51,42 @@ vec3 brdf(vec3 lightDirection, vec3 viewDirection, vec3 normal, vec3 albedo, flo
     return BRDF;
 }
 
+// -- cartesian & polar coordinates conversions -- //
+vec3 cartesianToPolar(vec3 cartesianCoordinate) {
+    float x = cartesianCoordinate.x;
+    float y = cartesianCoordinate.y;
+    float z = cartesianCoordinate.z;
+
+    float x2 = x * x;
+    float y2 = y * y;
+    float z2 = z * z;
+
+    float radius = sqrt(x2 + y2 + z2);
+    float theta = acos(z / radius);
+    float phi = sign(y) * acos(x / sqrt(x2 + y2));
+
+    return vec3(theta, phi, radius);
+}
+vec3 polarToCartesian(vec3 polarCoordinate) {
+    float theta = polarCoordinate.x;
+    float phi = polarCoordinate.y;
+    float radius = polarCoordinate.z;
+
+    float sinTheta = sin(theta);
+
+    float x = radius * sinTheta * cos(phi);
+    float y = radius * sinTheta * sin(phi);
+    float z = radius * cos(theta);
+
+    return vec3(x, y, z);
+}
+
 // -- random generator -- //
-float pseudoRandom(vec2 uv) {
-    return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+float pseudoRandom(vec2 pos) {
+    return fract(sin(dot(pos, vec2(12.9898, 78.233))) * 43758.5453);
+}
+float pseudoRandom(vec3 pos){
+    return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 vec2 sampleDiskArea(vec2 seed) {
     // pseudo uniform 
@@ -120,6 +153,9 @@ float distance1(vec2 p1, vec2 p2) {
 }
 float distanceInf(vec2 p1, vec2 p2) {
     return max(abs(p2.x - p1.x), abs(p2.y - p1.y));
+}
+float distanceInf(vec3 p1, vec3 p2) {
+    return max(distanceInf(p1.xy, p2.xy), abs(p2.z - p1.z));
 }
 float perspectiveMix(float a, float b, float factor) {
     return 1. / ( (1./a) + (factor * ((1./b) - (1./a))) );

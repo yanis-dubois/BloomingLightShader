@@ -19,9 +19,6 @@ const float ambiantFactor_transparent = 1;
 
 // attributes
 in vec3 skyLightColor;
-in vec3 fog_color;
-in float rainFactor;
-in float fog_density;
 
 in vec2 uv;
 

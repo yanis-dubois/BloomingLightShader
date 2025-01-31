@@ -234,7 +234,8 @@ void main() {
 
     // weather smooth transition
     #ifdef WEATHER
-        transparency = rainStrength;
+        type = typeParticle;
+        transparency *= rainStrength;
     #endif
 
     // light animation

@@ -1,6 +1,6 @@
-//////////////////////////
-//////// Textures ////////
-//////////////////////////
+////////////////////////////////////////////////////
+///////////////////// Textures /////////////////////
+////////////////////////////////////////////////////
 
 // format
 /*
@@ -30,14 +30,17 @@ const bool colortex0MipmapEnabled = true;
 const int shadowMapResolution = 2048; // 1024 1536 2048
 const bool shadowHardwareFiltering = true;
 
-//////////////////////////
-/////// Parameters ///////
-//////////////////////////
+////////////////////////////////////////////////////
+//////////////////// Parameters ////////////////////
+////////////////////////////////////////////////////
 
 // sun and moon
 const float sunPathRotation = 0;
 #define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
 #define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
+
+// sky
+#define SKY_TYPE 1 // 0=vanilla 1=custom
 
 // fog
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
@@ -87,9 +90,9 @@ const float endShadowDecrease = 150;
 #define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
 #define QUANTIZATION_AMOUNT 1.0 // number of color used
 
-//////////////////////////
-//////// Uniforms ////////
-//////////////////////////
+////////////////////////////////////////////////////
+///////////////////// Uniforms /////////////////////
+////////////////////////////////////////////////////
 
 const float typeBasic = 0.0;
 const float typeParticle = 0.33;
@@ -113,6 +116,7 @@ uniform vec3 eyePosition;
 uniform vec3 cameraPosition;
 uniform vec3 playerLookVector;
 uniform vec3 sunPosition;
+uniform vec3 moonPosition;
 uniform vec3 shadowLightPosition;
 uniform vec3 skyColor;
 uniform vec3 fogColor;
@@ -121,7 +125,7 @@ uniform ivec2 eyeBrightness;
 uniform ivec2 eyeBrightnessSmooth;
 
 uniform float shadowAngle;
-uniform float sunAngle;
+uniform float sunAngle; // 0 is sunrise, 0.25 is noon, 0.5 is sunset, 0.75 is midnight
 uniform float rainfall;
 uniform float fogStart;
 uniform float fogEnd;

@@ -8,17 +8,7 @@
 #include "/lib/atmospheric.glsl"
 
 // attribute
-in vec4 starData; //rgb = star color, a = flag for weather or not this pixel is a star.
-
-// function
-float fogify(float x, float w) {
-	return w / (x * x + w);
-}
-
-vec3 calcSkyColor(vec3 pos) {
-	float upDot = dot(pos, gbufferModelView[1].xyz);
-	return mix(skyColor, fogColor, fogify(max(upDot, 0.0), 0.25));
-}
+in vec4 starData;
 
 // results
 /* RENDERTARGETS: 0,2,3 */
@@ -27,20 +17,31 @@ layout(location = 1) out vec4 opaqueLightData;
 layout(location = 2) out vec4 opaqueMaterialData;
 
 void main() {
+	vec3 albedo = vec3(0);
+	float transparency = 0;
 	float emissivness = 0;
 
-	/* albedo */
-	vec3 albedo = vec3(0);
-	if (starData.a > 0.5) {
-		albedo = starData.rgb;
-		emissivness = getLightness(SRGBtoLinear(albedo) * 2);
-	} else {
-		vec3 pos = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
-		albedo = calcSkyColor(normalize(pos));
-	}
-	
+	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
+	vec3 eyeSpacePosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
+
+	#if SKY_TYPE == 1
+		// sky & stars
+		albedo = getSkyColor(eyeSpacePosition);
+	#else
+		// stars
+		if (starData.a > 0.5) {
+			transparency = 1;
+			albedo = starData.rgb;
+			emissivness = getLightness(SRGBtoLinear(albedo) * 2);
+		} 
+		// sky
+		else {
+			albedo = getVanillaSkyColor(eyeSpacePosition);
+		}
+	#endif
+
 	/* buffers */
-    opaqueAlbedoData = vec4(albedo, 1);
+    opaqueAlbedoData = vec4(albedo, transparency);
 	opaqueLightData = vec4(0, 0, emissivness, 1);
     opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
 }

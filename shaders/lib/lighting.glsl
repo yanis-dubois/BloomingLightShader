@@ -25,6 +25,18 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     // direction
     vec3 worldSpaceViewDirection = normalize(opaqueWorldSpacePosition - cameraPosition);
 
+    // decrease volumetric light effect as light source and view vector are align
+    // -> avoid player shadow monster 
+    vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
+    float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.35);
+    // decrease volumetric light that is added on sky
+    // which is even truer the further up you look
+    float VdotU = dot(worldSpaceViewDirection, vec3(0,1,0));
+    float invVdotU = 1 - abs(VdotU);
+    attenuationFactor *= invVdotU * invVdotU * invVdotU;
+    //if (attenuationFactor < 0.01) return;
+
     // init loop
     vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
@@ -105,44 +117,17 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         transparentAccumulatedLight = opaqueAccumulatedLight;
     }
 
-    // decrease volumetric light effect as light source and view vector are align
-    // -> avoid player shadow monster 
-    vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
-    float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.35);
+    // apply attenuation
     opaqueAccumulatedLight *= attenuationFactor;
     transparentAccumulatedLight *= attenuationFactor;
 
     // color adjustment & day-night blend
-    opaqueAccumulatedLight *= skyLightColor * rainFactor * getDayNightBlend();
-    transparentAccumulatedLight *= skyLightColor * rainFactor * getDayNightBlend();
+    opaqueAccumulatedLight *= skyLightColor * mix(1, 0.5, rainStrength) * getDayNightBlend();
+    transparentAccumulatedLight *= skyLightColor * mix(1, 0.5, rainStrength) * getDayNightBlend();
 
     // write values
     opaqueColorData.rgb += opaqueAccumulatedLight / pow(far, 0.75);
     transparentColorData.rgb += transparentAccumulatedLight / pow(far, 0.75);
-}
-
-vec3 foggify(vec3 color, vec3 worldSpacePosition, float normalizedLinearDepth) {
-
-    vec3 skyLightColor = mix(getSkyLightColor(), vec3(1), 1);
-
-    // custom fog
-    if (FOG_TYPE == 2) {
-        float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater==1);
-
-        // exponential function
-        float fogAmount = getFogAmount(normalizedLinearDepth, fogDensity);
-        color = mix(color, getFogColor(isEyeInWater==1) * skyLightColor, fogAmount);
-    }
-    // vanilla fog (not applied when camera is under water) // TODO: remplacer fogColor 
-    if (FOG_TYPE == 1 || (FOG_TYPE == 2 && isEyeInWater!=1)) {
-        // linear function 
-        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0, 1);
-        color = mix(color, getFogColor(isEyeInWater==1) * skyLightColor, vanillaFogBlend);
-    }
-
-    return color;
 }
 
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
@@ -178,19 +163,10 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     float skyDirectLightFactor = max(lightDirectionDotNormal, 0);
     float faceTweak = 1;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    // x align
-    if (abs(dot(normal, vec3(1,0,0))) > 0.8) {
-        faceTweak = 0.8;
-    } 
-    // z align
-    else if (abs(dot(normal, vec3(0,0,1))) > 0.8) {
-        skyDirectLightFactor = 0.2;
-        faceTweak = 0.6;
-    } 
-    // facing down
-    else if (dot(normal, vec3(0,-1,0)) > 0.8) {
-        faceTweak = 0.4;
-    }
+    faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, vec3(1,0,0)))));
+    faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, vec3(0,0,1)))));
+    faceTweak = mix(faceTweak, 0.4, smoothstep(0.8, 0.9, (dot(normal, vec3(0,-1,0)))));
+    skyDirectLightFactor = mix(skyDirectLightFactor, 0.2, abs(dot(normal, vec3(0,0,1))));
     // -- direct sky light
     vec3 skyDirectLight = skyLightColor * skyDirectLightFactor;
     // subsurface scattering
@@ -199,7 +175,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
-    skyDirectLight *= rainFactor * getDayNightBlend(); // reduce contribution as it rains or during day-night transition
+    skyDirectLight *= mix(1, 0.5, rainStrength) * getDayNightBlend(); // reduce contribution as it rains or during day-night transition
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
     // -- ambient sky light
     float ambientSkyLightFactor = isTransparent ? 0.6 : 0.3;
