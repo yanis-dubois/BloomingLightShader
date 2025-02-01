@@ -34,6 +34,7 @@ void main() {
     vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
     vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
     float VdotS = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition);
+    float VdotX = dot(eyeSpaceFragmentPosition, vec3(1,0,0));
 
     #if SKY_TYPE == 1
         // polar coord of frag & sun/moon
@@ -47,8 +48,6 @@ void main() {
             if (distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) > radius) {
                 discard;
             }
-            if (eyeSpaceFragmentPosition.y < 0)
-                discard;
         } 
         // cut moon glare
         else {
@@ -56,6 +55,10 @@ void main() {
             if (distanceInf(polarFragmentPosition.xy, polarMoonPosition.xy) > radius) {
                 discard;
             }
+        }
+
+        if (VdotX < 0 && eyeSpaceFragmentPosition.y < 0.08) {
+            discard;
         }
 
         float emissivness = 1;

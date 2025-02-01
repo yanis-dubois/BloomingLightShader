@@ -1,5 +1,5 @@
 float getDayNightBlend() {
-    return map(shadowAngle, 0.0, 0.01, 0, 1) * map(shadowAngle, 0.5, 0.49, 0, 1);
+    return map(shadowAngle, 0.0, 0.02, 0, 1) * map(shadowAngle, 0.5, 0.48, 0, 1);
 }
 
 void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity, bool isWater,
