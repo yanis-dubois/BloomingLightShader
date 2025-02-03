@@ -160,16 +160,6 @@ float distanceInf(vec3 p1, vec3 p2) {
 float perspectiveMix(float a, float b, float factor) {
     return 1. / ( (1./a) + (factor * ((1./b) - (1./a))) );
 }
-float sigmoid(float x, float offset, float speed) {
-    return (offset / (offset + pow(e, -speed * x)));
-}
-float sigmoid(float x, float offset, float speed, float translation) {
-    return (offset / (offset + pow(e, -speed * (x + translation))));
-}
-float cosThetaToSigmoid(float cosTheta, float offset, float speed, float duration) {
-    float normalizedAngle = duration * acos(cosTheta)/PI *4 -1;
-    return 1 - sigmoid(normalizedAngle, offset, speed);
-}
 float gaussian(float x, float y, float mu, float sigma) {
     return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2*sigma*sigma)));
 }

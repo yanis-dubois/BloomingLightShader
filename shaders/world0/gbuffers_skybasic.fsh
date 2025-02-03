@@ -21,8 +21,8 @@ void main() {
 	float transparency = 0;
 	float emissivness = 0;
 
-	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1);
-	vec3 eyeSpacePosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
+	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 0.99999);
+	vec3 eyeSpacePosition = mat3(gbufferModelViewInverse) * viewSpacePosition;
 
 	#if SKY_TYPE == 1
 		// sky & stars

@@ -77,9 +77,9 @@ vec3 getBlockLightColor(float blockLightIntensity, float emissivness) {
 
 // -------- SKY -------- //
 // vanilla 
-vec3 getVanillaSkyColor(vec3 worldSpacePosition) {
-    vec3 worldSpaceViewDirection = normalize(worldSpacePosition);
-	float viewDotUp = dot(worldSpaceViewDirection, vec3(0,1,0));
+vec3 getVanillaSkyColor(vec3 eyeSpacePosition) {
+    vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
+	float viewDotUp = dot(eyeSpaceViewDirection, vec3(0,1,0));
 	return mix(skyColor, fogColor, 1 - smoothstep(0.1, 0.25, max(viewDotUp, 0.0)));
 }
 
@@ -171,8 +171,13 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition) {
     skyColor = mix(skyColor, skyColor*0.6 + glareColor, glareFactor);
 
     // -- horizon fog -- //
-    float horizonFactor = smoothstep(0.3, -0.25, viewDotUp);
+    float horizonFactor = 1 - smoothstep(-0.25, 0.3, viewDotUp);
     skyColor = mix(skyColor, fogColor, horizonFactor);
+
+    // -- underground fog -- //
+    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12);
+    float heightBlend = map(cameraPosition.y, 32, 60, 0, 1);
+    skyColor = mix(undergroundFogColor, skyColor, heightBlend);
 
     // -- noise to avoid color bending -- //
     vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
@@ -201,11 +206,11 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition) {
     return skyColor;
 }
 
-vec3 getSkyColor(vec3 worldSpacePosition) {
+vec3 getSkyColor(vec3 eyeSpacePosition) {
     #if SKY_TYPE == 0
-        return getVanillaSkyColor(worldSpacePosition);
+        return getVanillaSkyColor(eyeSpacePosition);
     #else
-        return getCustomSkyColor(worldSpacePosition);
+        return getCustomSkyColor(eyeSpacePosition);
     #endif
 }
 
@@ -215,9 +220,9 @@ vec3 getFogColor(bool isInWater) {
     return vec3(0.9);
 }
 
-vec3 getFogColor(bool isInWater, vec3 worldSpacePosition) {
+vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
     if (isInWater) return vec3(0.0,0.1,0.3);
-    return getSkyColor(worldSpacePosition);
+    return getSkyColor(eyeSpacePosition);
 }
 
 const float minimumFogDensity = 0.5;
@@ -228,11 +233,11 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
     float minFogDensity = sunAngle > 0.5 ? minimumFogDensity*2 : minimumFogDensity;
     float maxFogDensity = maximumFogDensity;
 
+    // higher density during morning / night / rain
     vec3 upDirection = vec3(0,1,0);
     vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
     if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
-
     float density = mix(minFogDensity, maxFogDensity, 1-lightDirectionDotUp);
     density = mix(density, maxFogDensity, rainStrength);
 

@@ -3,7 +3,7 @@ uniform sampler2D shadowtex0; // all shadow
 uniform sampler2D shadowtex1; // only opaque shadow
 uniform sampler2D shadowcolor0; // shadow color
 
-const float bias = 0.002; // 0.002
+const float bias = 0.0; // 0.002
 
 // makes shadows near to the player higher resolution than ones far from him
 vec3 distortShadowClipPosition(vec3 shadowClipPosition) {
@@ -160,7 +160,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         vec4 shadowClipPosition = playerToShadowClip(playerPosition);
 
         // hard shadowing
-        #if float(SHADOW_RANGE) <= 0 || float(SHADOW_RESOLUTION) <= 0
+        #if float(SHADOW_RANGE) <= 0.01 || float(SHADOW_RESOLUTION) <= 0.01
             return getShadow(shadowClipPosition);
 
         // soft shadowing

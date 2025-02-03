@@ -135,7 +135,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
 
     // TODO: SSAO
     float occlusion = 1;
-    
+
     // directions and angles 
     vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(lightDirectionWorldSpace, normal);
@@ -147,7 +147,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
 
     /* shadow */
     // offset position in normal direction (avoid self shadowing)
-    vec3 offsetWorldSpacePosition = worldSpacePosition + normal * 0.1;
+    vec3 offsetWorldSpacePosition = worldSpacePosition + normal * 0.1; // 0.1
     vec3 offsetScreenSpacePosition = worldToScreen(offsetWorldSpacePosition);
     // get shadow
     vec4 shadow = vec4(0);
@@ -175,8 +175,17 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
-    skyDirectLight *= mix(1, 0.5, rainStrength) * getDayNightBlend(); // reduce contribution as it rains or during day-night transition
-    skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a); // apply shadow
+    // reduce contribution if no ambiant sky light
+    if (ambientSkyLightIntensity < 0.01) skyDirectLight *= 0;
+    // reduce contribution as it rains
+    skyDirectLight *= mix(1, 0.5, rainStrength);
+    // reduce contribution during day-night transition
+    skyDirectLight *= getDayNightBlend();
+    // reduce contribution as camera go deeper
+    float heightBlend = map(cameraPosition.y, 32, 60, 0, 1);
+    skyDirectLight *= heightBlend;
+    // apply shadow
+    skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a);
     // -- ambient sky light
     float ambientSkyLightFactor = isTransparent ? 0.6 : 0.3;
     vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
