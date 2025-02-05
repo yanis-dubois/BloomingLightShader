@@ -9,6 +9,17 @@ float getNoise(vec3 seed, float amplitude) {
     return amplitude * noise;
 }
 
+vec2 doScreenDistortion(float time, vec2 uv, vec3 eyeSpaceDirection) {
+    float amplitude = 0.005; // 0.005
+    float speed = time * 0.15;
+    // vec3 seed = vec3(uv * 0.5, speed) + speed;
+    vec3 seed = vec3(eyeSpaceDirection * 3) + speed;
+    
+    uv.x = amplitude * snoise_3D(seed);
+    uv.y = amplitude * snoise_3D(seed + 1);
+    return uv;
+}
+
 // used during shadow rendering to simulate caustic
 float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     float amplitude = 0.0;

@@ -5,11 +5,14 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/blur.glsl"
+#include "/lib/animation.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
 uniform sampler2D colortex4; // transparent color
+uniform sampler2D depthtex0; // all depth
+uniform sampler2D depthtex1; // only opaque depth
+uniform sampler2D depthtex2; // only opaque depth and no hand
 
 // attributes
 in vec2 uv;
@@ -29,10 +32,21 @@ layout(location = 1) out vec4 transparentColorData;
 
 void process(sampler2D colorTexture,
             out vec4 colorData, bool isTransparent) {
+    
+    vec2 UV = uv;
+
+    // -- distortion -- //
+    #if UNDERWATER_DISTORTION > 0
+        if (isEyeInWater == 1) {
+            float depth = texture2D(depthtex0, uv).r;
+            vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
+            UV = uv + doScreenDistortion(frameTimeCounter, uv, eyeSpaceDirection);
+        }
+    #endif
 
     // -- get input buffer values & init output buffers -- //
     // albedo
-    colorData = texture2D(colorTexture, uv);
+    colorData = texture2D(colorTexture, UV);
     vec3 color = vec3(0); float transparency = 0;
     getColorData(colorData, color, transparency);
 
@@ -43,9 +57,9 @@ void process(sampler2D colorTexture,
         vec2 offsetR = vec2(0.1, 0.0) * amplitude;
         vec2 offsetG = vec2(-0.05, -0.05) * amplitude;
         vec2 offsetB = vec2(-0.05, 0.05) * amplitude;
-        float R = texture2D(colorTexture, uv + offsetR).r;
-        float G = texture2D(colorTexture, uv + offsetG).g;
-        float B = texture2D(colorTexture, uv + offsetB).b;
+        float R = texture2D(colorTexture, UV + offsetR).r;
+        float G = texture2D(colorTexture, UV + offsetG).g;
+        float B = texture2D(colorTexture, UV + offsetB).b;
         color = vec3(R,G,B);
         color = SRGBtoLinear(color);
     #endif
@@ -68,14 +82,12 @@ void process(sampler2D colorTexture,
         color = quantizedColor;
     #endif
 
-    // -- distortion -- //
-
     color = linearToSRGB(color);
     colorData = vec4(color, transparency);
 }
 
 /******************************************
-**************** Dithering ****************
+*************** Wild effect ***************
 *******************************************/
 void main() {
     process(colortex0, opaqueColorData, false);
