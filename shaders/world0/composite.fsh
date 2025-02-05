@@ -45,26 +45,36 @@ layout(location = 7) out vec4 transparentMaterialData;
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
             out vec4 colorData, out vec4 normalData, out vec4 lightData, out vec4 materialData, out float depth, bool isTransparent) {
 
+    vec2 UV = uv;
+
+    // -- water refraction -- //
+    #if DISTORTION_WATER_REFRACTION > 0
+        if (!isTransparent && isEyeInWater!=1 && isWater(texture2D(colortex7, uv).x)) {
+            float depth = texture2D(depthtex0, uv).r;
+            vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
+            UV = uv + doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
+        }
+    #endif
+
     // -- get input buffer values & init output buffers -- //
     // albedo
-    colorData = texture2D(albedoTexture, uv);
+    colorData = texture2D(albedoTexture, UV);
     vec3 albedo = vec3(0); float transparency = 0;
     getColorData(colorData, albedo, transparency);
-    //if (transparency<0.01) return;
     // normal
-    normalData = texture2D(normalTexture, uv);
+    normalData = texture2D(normalTexture, UV);
     vec3 normal = vec3(0);
     getNormalData(normalData, normal);
     // light
-    lightData = texture2D(lightTexture, uv);
+    lightData = texture2D(lightTexture, UV);
     float blockLightIntensity = 0, ambientSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
     getLightData(lightData, blockLightIntensity, ambientSkyLightIntensity, emissivness, ambient_occlusion);
     // material
-    materialData = texture2D(materialTexture, uv);
+    materialData = texture2D(materialTexture, UV);
     float type = 0, smoothness = 0, reflectance = 0, subsurface = 0;
     getMaterialData(materialData, type, smoothness, reflectance, subsurface);
     // depth
-    vec4 depthData = texture2D(depthTexture, uv);
+    vec4 depthData = texture2D(depthTexture, UV);
     depth = 0;
     getDepthData(depthData, depth);
 
@@ -74,7 +84,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
         // glowing
         if (isTransparent && getLightness(albedo) > 0.01) {
             // depth check
-            vec3 worldSpacePosition = screenToWorld(uv, depth);
+            vec3 worldSpacePosition = screenToWorld(UV, depth);
             float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
 
             // apply glow 
@@ -98,7 +108,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
 
             // foggify if camera in water
             if (isEyeInWater==1) {
-                vec3 worldSpacePosition = screenToWorld(uv, depth);
+                vec3 worldSpacePosition = screenToWorld(UV, depth);
                 float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
                 colorData.rgb = foggify(colorData.rgb, worldSpacePosition, normalizedLinearDepth);
             }
@@ -107,7 +117,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     // lit
     else {
         colorData = lighting(
-            uv, 
+            UV, 
             albedo, 
             transparency, 
             normal, 

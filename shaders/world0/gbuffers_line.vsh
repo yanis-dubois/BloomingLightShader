@@ -2,7 +2,7 @@
 
 // all the messy code in this file is mostly a port of vanilla line rendering.
 
-const float LINE_WIDTH  = 5.0;
+const float LINE_WIDTH  = 2;
 const float VIEW_SHRINK = 1.0 - (1.0 / 256.0);
 const mat4 VIEW_SCALE   = mat4(
 	VIEW_SHRINK, 0.0, 0.0, 0.0,

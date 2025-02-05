@@ -35,12 +35,12 @@ void process(sampler2D colorTexture,
     
     vec2 UV = uv;
 
-    // -- distortion -- //
-    #if UNDERWATER_DISTORTION > 0
+    // -- water refraction -- //
+    #if DISTORTION_WATER_REFRACTION > 0
         if (isEyeInWater == 1) {
             float depth = texture2D(depthtex0, uv).r;
             vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
-            UV = uv + doScreenDistortion(frameTimeCounter, uv, eyeSpaceDirection);
+            UV = uv + doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
         }
     #endif
 

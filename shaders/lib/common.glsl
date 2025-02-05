@@ -86,8 +86,8 @@ const float endShadowDecrease = 150;
 #define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
 #define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
-// underwater distortion
-#define UNDERWATER_DISTORTION 1 // 0=off 1=on
+// distortion
+#define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on
 
 // quantization
 #define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
