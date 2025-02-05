@@ -90,6 +90,10 @@ const float endShadowDecrease = 150;
 #define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
 #define QUANTIZATION_AMOUNT 1.0 // number of color used
 
+// chromatic aberation
+#define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
+#define CHROMATIC_ABERATION_AMPLITUDE 0.1 // 0=off 0.1=too_much
+
 ////////////////////////////////////////////////////
 ///////////////////// Uniforms /////////////////////
 ////////////////////////////////////////////////////

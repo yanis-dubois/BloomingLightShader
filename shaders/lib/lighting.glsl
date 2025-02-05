@@ -193,7 +193,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1 - ambientSkyLightIntensity);
     // -- filter underwater light
     if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
-        skyDirectLight *= map(ambientSkyLightIntensity, 0, 1, 0.01, 1);
+        skyDirectLight *= smoothstep(0, 0.5, ambientSkyLightIntensity);
         vec3 waterColor = mix(getFogColor(true), vec3(0.5), 0.5);
         skyDirectLight = getLightness(skyDirectLight) * waterColor;
         ambientSkyLight = getLightness(ambientSkyLight) * waterColor;

@@ -247,6 +247,11 @@ void main() {
         emissivness -= noise;
     }
 
+    if (id == 20000) {
+        transparency *= 0.5;
+        albedo *= 3;
+    }
+
     /* buffers */
     #ifdef TRANSPARENT
         transparentAlbedoData = vec4(albedo, transparency);

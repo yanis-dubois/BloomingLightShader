@@ -36,34 +36,48 @@ void process(sampler2D colorTexture,
     vec3 color = vec3(0); float transparency = 0;
     getColorData(colorData, color, transparency);
 
-    // -- dithering -- //
-
-    // get Bayer matrix value
-    ivec2 pixelPos = ivec2(gl_FragCoord.xy) % 4;
-    float threshold = (bayerMatrix[pixelPos.x][pixelPos.y] + 0.5) / 16.0;
-
-    // color quantization
-    float quantization = QUANTIZATION_AMOUNT;
-    vec3 quantizedColor = floor(color * quantization) / quantization; // Reduce to 'quantization' levels per channel
-    
-    // dithering
-    #if QUANTIZATION_TYPE == 2
-        quantizedColor = mix(quantizedColor, quantizedColor + 1.0 / quantization, step(threshold, fract(color * quantization)));
+    // -- chromatic aberation -- //
+    #if CHROMATIC_ABERATION_TYPE > 0
+        float dist = distance(uv * 2 - 1, vec2(0));
+        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist * dist;
+        vec2 offsetR = vec2(0.1, 0.0) * amplitude;
+        vec2 offsetG = vec2(-0.05, -0.05) * amplitude;
+        vec2 offsetB = vec2(-0.05, 0.05) * amplitude;
+        float R = texture2D(colorTexture, uv + offsetR).r;
+        float G = texture2D(colorTexture, uv + offsetG).g;
+        float B = texture2D(colorTexture, uv + offsetB).b;
+        color = vec3(R,G,B);
+        color = SRGBtoLinear(color);
     #endif
 
-    quantizedColor = linearToSRGB(quantizedColor);
-    colorData = vec4(quantizedColor, transparency);
+    // -- quantization & dithering -- //
+    #if QUANTIZATION_TYPE > 0
+        // get Bayer matrix value
+        ivec2 pixelPos = ivec2(gl_FragCoord.xy) % 4;
+        float threshold = (bayerMatrix[pixelPos.x][pixelPos.y] + 0.5) / 16.0;
+
+        // quantization
+        float quantization = QUANTIZATION_AMOUNT;
+        vec3 quantizedColor = floor(color * quantization) / quantization; // Reduce to 'quantization' levels per channel
+        
+        // dithering
+        #if QUANTIZATION_TYPE == 2
+            quantizedColor = mix(quantizedColor, quantizedColor + 1.0 / quantization, step(threshold, fract(color * quantization)));
+        #endif
+
+        color = quantizedColor;
+    #endif
+
+    // -- distortion -- //
+
+    color = linearToSRGB(color);
+    colorData = vec4(color, transparency);
 }
 
 /******************************************
 **************** Dithering ****************
 *******************************************/
 void main() {
-    #if QUANTIZATION_TYPE > 0
-        process(colortex0, opaqueColorData, false);
-        process(colortex4, transparentColorData, true);
-    #else
-        opaqueColorData = texture2D(colortex0, uv);
-        transparentColorData = texture2D(colortex4, uv);
-    #endif
+    process(colortex0, opaqueColorData, false);
+    process(colortex4, transparentColorData, true);
 }
