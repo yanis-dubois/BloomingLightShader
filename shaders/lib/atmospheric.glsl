@@ -189,8 +189,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition) {
     if (SunDotUp < 0.15) {
         float sacleFactor = 350;
         float threshold = 0.995;
-        eyeSpacePosition.y += 0.75; // offset to avoid pole streching
-        vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpacePosition);
+        eyeSpaceViewDirection.y += 0.75; // offset to avoid pole streching
+        vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpaceViewDirection);
         vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
 
         // add star

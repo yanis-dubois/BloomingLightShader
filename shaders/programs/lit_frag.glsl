@@ -187,7 +187,6 @@ void main() {
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
     float heldBlockLight = heldLightValue>=1 ? max(1 - (distanceFromEye / max(heldLightValue, 1)), 0) : 0;
     float blockLightIntensity = max( (lightMapCoordinate.x), heldBlockLight);
-    //blockLightIntensity = linearToSRGB(blockLightIntensity)
     float ambiantSkyLightIntensity = lightMapCoordinate.y;
 
     /* material data */

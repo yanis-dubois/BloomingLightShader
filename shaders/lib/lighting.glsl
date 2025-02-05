@@ -33,23 +33,19 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     // decrease volumetric light that is added on sky
     // which is even truer the further up you look
     float VdotU = dot(worldSpaceViewDirection, vec3(0,1,0));
-    float invVdotU = 1 - abs(VdotU);
-    attenuationFactor *= invVdotU * invVdotU * invVdotU;
-    //if (attenuationFactor < 0.01) return;
+    float invVdotU = 1 - max(VdotU, 0);
+    attenuationFactor *= invVdotU * invVdotU;
 
     // init loop
     vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
     float stepSize = clampedMaxDistance / stepsCount; // born max distance and divide by step count
-    vec2 seed = uv + (float(frameCounter) / 720719.0);
+    vec2 seed = uv;// + (float(frameCounter) / 720719.0);
     float randomizedStepSize = stepSize * pseudoRandom(seed);
     vec3 rayWorldSpacePosition = cameraPosition;
     float rayDistance = 0;
     rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     bool transparentHit = false;
-
-    // tweak for caves ??
-    float cameraSkyLight = float(eyeBrightnessSmooth.y) / 240.0;
 
     // loop
     for (int i=0; i<stepsCount; ++i) {
@@ -109,6 +105,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         // go a step further
         seed ++;
         randomizedStepSize = stepSize * pseudoRandom(seed);
+        randomizedStepSize = stepSize + 0.1 * pseudoRandom(seed);
         rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     }
 
@@ -172,6 +169,8 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
         float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
+        skyDirectLight *= 2.5;
+        ambient_occlusion = smoothstep(0.1, 0.9, ambient_occlusion);
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
     // reduce contribution if no ambiant sky light (avoid cave leak)
@@ -202,16 +201,15 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         ambientLight = getLightness(ambientLight) * waterColor * 1.5;
     }
 
-    // perfect diffuse
+    /* BRDF */
+    // diffuse
     vec3 light = skyDirectLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * occlusion * light;
-
-    /* specular */
-    // apply on specular materials (not reflective) & only in upper face
+    // specular (not reflective & only in upper face)
     if (0.1 < smoothness && smoothness < 0.5 && normal.y > 0.5) {
         float roughness = 1.0 - smoothness;
         vec3 BRDF = CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
-        BRDF *= 10;
+        BRDF *= 5;
         color += BRDF * skyDirectLight;
     }
 

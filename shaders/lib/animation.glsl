@@ -27,7 +27,7 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
 float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
     float amplitude = 0.33;
     float speed = time * 0.15;
-    vec3 seed = vec3(worldSpacePosition.xz, speed) + speed;
+    vec3 seed = vec3(worldSpacePosition.xz * 0.5, speed) + speed;
     
     return amplitude * snoise_3D(seed);
 }
