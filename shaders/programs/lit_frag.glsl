@@ -41,7 +41,7 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     // -- smoothness -- //
     // water
     if (id == 20000) {
-        smoothness = 0.9;
+        smoothness = 0.4; // 0.9
 
         ambient_occlusion = 1;
 
@@ -66,6 +66,7 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     }
     // specular
     else if (id == 20040) {
+        // grass block
         smoothness = 0.4;
         reflectance = getReflectance(n1, 1.3);
     }
@@ -96,6 +97,9 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
         // leaves
         if (hasNoAmbiantOcclusion(id)) {
             ambient_occlusion = 1;
+
+            smoothness = 0.45;
+            reflectance = getReflectance(n1, 1.5);
         }
         // flowers
         else if (isThin(id)) {

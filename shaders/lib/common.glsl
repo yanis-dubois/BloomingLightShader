@@ -72,7 +72,7 @@ const float endShadowDecrease = 150;
 #define SUBSURFACE_TYPE 1 // 0=off 1=on
 
 // light shaft
-#define VOLUMETRIC_LIGHT_TYPE 0 // 0=off 1=on
+#define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
 #define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 8
 #define VOLUMETRIC_LIGHT_MAX_SAMPLE 12

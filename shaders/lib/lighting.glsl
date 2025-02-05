@@ -137,8 +137,8 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     float occlusion = 1;
 
     // directions and angles 
-    vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float lightDirectionDotNormal = dot(lightDirectionWorldSpace, normal);
+    vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    float lightDirectionDotNormal = dot(worldSpacelightDirection, normal);
     vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
     vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
@@ -152,7 +152,6 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // get shadow
     vec4 shadow = vec4(0);
     if (distanceFromCamera < endShadowDecrease)
-        // shadow = getSoftShadow(offsetScreenSpacePosition.xy, offsetScreenSpacePosition.z);
         shadow = getSoftShadow(uv, offsetWorldSpacePosition);
     // fade into the distance
     float shadow_fade = 1 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0, 1);
@@ -175,15 +174,12 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
-    // reduce contribution if no ambiant sky light
+    // reduce contribution if no ambiant sky light (avoid cave leak)
     if (ambientSkyLightIntensity < 0.01) skyDirectLight *= 0;
     // reduce contribution as it rains
     skyDirectLight *= mix(1, 0.5, rainStrength);
     // reduce contribution during day-night transition
     skyDirectLight *= getDayNightBlend();
-    // reduce contribution as camera go deeper
-    float heightBlend = map(cameraPosition.y, 32, 60, 0, 1);
-    skyDirectLight *= heightBlend;
     // apply shadow
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a);
     // -- ambient sky light
@@ -210,9 +206,14 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     vec3 light = skyDirectLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * occlusion * light;
 
-    /* BRDF */
-    // float roughness = pow(1.0 - smoothness, 2.0);
-    // vec3 BRDF = albedo * (ambientSkyLight + blockLight) + skyDirectLight * brdf(LightDirectionWorldSpace, viewDirectionWorldSpace, normal, albedo, roughness, reflectance);
+    /* specular */
+    // apply on specular materials (not reflective) & only in upper face
+    if (0.1 < smoothness && smoothness < 0.5 && normal.y > 0.5) {
+        float roughness = 1.0 - smoothness;
+        vec3 BRDF = CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
+        BRDF *= 10;
+        color += BRDF * skyDirectLight;
+    }
 
     /* fog */
     if (!isParticle(type))

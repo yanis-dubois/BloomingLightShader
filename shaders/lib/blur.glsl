@@ -16,6 +16,7 @@ vec4 blur(vec2 uv, sampler2D texture, float range, float resolution, bool isGaus
             offset = vec2(x,0);
 
         vec2 coord = uv + texelToScreen(offset);
+        coord = clamp(coord, 0, 1);
 
         // box kernel
         float weight = 1;

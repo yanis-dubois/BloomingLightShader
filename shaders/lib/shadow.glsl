@@ -31,6 +31,7 @@ vec4 distortAndBiasShadowClipPosition(vec4 shadowClipPosition) {
 
 // say if a pixel is in shadow and apply a shadow color to it if needed
 vec4 getShadow(vec3 shadowScreenPosition) {
+    shadowScreenPosition.xy = clamp(shadowScreenPosition.xy, 0, 1);
     float isInShadow = step(shadowScreenPosition.z, shadow2D(shadowtex0, shadowScreenPosition.xy).r);
     float isntInColoredShadow = step(shadowScreenPosition.z, shadow2D(shadowtex1, shadowScreenPosition.xy).r);
     vec4 shadowColor = shadow2D(shadowcolor0, shadowScreenPosition.xy);

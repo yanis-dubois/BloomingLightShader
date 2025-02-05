@@ -143,7 +143,7 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
     float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0,0,-1));
 
     // fresnel index
-    float reflectionVisibility = schlick(reflectance, viewDirectionDotNormal);
+    float reflectionVisibility = schlick(viewDirectionDotNormal, reflectance);
     if (reflectionVisibility <= 0.001)
         return vec4(0);
     

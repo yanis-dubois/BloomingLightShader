@@ -1,54 +1,81 @@
-// constant
+// constants
 const float PI = 3.14159265359;
 const float e = 2.71828182846;
 
-/* functions */
-
 // -- brdf stuff -- //
-float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
-    vec3 H = normalize(lightDirection + viewDirection);
-    float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
-
-    // fresnel
-    float F0 = reflectance;
-    return F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0); // Schlick's approximation
-}
-float schlick(float F0, float cosTheta) {
-    return F0 + (1 - F0) * pow(1 - cosTheta, 5);
-}
 float getReflectance(float n1, float n2) {
     float R0 = (n1 - n2) / (n1 + n2);
     return R0 * R0;
 }
-vec3 brdf(vec3 lightDirection, vec3 viewDirection, vec3 normal, vec3 albedo, float roughness, float reflectance) {
-    
-    float alpha = pow(roughness, 2);
+float schlick(float cosTheta, float F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
     vec3 H = normalize(lightDirection + viewDirection);
-    
-    // dot products
-    float NdotV = clamp(dot(normal, viewDirection), 0.001, 1.0);
-    float NdotL = clamp(dot(normal, lightDirection), 0.001, 1.0);
-    float NdotH = clamp(dot(normal, H), 0.001, 1.0);
+    float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
 
-    float fresnelReflectance = fresnel(lightDirection, viewDirection, reflectance);
+    return schlick(VdotH, reflectance);
+}
+// GGX normal distribution function
+float GGXNDF(float NdotH, float roughness) {
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    float denom = (NdotH * NdotH * (alpha2 - 1.0) + 1.0);
+    return alpha2 / (PI * denom * denom);
+}
+// Smith GGX geometry function
+float Smith_G(float NdotV, float NdotL, float roughness) {
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+    float G_V = NdotV / (NdotV * (1.0 - k) + k);
+    float G_L = NdotL / (NdotL * (1.0 - k) + k);
+    return G_V * G_L;
+}
+// Cook Torrance BRDF
+vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float reflectance) {
+    vec3 H = normalize(V + L);
 
-    // geometric attenuation
-    float k = alpha/2;
-    float geometry = (NdotL / (NdotL * (1-k) + k)) * (NdotV / ((NdotV * (1-k) + k)));
+    float NdotV = max(dot(N, V), 0.001);
+    float NdotL = max(dot(N, L), 0.001);
+    float NdotH = max(dot(N, H), 0.001);
+    float VdotH = max(dot(V, H), 0.001);
 
-    // microfacets distribution
-    float lowerTerm = pow(NdotH,2) * (pow(alpha, 2) - 1.0) + 1.0;
-    float normalDistributionFunctionGGX = pow(alpha, 2) / (3.14159 * pow(lowerTerm,2));
+    float D = GGXNDF(NdotH, roughness);
+    float F = schlick(VdotH, reflectance);
+    float G = Smith_G(NdotV, NdotL, roughness);
 
-    // phong diffuse
-    vec3 rhoD = albedo;
-    rhoD *= (vec3(1.0) - fresnelReflectance); // energy conservation : light that doesn't reflect adds to diffuse
+    vec3 specular = mix(albedo, vec3(1), 0.125) * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
+    vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
 
-    vec3 phongDiffuse = rhoD;
-    float cookTorrance = (fresnelReflectance * normalDistributionFunctionGGX * geometry) / (4 * NdotL * NdotV);
-    vec3 BRDF = NdotL * (phongDiffuse + cookTorrance);
-       
-    return BRDF;
+    return specular;
+    return diffuse + specular;
+}
+// sample GGX visible normal
+vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
+
+    // transforming the view direction to the hemisphere configuration
+    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
+
+    // orthonormal basis (with special case if cross product is zero)
+    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+    vec3 T1 = lensq > 0 ? vec3(-Vh.y, Vh.x, 0) * inversesqrt(lensq) 
+                        : vec3(1,0,0);
+    vec3 T2 = cross(Vh, T1);
+
+    // parameterization of the projected area
+    float r = sqrt(U1);
+    float phi = 2.0 * PI * U2;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5 * (1.0 + Vh.z);
+    t2 = (1.0 - s)*sqrt(1.0 - t1*t1) + s*t2;
+
+    // reprojection onto hemisphere
+    vec3 Nh = t1*T1 + t2*T2 + sqrt(max(0.0, 1.0 - t1*t1 - t2*t2))*Vh;
+
+    // transforming the normal back to the ellipsoid configuration
+    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
+
+    return Ne;
 }
 
 // -- cartesian & polar coordinates conversions -- //
@@ -102,34 +129,6 @@ vec2 sampleDiskArea(vec2 seed) {
     float y = radius * sin(theta);
 
     return vec2(x,y);
-}
-// sample GGX visible normal (used to reduce noise on GGX sampling)
-vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
-
-    // transforming the view direction to the hemisphere configuration
-    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
-
-    // orthonormal basis (with special case if cross product is zero)
-    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
-    vec3 T1 = lensq > 0 ? vec3(-Vh.y, Vh.x, 0) * inversesqrt(lensq) 
-                        : vec3(1,0,0);
-    vec3 T2 = cross(Vh, T1);
-
-    // parameterization of the projected area
-    float r = sqrt(U1);
-    float phi = 2.0 * PI * U2;
-    float t1 = r * cos(phi);
-    float t2 = r * sin(phi);
-    float s = 0.5 * (1.0 + Vh.z);
-    t2 = (1.0 - s)*sqrt(1.0 - t1*t1) + s*t2;
-
-    // reprojection onto hemisphere
-    vec3 Nh = t1*T1 + t2*T2 + sqrt(max(0.0, 1.0 - t1*t1 - t2*t2))*Vh;
-
-    // transforming the normal back to the ellipsoid configuration
-    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
-
-    return Ne;
 }
 
 // -- interval stuff -- //
