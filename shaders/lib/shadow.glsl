@@ -179,12 +179,12 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
             float count = 0;
 
-            // stochastic shadows (faster but add noise)
+            // stochastic shadows (random sampling)
             #if SHADOW_TYPE == 1
                 for (float i=0; i<samples; ++i) {
 
                     // random offset by sampling disk area
-                    vec2 seed = uv + i + (frameTimeCounter / 60);
+                    vec2 seed = uv + i ;//+ frameTimeCounter;
                     vec2 offset = sampleDiskArea(seed);
 
                     // gaussian
@@ -202,15 +202,17 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                     count += weight;
                 }
 
-            // classic shadows (without noise but slower)
-            #elif SHADOW_TYPE == 2
-                // get noise
-                float noise = pseudoRandom(uv);
-                float theta = noise * 2*PI;
-                float cosTheta = cos(theta);
-                float sinTheta = sin(theta);
-                // rotation matrix
-                mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+            // classic shadows (convolution)
+            #elif SHADOW_TYPE > 1
+                #if SHADOW_TYPE == 2
+                    // get noise
+                    float noise = pseudoRandom(uv);
+                    float theta = noise * 2*PI;
+                    float cosTheta = cos(theta);
+                    float sinTheta = sin(theta);
+                    // rotation matrix
+                    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+                #endif
 
                 for (float x=-range; x<=range; x+=step_length) {
                     for (float y=-range; y<=range; y+=step_length) {
@@ -224,8 +226,10 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                             float weight = 1;
                         #endif
 
-                        // apply random rotation to offset
-                        offset = rotation * offset;
+                        #if SHADOW_TYPE == 2
+                            // apply random rotation to offset
+                            offset = rotation * offset;
+                        #endif
 
                         offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
                         vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset

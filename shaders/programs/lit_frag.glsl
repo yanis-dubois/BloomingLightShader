@@ -41,17 +41,13 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     // -- smoothness -- //
     // water
     if (id == 20000) {
-        smoothness = 0.4; // 0.9
-
-        ambient_occlusion = 1;
-
+        smoothness = 0.9;
         float n2 = isEyeInWater == 0 ? 1.33 : 1;
         reflectance = getReflectance(n1, n2);
     }
     // glass 
     else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
         smoothness = 0.95;
-        ambient_occlusion = 1;
         reflectance = getReflectance(n1, 1.5);
     }
     // metal
@@ -67,8 +63,10 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     // specular
     else if (id == 20040) {
         // grass block
-        smoothness = 0.4;
-        reflectance = getReflectance(n1, 1.3);
+        if (normal.y > 0.5) {
+            smoothness = 0.4;
+            reflectance = getReflectance(n1, 1.3);
+        }
     }
     // rough
     else if (id == 20050) {
@@ -94,12 +92,12 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
 
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
+        smoothness = 0.2; // 0.45
+        reflectance = getReflectance(n1, 1.1);
+
         // leaves
         if (hasNoAmbiantOcclusion(id)) {
             ambient_occlusion = 1;
-
-            smoothness = 0.45;
-            reflectance = getReflectance(n1, 1.5);
         }
         // flowers
         else if (isThin(id)) {
@@ -195,7 +193,7 @@ void main() {
     ambient_occlusion = map(1 - ambient_occlusion, 0.0, 1.0, 0.5, 1.0);
 
     // generate normalmap if animated
-    if (VERTEX_ANIMATION==2 && isAnimated(id) && smoothness>alphaTestRef) {
+    if (VERTEX_ANIMATION==2 && isAnimated(id) && smoothness>0.5) {
         mat3 TBN = generateTBN(normal);
         vec3 tangent = TBN[0] / 16.0;
         vec3 bitangent = TBN[1] / 16.0;

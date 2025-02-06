@@ -169,7 +169,6 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
         float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
         skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
-        skyDirectLight *= 2.5;
         ambient_occlusion = smoothstep(0.1, 0.9, ambient_occlusion);
         skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
     }
@@ -205,11 +204,20 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // diffuse
     vec3 light = skyDirectLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * occlusion * light;
-    // specular (not reflective & only in upper face)
-    if (0.1 < smoothness && smoothness < 0.5 && normal.y > 0.5) {
+    // specular (not reflective)
+    if (0.1 < smoothness && smoothness < 0.5) {
         float roughness = 1.0 - smoothness;
-        vec3 BRDF = CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
-        BRDF *= 5;
+        vec3 n = normal;
+
+        // specular subsurface
+        if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
+            n = vec3(0,1,0); // high intensity when light source is at grazing angle, low otherwise.
+            skyDirectLight *= shadow_fade; // atenuate on distance 
+        }
+
+        // calculate specular reflection
+        vec3 BRDF = CookTorranceBRDF(n, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
+        BRDF *= 25; // intensity correction
         color += BRDF * skyDirectLight;
     }
 

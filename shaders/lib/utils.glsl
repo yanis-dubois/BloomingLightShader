@@ -34,19 +34,28 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float reflectance) {
     vec3 H = normalize(V + L);
 
-    float NdotV = max(dot(N, V), 0.001);
-    float NdotL = max(dot(N, L), 0.001);
-    float NdotH = max(dot(N, H), 0.001);
-    float VdotH = max(dot(V, H), 0.001);
+    bool isSubsurface = true;
+
+    float NdotV = isSubsurface ? abs(dot(N, V)): dot(N, V);
+    float NdotL = isSubsurface ? abs(dot(N, L)) : dot(N, L);
+    float NdotH = isSubsurface ? abs(dot(N, H)): dot(N, H);
+    float VdotH = isSubsurface ? abs(dot(V, H)) : dot(V, H);
+
+    NdotV = max(NdotV, 0.001);
+    NdotL = max(NdotL, 0.001);
+    NdotH = max(NdotH, 0.001);
+    VdotH = max(VdotH, 0.001);
 
     float D = GGXNDF(NdotH, roughness);
     float F = schlick(VdotH, reflectance);
     float G = Smith_G(NdotV, NdotL, roughness);
 
     vec3 specular = mix(albedo, vec3(1), 0.125) * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
-    vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
 
     return specular;
+
+    // not used
+    vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
     return diffuse + specular;
 }
 // sample GGX visible normal
@@ -299,7 +308,7 @@ bool isAnimated(int id) {
     return 10000 <= id && (id <= 10050 || id == 20000 || id == 30010 || id == 30020);
 }
 bool isLiquid(int id) {
-    return id == 20000;
+    return id == 20000 || id == 10040;
 }
 bool isLeaves(int id) {
     return id == 10030;

@@ -46,7 +46,7 @@ const float sunPathRotation = 0;
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
 #define SHADOW_KERNEL 1 // 0=box 1=gaussian
 #define SHADOW_RANGE 1 // width of the sample area
 #define SHADOW_RESOLUTION 4 // half number of samples
@@ -95,7 +95,7 @@ const float endShadowDecrease = 150;
 
 // chromatic aberation
 #define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
-#define CHROMATIC_ABERATION_AMPLITUDE 0.1 // 0=off 0.1=too_much
+#define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.1=too_much
 
 ////////////////////////////////////////////////////
 ///////////////////// Uniforms /////////////////////

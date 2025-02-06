@@ -52,11 +52,13 @@ void process(sampler2D colorTexture,
 
     // -- chromatic aberation -- //
     #if CHROMATIC_ABERATION_TYPE > 0
-        float dist = distance(uv * 2 - 1, vec2(0));
-        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist * dist;
-        vec2 offsetR = vec2(0.1, 0.0) * amplitude;
-        vec2 offsetG = vec2(-0.05, -0.05) * amplitude;
-        vec2 offsetB = vec2(-0.05, 0.05) * amplitude;
+        vec2 direction = (uv * 2 - 1);
+        float dist = length(direction);
+        direction = normalize(direction);
+        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist;
+        vec2 offsetR = - direction * amplitude;
+        vec2 offsetG = vec2(0);
+        vec2 offsetB = direction * amplitude;
         float R = texture2D(colorTexture, UV + offsetR).r;
         float G = texture2D(colorTexture, UV + offsetG).g;
         float B = texture2D(colorTexture, UV + offsetB).b;
