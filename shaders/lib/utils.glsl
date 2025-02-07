@@ -2,6 +2,13 @@
 const float PI = 3.14159265359;
 const float e = 2.71828182846;
 
+// -- color stuff -- //
+vec3 saturate(vec3 color, float factor) {
+    const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+    vec3 intensity = vec3(dot(color, W));
+    return mix(intensity, color, factor);
+}
+
 // -- brdf stuff -- //
 float getReflectance(float n1, float n2) {
     float R0 = (n1 - n2) / (n1 + n2);
@@ -34,12 +41,10 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float reflectance) {
     vec3 H = normalize(V + L);
 
-    bool isSubsurface = true;
-
-    float NdotV = isSubsurface ? abs(dot(N, V)): dot(N, V);
-    float NdotL = isSubsurface ? abs(dot(N, L)) : dot(N, L);
-    float NdotH = isSubsurface ? abs(dot(N, H)): dot(N, H);
-    float VdotH = isSubsurface ? abs(dot(V, H)) : dot(V, H);
+    float NdotV = dot(N, V);
+    float NdotL = dot(N, L);
+    float NdotH = dot(N, H);
+    float VdotH = dot(V, H);
 
     NdotV = max(NdotV, 0.001);
     NdotL = max(NdotL, 0.001);
@@ -50,13 +55,25 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, floa
     float F = schlick(VdotH, reflectance);
     float G = Smith_G(NdotV, NdotL, roughness);
 
-    vec3 specular = mix(albedo, vec3(1), 0.125) * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
+    vec3 transmittedColor = saturate(albedo, 1.3);
+    transmittedColor = mix(transmittedColor, vec3(1.0), 0.075);
 
-    return specular;
+    return 25 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
 
     // not used
-    vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
-    return diffuse + specular;
+    // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
+    // return diffuse + specular;
+}
+// subsurface BRDF (not even close to reality)
+vec3 specularSubsurfaceBRDF(vec3 V, vec3 L, vec3 albedo) {
+    float VdotL = dot(V, - L);
+    VdotL = max(VdotL, 0.0);
+
+    vec3 transmittedColor = saturate(albedo, VdotL * 1.4);
+    transmittedColor = mix(transmittedColor, vec3(1.0), 0.05);
+
+    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 7.5;
+    return specular;
 }
 // sample GGX visible normal
 vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {

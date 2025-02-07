@@ -55,7 +55,7 @@ void process(sampler2D colorTexture,
         vec2 direction = (uv * 2 - 1);
         float dist = length(direction);
         direction = normalize(direction);
-        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist;
+        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist*dist;
         vec2 offsetR = - direction * amplitude;
         vec2 offsetG = vec2(0);
         vec2 offsetB = direction * amplitude;

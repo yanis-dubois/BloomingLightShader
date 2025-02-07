@@ -18,14 +18,13 @@ flat in int id;
 
 // results
 /* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 outColor0;
+layout(location = 0) out vec4 shadowColor0;
 
 void main() {
     /* texture value */
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     float transparency = textureColor.a;
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
-
     if (transparency < alphaTestRef) discard;
 
     if (SHADOW_WATER_ANIMATION == 1 && isLiquid(id)) {
@@ -34,5 +33,5 @@ void main() {
         transparency += noise;
     }
 
-    outColor0 = vec4(albedo, transparency);
+    shadowColor0 = vec4(albedo, transparency);
 }

@@ -33,14 +33,14 @@ vec4 distortAndBiasShadowClipPosition(vec4 shadowClipPosition) {
 vec4 getShadow(vec3 shadowScreenPosition) {
     shadowScreenPosition.xy = clamp(shadowScreenPosition.xy, 0, 1);
     float isInShadow = step(shadowScreenPosition.z, shadow2D(shadowtex0, shadowScreenPosition.xy).r);
-    float isntInColoredShadow = step(shadowScreenPosition.z, shadow2D(shadowtex1, shadowScreenPosition.xy).r);
-    vec4 shadowColor = shadow2D(shadowcolor0, shadowScreenPosition.xy);
 
     vec4 shadow = vec4(vec3(1), 0);
     if (isInShadow == 0) {
+        float isntInColoredShadow = step(shadowScreenPosition.z, shadow2D(shadowtex1, shadowScreenPosition.xy).r);
         if (isntInColoredShadow == 0) {
             shadow = vec4(vec3(0), 1);
         } else {
+            vec4 shadowColor = texture2D(shadowcolor0, shadowScreenPosition.xy);
             shadow = shadowColor;
         }
     }
@@ -57,98 +57,6 @@ vec4 getShadow(vec4 shadowClipPosition) {
 }
 
 // blur shadow by calling getShadow around actual pixel and average the results
-vec4 getSoftShadow(vec2 uv, float depth) {
-
-    // no shadows
-    #if SHADOW_TYPE == 0
-        return vec4(0);
-    #else
-
-        // space conversion
-        vec3 playerPosition = screenToPlayer(uv, depth);
-        vec4 shadowClipPosition = playerToShadowClip(playerPosition);
-
-        // hard shadowing
-        #if float(SHADOW_RANGE) <= 0 || float(SHADOW_RESOLUTION) <= 0
-            return getShadow(shadowClipPosition);
-
-        // soft shadowing
-        #else
-
-            // distant shadows are smoother
-            float distanceToPlayer = distance(vec3(0), playerPosition);
-            float blend = map(distanceToPlayer, 0, startShadowDecrease, 1, 20);
-
-            float range = SHADOW_RANGE; // how far away from the original position we take our samples from
-            range *= blend;
-            float samples = range * SHADOW_RESOLUTION;
-            float step_length = range / samples; // distance between each sample
-
-            vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
-            float count = 0;
-
-            // stochastic shadows (faster but add noise)
-            #if SHADOW_TYPE == 1
-                for (float i=0; i<samples; ++i) {
-
-                    // random offset by sampling disk area
-                    vec2 seed = uv + i + (frameTimeCounter / 60);
-                    vec2 offset = sampleDiskArea(seed);
-
-                    // gaussian
-                    #if SHADOW_KERNEL == 1
-                        float weight = gaussian(offset.x, offset.y, 0, 0.5);
-                    // box
-                    #else
-                        float weight = 1;
-                    #endif
-
-                    // divide by the resolution so offset is in terms of pixels
-                    offset = offset * range / shadowMapResolution;
-                    vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
-                    shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
-                    count += weight;
-                }
-
-            // classic shadows (without noise but slower)
-            #elif SHADOW_TYPE == 2
-                // get noise
-                float noise = pseudoRandom(uv);
-                float theta = noise * 2*PI;
-                float cosTheta = cos(theta);
-                float sinTheta = sin(theta);
-                // rotation matrix
-                mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
-
-                for (float x=-range; x<=range; x+=step_length) {
-                    for (float y=-range; y<=range; y+=step_length) {
-                        vec2 offset = vec2(x, y); 
-
-                        // gaussian
-                        #if SHADOW_KERNEL == 1
-                            float weight = gaussian(offset.x / range, offset.y / range, 0, 0.5);
-                        // box
-                        #else
-                            float weight = 1;
-                        #endif
-
-                        // apply random rotation to offset
-                        offset = rotation * offset;
-
-                        offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
-                        vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
-                        shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
-                        count += weight;
-                    }
-                }
-            #endif
-
-            return shadowAccum / count; // divide sum by count, getting average shadow
-        #endif
-    #endif
-}
-
-// blur shadow by calling getShadow around actual pixel and average the results
 vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
     // no shadows
@@ -161,7 +69,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         vec4 shadowClipPosition = playerToShadowClip(playerPosition);
 
         // hard shadowing
-        #if float(SHADOW_RANGE) <= 0.01 || float(SHADOW_RESOLUTION) <= 0.01
+        #if float(SHADOW_RANGE) <= 0.01 || SHADOW_SAMPLES < 1
             return getShadow(shadowClipPosition);
 
         // soft shadowing
@@ -172,9 +80,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             float blend = map(distanceToPlayer, 0, startShadowDecrease, 1, 20);
 
             float range = SHADOW_RANGE; // how far away from the original position we take our samples from
-            range *= blend;
-            float samples = range * SHADOW_RESOLUTION;
-            float step_length = range / samples; // distance between each sample
+            range *= blend; // increase range as the shadow is further away
+            float samples = SHADOW_SAMPLES;
+            float step_length = (2*range) / samples; // distance between each sample
 
             vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
             float count = 0;
@@ -197,7 +105,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
                     // divide by the resolution so offset is in terms of pixels
                     offset = offset * range / shadowMapResolution;
-                    vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
+                    vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
                     shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
                     count += weight;
                 }
@@ -232,14 +140,14 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                         #endif
 
                         offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
-                        vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0); // add offset
+                        vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
                         shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
                         count += weight;
                     }
                 }
             #endif
 
-            return shadowAccum / count; // divide sum by count, getting average shadow
+            return shadowAccum / count;
         #endif
     #endif
 }

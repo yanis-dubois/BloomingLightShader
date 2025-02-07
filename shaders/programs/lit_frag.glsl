@@ -90,10 +90,18 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
         }
     }
 
+    // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
+    if (id == 20012) {
+        smoothness = 0.25; // 0.45
+        reflectance = getReflectance(n1, 2.5);
+        ambient_occlusion = 0.9;
+    }
+    // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
+
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
-        smoothness = 0.2; // 0.45
-        reflectance = getReflectance(n1, 1.1);
+        smoothness = 0.25; // 0.45
+        reflectance = getReflectance(n1, 2.5);
 
         // leaves
         if (hasNoAmbiantOcclusion(id)) {
@@ -254,7 +262,8 @@ void main() {
     #ifdef TRANSPARENT
         transparentAlbedoData = vec4(albedo, transparency);
         transparentNormalData = vec4(encodedNormal, 1);
-        transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emissivness, 1);
+        // here, ambient_occlusion may cause some prblm
+        transparentLightData = vec4(blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
         transparentMaterialData = vec4(type, smoothness, reflectance, 1);
     #else
         opaqueAlbedoData = vec4(albedo, transparency);

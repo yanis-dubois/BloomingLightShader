@@ -4,6 +4,7 @@
 
 // format
 /*
+const int shadowtex1Format = R16F; // shadow blurred value
 const int colortex0Format = RGBA16F; // opaque color
 const int colortex1Format = RGBA16F; // opaque normal
 const int colortex2Format = RGBA8; // opaque light
@@ -46,10 +47,10 @@ const float sunPathRotation = 0;
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_KERNEL 1 // 0=box 1=gaussian
-#define SHADOW_RANGE 1 // width of the sample area
-#define SHADOW_RESOLUTION 4 // half number of samples
+#define SHADOW_TYPE 2 // 0=off 1=stochastic 2=classic+rotation 3=classic
+#define SHADOW_RANGE 1 // width of the sample area (in uv)
+#define SHADOW_SAMPLES 4 // half number of samples
+#define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 const bool shadowtex0Nearest = true;
 const bool shadowtex1Nearest = true;
@@ -80,11 +81,18 @@ const float endShadowDecrease = 150;
 
 // bloom
 #define BLOOM_TYPE 3 // 0=off 1=stochastic 2=classic 3=classic_optimized
+#define BLOOM_RANGE 0.01 // extent of the kernel
+#define BLOOM_SAMPLES 8 // number of samples (int)
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.5
-#define BLOOM_RANGE 12 // extent of the kernel
-#define BLOOM_RESOLTUION 1 // range * resolution = half number of samples 
 #define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
+
+// depth of field
+#define DOF_TYPE 3 // 0=off 1=on
+#define DOF_KERNEL 1 // 0=box 1=gaussian
+#define DOF_STD 0.5
+#define DOF_RANGE 12 // extent of the kernel
+#define DOF_RESOLTUION 1 // range * resolution = half number of samples 
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on
@@ -95,7 +103,7 @@ const float endShadowDecrease = 150;
 
 // chromatic aberation
 #define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
-#define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.1=too_much
+#define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.02=too_much
 
 ////////////////////////////////////////////////////
 ///////////////////// Uniforms /////////////////////

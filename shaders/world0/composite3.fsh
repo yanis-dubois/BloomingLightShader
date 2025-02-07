@@ -38,7 +38,7 @@ void process(sampler2D colorTexture, sampler2D bloomTexture,
 
     #if BLOOM_TYPE == 3
         // 2nd pass blur to bloom texture
-        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLTUION, BLOOM_KERNEL == 1, false);
+        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_SAMPLES, BLOOM_STD, BLOOM_KERNEL == 1, false);
     #endif
 
     /* bloom */

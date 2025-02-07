@@ -51,8 +51,11 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     #if DISTORTION_WATER_REFRACTION > 0
         if (!isTransparent && isEyeInWater!=1 && isWater(texture2D(colortex7, uv).x)) {
             float depth = texture2D(depthtex0, uv).r;
-            vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
-            UV = uv + doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
+            vec3 eyeSpacePosition = viewToEye(screenToView(uv, depth));
+            vec3 eyeSpaceDirection = normalize(eyeSpacePosition);
+            // attenuate as player is far from water
+            float amplitude = map(distance(eyeSpacePosition, vec3(0)), 16, 0, 0, 1);
+            UV = uv + amplitude * doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
         }
     #endif
 

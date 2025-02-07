@@ -35,7 +35,7 @@ void process(sampler2D bloomTexture,
         return;
     #else
         // 1st pass blur to bloom texture
-        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLTUION, BLOOM_KERNEL == 1, true);
+        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_SAMPLES, BLOOM_STD, BLOOM_KERNEL == 1, true);
         bloomData.rgb = linearToSRGB(bloomData.rgb);
     #endif
 }

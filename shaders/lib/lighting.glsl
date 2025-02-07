@@ -166,12 +166,15 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // -- direct sky light
     vec3 skyDirectLight = skyLightColor * skyDirectLightFactor;
     // subsurface scattering
-    if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
-        float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
-        skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
-        ambient_occlusion = smoothstep(0.1, 0.9, ambient_occlusion);
-        skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
-    }
+    #if SUBSURFACE_TYPE == 1
+        // subsurface diffuse part
+        if (ambient_occlusion > 0) {
+            float subsurface_fade = map(distanceFromCamera, endShadowDecrease*0.8, startShadowDecrease*0.8, 0.2, 1);
+            skyDirectLight = max(lightDirectionDotNormal, subsurface_fade) * skyLightColor;
+            ambient_occlusion = smoothstep(0.1, 0.9, ambient_occlusion);
+            skyDirectLight *= ambient_occlusion * (abs(lightDirectionDotNormal)*0.5 + 0.5);
+        }
+    #endif
     // reduce contribution if no ambiant sky light (avoid cave leak)
     if (ambientSkyLightIntensity < 0.01) skyDirectLight *= 0;
     // reduce contribution as it rains
@@ -182,7 +185,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a);
     // -- ambient sky light
     float ambientSkyLightFactor = isTransparent ? 0.6 : 0.3;
-    vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
+    vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity * (1 - skyDirectLight);
     // -- block light
     vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
     vec3 blockLight = faceTweak * blockLightColor;
@@ -201,24 +204,27 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     }
 
     /* BRDF */
-    // diffuse
+    // -- diffuse
     vec3 light = skyDirectLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * occlusion * light;
-    // specular (not reflective)
+    // -- specular
     if (0.1 < smoothness && smoothness < 0.5) {
         float roughness = 1.0 - smoothness;
-        vec3 n = normal;
+        float specularFade = map(distanceFromCamera, endShadowDecrease*0.6, startShadowDecrease*0.6, 0, 1);
+        vec3 specular = vec3(0.0);
 
-        // specular subsurface
-        if (SUBSURFACE_TYPE == 1 && ambient_occlusion > 0) {
-            n = vec3(0,1,0); // high intensity when light source is at grazing angle, low otherwise.
-            skyDirectLight *= shadow_fade; // atenuate on distance 
-        }
+        // subsurface transmission highlight
+        #if SUBSURFACE_TYPE == 1
+            if (ambient_occlusion > 0) {
+                specular = specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
+            }
+        #endif
 
-        // calculate specular reflection
-        vec3 BRDF = CookTorranceBRDF(n, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
-        BRDF *= 25; // intensity correction
-        color += BRDF * skyDirectLight;
+        // specular reflection
+        specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
+
+        // add specular contribution
+        color += specularFade * skyDirectLight * specular;
     }
 
     /* fog */
