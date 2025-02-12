@@ -30,16 +30,21 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
     float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.35);
+
+    ////////////////////////////////////////////////////////////////////////////
+    attenuationFactor = 1; /////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
+
     // decrease volumetric light that is added on sky
     // which is even truer the further up you look
     float VdotU = dot(worldSpaceViewDirection, vec3(0,1,0));
     float invVdotU = 1 - max(VdotU, 0);
-    attenuationFactor *= invVdotU * invVdotU;
+    //attenuationFactor *= invVdotU * invVdotU;
 
     // init loop
     vec3 opaqueAccumulatedLight = vec3(0), transparentAccumulatedLight = vec3(0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
-    float stepSize = clampedMaxDistance / stepsCount; // born max distance and divide by step count
+    float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
     vec2 seed = uv;// + (float(frameCounter) / 720719.0);
     float randomizedStepSize = stepSize * pseudoRandom(seed);
     vec3 rayWorldSpacePosition = cameraPosition;
@@ -114,6 +119,8 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         transparentAccumulatedLight = opaqueAccumulatedLight;
     }
 
+    //attenuationFactor =1;
+
     // apply attenuation
     opaqueAccumulatedLight *= attenuationFactor;
     transparentAccumulatedLight *= attenuationFactor;
@@ -125,6 +132,9 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     // write values
     opaqueColorData.rgb += opaqueAccumulatedLight / pow(far, 0.75);
     transparentColorData.rgb += transparentAccumulatedLight / pow(far, 0.75);
+
+    // opaqueColorData.rgb += opaqueAccumulatedLight * 0;
+    // transparentColorData.rgb += transparentAccumulatedLight * 0;
 }
 
 vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,

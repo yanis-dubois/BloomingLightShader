@@ -3,10 +3,15 @@ const float PI = 3.14159265359;
 const float e = 2.71828182846;
 
 // -- color stuff -- //
+vec3 getLuminance(vec3 color) {
+    return vec3(dot(color, vec3(0.2126, 0.7152, 0.0722)));
+}
+float getLightness(vec3 color) {
+    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
 vec3 saturate(vec3 color, float factor) {
-    const vec3 W = vec3(0.2125, 0.7154, 0.0721);
-    vec3 intensity = vec3(dot(color, W));
-    return mix(intensity, color, factor);
+    vec3 luminance = vec3(dot(color, vec3(0.2125, 0.7154, 0.0721)));
+    return mix(getLuminance(color), color, factor);
 }
 
 // -- brdf stuff -- //
@@ -55,7 +60,7 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, floa
     float F = schlick(VdotH, reflectance);
     float G = Smith_G(NdotV, NdotL, roughness);
 
-    vec3 transmittedColor = saturate(albedo, 1.3);
+    vec3 transmittedColor = saturate(albedo, 1.3); transmittedColor = albedo;
     transmittedColor = mix(transmittedColor, vec3(1.0), 0.075);
 
     return 25 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
@@ -188,8 +193,11 @@ float perspectiveMix(float a, float b, float factor) {
 float gaussian(float x, float y, float mu, float sigma) {
     return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2*sigma*sigma)));
 }
-float gaussian(float x, float mu, float sigma) {
-    return exp(- (((x-mu)*(x-mu)) / (2*sigma*sigma)));
+float gaussian(float x, float y, float sigma) {
+    return exp(- ((x*x + y*y) / (2*sigma*sigma)));
+}
+float gaussian(float x, float sigma) {
+    return exp(- ((x*x) / (2*sigma*sigma)));
 }
 
 // -- gamma correction -- //
@@ -206,16 +214,16 @@ vec4 SRGBtoLinear(vec4 x) {
     return pow(x, vec4(gamma));
 }
 float linearToSRGB(float x) {
-    return pow(x, 1./gamma);
+    return clamp(pow(x, 1.0/gamma), 0.0, 1.0);
 }
 vec2 linearToSRGB(vec2 x) {
-    return pow(x, vec2(1./gamma));
+    return clamp(pow(x, vec2(1.0/gamma)), 0.0, 1.0);
 }
 vec3 linearToSRGB(vec3 x) {
-    return pow(x, vec3(1./gamma));
+    return clamp(pow(x, vec3(1.0/gamma)), 0.0, 1.0);
 }
 vec4 linearToSRGB(vec4 x) {
-    return pow(x, vec4(1./gamma));
+    return clamp(pow(x, vec4(1.0/gamma)), 0.0, 1.0);
 }
 
 // -- very specific stuff -- //

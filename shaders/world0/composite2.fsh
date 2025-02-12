@@ -1,8 +1,6 @@
 #version 140
 #extension GL_ARB_explicit_attrib_location : enable
 
-#define BLOOM_FIRST_PASS
-
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"

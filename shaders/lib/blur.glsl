@@ -4,31 +4,30 @@ vec4 blur(vec2 uv, sampler2D texture, float range, float samples, float std, boo
     if (range <= 0.0 || samples < 1)
         return SRGBtoLinear(texture2D(texture, uv));
 
-    float ratio = viewWidth / viewHeight;
-
     // prepare loop
-    float step_length = range / samples;
-    vec4 color = vec4(0);
-    float count = 0;
+    float ratio = viewWidth / viewHeight;
+    float stepLength = range / samples;
+    vec4 color = vec4(0.0);
+    float totalWeight = 0.;
 
-    for (float x=-range; x<=range; x+=step_length) {
-        vec2 offset = vec2(0,x);
+    for (float x=-range; x<=range; x+=stepLength) {
+        vec2 offset = vec2(0.0, x);
         if (isFirstPass)
-            offset = vec2(x/ratio,0);
+            offset = vec2(x / ratio, 0.0);
 
         vec2 coord = uv + offset;
-        coord = clamp(coord, 0, 1);
+        coord = clamp(coord, 0.0, 1.0);
 
         // box kernel
-        float weight = 1;
+        float weight = 1.0;
         // gaussian kernel
         if (isGaussian) {
-            weight = gaussian(x / range, 0, std);
+            weight = gaussian(x / range, std);
         }
 
         color += weight * SRGBtoLinear(texture2D(texture, coord));
-        count += weight;
+        totalWeight += weight;
     }
 
-    return color / count;
+    return color / totalWeight;
 }

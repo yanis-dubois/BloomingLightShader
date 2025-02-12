@@ -4,7 +4,6 @@
 
 // format
 /*
-const int shadowtex1Format = R16F; // shadow blurred value
 const int colortex0Format = RGBA16F; // opaque color
 const int colortex1Format = RGBA16F; // opaque normal
 const int colortex2Format = RGBA8; // opaque light
@@ -27,9 +26,9 @@ const bool colortex7Clear = true;
 const bool colortex0MipmapEnabled = true;
 
 // resolution
-// const int noiseTextureResolution = 256;
 const int shadowMapResolution = 2048; // 1024 1536 2048
 const bool shadowHardwareFiltering = true;
+// const int noiseTextureResolution = 256;
 
 ////////////////////////////////////////////////////
 //////////////////// Parameters ////////////////////
@@ -80,19 +79,20 @@ const float endShadowDecrease = 150;
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 3 // 0=off 1=stochastic 2=classic 3=classic_optimized
+#define BLOOM_TYPE 0 // 0=off 1=stochastic 2=classic 3=classic_optimized
 #define BLOOM_RANGE 0.01 // extent of the kernel
-#define BLOOM_SAMPLES 8 // number of samples (int)
+#define BLOOM_SAMPLES 8 // half number of samples (int)
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
-#define BLOOM_STD 0.5
+#define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
 #define BLOOM_FACTOR 0.5 // from 0=none to 1=too_much
 
 // depth of field
-#define DOF_TYPE 3 // 0=off 1=on
-#define DOF_KERNEL 1 // 0=box 1=gaussian
-#define DOF_STD 0.5
-#define DOF_RANGE 12 // extent of the kernel
-#define DOF_RESOLTUION 1 // range * resolution = half number of samples 
+#define DOF_TYPE 1 // 0=off 1=on
+#define DOF_RANGE 0.01 // extent of the kernel
+#define DOF_SAMPLES 8 // half number of samples
+#define DOF_KERNEL 0 // 0=box 1=gaussian
+#define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
+#define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on

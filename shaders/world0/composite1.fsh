@@ -490,7 +490,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
 }
 
 /******************************************
-****** SSR & transparency-opaque mix ******
+******************* SSR *******************
 *******************************************/
 void main() {
     process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueLightData, false);

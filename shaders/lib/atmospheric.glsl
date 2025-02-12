@@ -13,10 +13,6 @@ const float mieCoefficient = 0.0005;
 const float mieAsymmetry = 0.76;
 
 // -------- LIGHT -------- //
-float getLightness(vec3 color) {
-    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-}
-
 // [0;1] new=0, full=1
 float getMoonPhase() {
     float moonPhaseBlend = moonPhase < 4 ? float(moonPhase) / 4.0 : (4.0 - (float(moonPhase)-4.0)) / 4.0; 
