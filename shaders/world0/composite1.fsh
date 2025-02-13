@@ -482,49 +482,54 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     }
 
     // -- prepare bloom texture -- //
-    if (isTransparent) {
-        bloomData = vec4(colorData.rgb * emissivness, transparency);
-    }
-    else {
-        float lightness = getLightness(colorData.rgb);
-        bloomData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
-    }
+    bloomData = vec4(vec3(0.0), 1.0);
+    #if BLOOM_TYPE == 1
+        if (isTransparent) {
+            bloomData = vec4(colorData.rgb * emissivness, transparency);
+        }
+        else {
+            float lightness = getLightness(colorData.rgb);
+            bloomData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
+        }
+    #endif
 
     // -- prepare depth of field -- //
-    // focal plane distance
-    float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
-    vec3 playerSpaceFocusPosition = screenToPlayer(vec2(0.5), focusDepth);
-    float focusDistance = length(playerSpaceFocusPosition);
-    focusDistance = min(focusDistance, far);
-    // actual distance
-    depth = texture2D(depthTexture, uv).r;
-    vec3 playerSpacePosition = screenToPlayer(uv, depth);
-    float linearDepth = length(playerSpacePosition);
-    // blur amount
-    float blurFactor = 0;
-    if (focusDepth == 1.0) {
-        blurFactor = depth < 1.0 ? 1.0 : 0.0;
-    }
-    else if (depth == 1.0) {
-        blurFactor = 1.0;
-    }
-    else {
-        float diff = abs(linearDepth - focusDistance);
-        blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
-        blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2*DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
-    }
-    // write buffer
     DOFData = vec4(vec3(0.0), 1.0);
-    if (blurFactor > 0.0) {
-        // near plane
-        if (linearDepth < focusDistance) {
-            DOFData.rgb = vec3(blurFactor, 0.0, 0.0);
+    #if DOF_TYPE == 1
+        // focal plane distance
+        float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
+        vec3 playerSpaceFocusPosition = screenToPlayer(vec2(0.5), focusDepth);
+        float focusDistance = length(playerSpaceFocusPosition);
+        focusDistance = min(focusDistance, far);
+        // actual distance
+        depth = texture2D(depthTexture, uv).r;
+        vec3 playerSpacePosition = screenToPlayer(uv, depth);
+        float linearDepth = length(playerSpacePosition);
+        // blur amount
+        float blurFactor = 0;
+        if (focusDepth == 1.0) {
+            blurFactor = depth < 1.0 ? 1.0 : 0.0;
         }
-        // far plane
-        else if (linearDepth > focusDistance) {
-            DOFData.rgb = vec3(0.0, blurFactor, 0.0);
+        else if (depth == 1.0) {
+            blurFactor = 1.0;
         }
-    }
+        else {
+            float diff = abs(linearDepth - focusDistance);
+            blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
+            blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2*DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
+        }
+        // write buffer
+        if (blurFactor > 0.0) {
+            // near plane
+            if (linearDepth < focusDistance) {
+                DOFData.rgb = vec3(blurFactor, 0.0, 0.0);
+            }
+            // far plane
+            else if (linearDepth > focusDistance) {
+                DOFData.rgb = vec3(0.0, blurFactor, 0.0);
+            }
+        }
+    #endif
 }
 
 /******************************************

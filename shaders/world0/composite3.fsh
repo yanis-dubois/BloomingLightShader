@@ -7,7 +7,6 @@
 #include "/lib/space_conversion.glsl"
 #include "/lib/blur.glsl"
 #include "/lib/depth_of_field.glsl"
-#include "/lib/bloom.glsl"
 
 // textures
 uniform sampler2D colortex0; // opaque color
@@ -42,16 +41,11 @@ void process(sampler2D colorTexture, sampler2D bloomTexture, sampler2D DOFTextur
     #endif
 
     // -- bloom -- //
-    #if BLOOM_TYPE > 0
+    #if BLOOM_TYPE == 1
         // 2nd pass blur for bloom texture
-        vec4 bloomData  = vec4(0);
-        #if BLOOM_TYPE == 3
-            bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
-        #endif
+        vec4 bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
         // apply bloom
-        bloomData = bloom(uv, bloomTexture, bloomData);
         color += clamp(bloomData.rgb * BLOOM_FACTOR, 0.0, 1.0);
-        // ...
         if (isTransparent && length(bloomData.rgb) > 0.001 && transparency < 0.1)
             opaqueColorData.rgb = linearToSRGB(SRGBtoLinear(opaqueColorData.rgb) + bloomData.rgb * BLOOM_FACTOR);
         else

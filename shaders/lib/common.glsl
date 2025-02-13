@@ -79,16 +79,16 @@ const float endShadowDecrease = 150;
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 3 // 0=off 1=stochastic 2=classic 3=classic_optimized
+#define BLOOM_TYPE 1 // 0=off 1=on
 #define BLOOM_RANGE 0.01 // extent of the kernel
 #define BLOOM_RESOLUTION 0.5 // half number of samples (int)
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
-#define BLOOM_FACTOR 1 // from 0=none to 1=too_much
+#define BLOOM_FACTOR 1.5 // from 0=none to 1=too_much
 
 // depth of field
 #define DOF_TYPE 1 // 0=off 1=on
-#define DOF_RANGE 0.01 // extent of the kernel
+#define DOF_RANGE 0.005 // extent of the kernel
 #define DOF_RESOLUTION 1 // in [0;1]
 #define DOF_KERNEL 0 // 0=box 1=gaussian
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)

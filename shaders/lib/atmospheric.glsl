@@ -170,16 +170,6 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition) {
     float horizonFactor = 1 - smoothstep(-0.25, 0.3, viewDotUp);
     skyColor = mix(skyColor, fogColor, horizonFactor);
 
-    // -- underground fog -- //
-    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12);
-    float heightBlend = map(cameraPosition.y, 32, 60, 0, 1);
-    skyColor = mix(undergroundFogColor, skyColor, heightBlend);
-
-    // -- noise to avoid color bending -- //
-    vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
-    float noise = 0.01 * pseudoRandom(polarWorldSpaceViewDirection.yz);
-    skyColor += noise;
-
     // -- stars -- //
     float SunDotUp = dot(normalize(mat3(gbufferModelViewInverse) * sunPosition), vec3(0,1,0));
     if (SunDotUp < 0.15) {
@@ -198,6 +188,16 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition) {
             skyColor = mix(skyColor, vec3(1), max(intensity, 0));
         }
     }
+
+    // -- underground fog -- //
+    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12);
+    float heightBlend = map(cameraPosition.y, 32, 60, 0, 1);
+    skyColor = mix(undergroundFogColor, skyColor, heightBlend);
+
+    // -- noise to avoid color bending -- //
+    vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
+    float noise = 0.01 * pseudoRandom(polarWorldSpaceViewDirection.yz);
+    skyColor += noise;
 
     return skyColor;
 }
@@ -238,8 +238,12 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
     density = mix(density, maxFogDensity, rainStrength);
 
     // reduce density as height increase
-    float height = map(worldSpaceHeight, 62, 102, 0, 1);
-    density *= exp(-height);
+    float surfaceHeightFactor = map(worldSpaceHeight, 62, 102, 0, 1);
+    density *= exp(-surfaceHeightFactor);
+
+    // higher density in caves
+    float caveHeightFactor = 1 - map(worldSpaceHeight, 32, 60, 0, 1);
+    density = mix(density, maximumFogDensity, caveHeightFactor);
 
     return density;
 }

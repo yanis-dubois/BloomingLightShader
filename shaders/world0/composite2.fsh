@@ -42,15 +42,10 @@ void process(sampler2D colorTexture, sampler2D bloomTexture, sampler2D DOFTextur
     #endif
 
     // -- bloom -- //
-    #if BLOOM_TYPE > 0
-        bloomData = texture2D(bloomTexture, uv);
-        #if BLOOM_TYPE < 3
-            return;
-        #else
-            // 1st pass blur to bloom texture
-            bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
-            bloomData.rgb = linearToSRGB(bloomData.rgb);
-        #endif
+    #if BLOOM_TYPE == 1
+        // 1st pass blur for bloom texture
+        bloomData = blur(uv, bloomTexture, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
+        bloomData.rgb = linearToSRGB(bloomData.rgb);
     #endif
 }
 
