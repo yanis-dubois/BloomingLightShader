@@ -44,7 +44,5 @@ void main() {
     #else
         process(colortex0, colortex1, opaqueColorData, opaqueDOFData);
         process(colortex4, colortex5, transparentColorData, transparentDOFData);
-        // opaqueColorData = texture2D(colortex1, uv);
-        // transparentColorData = texture2D(colortex5, uv);
     #endif
 }

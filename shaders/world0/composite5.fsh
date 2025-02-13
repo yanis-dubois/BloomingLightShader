@@ -43,9 +43,5 @@ void main() {
     #else
         process(colortex0, colortex1, opaqueColorData);
         process(colortex4, colortex5, transparentColorData);
-        // opaqueColorData = texture2D(colortex0, uv);
-        // transparentColorData = texture2D(colortex4, uv);
-        // opaqueColorData = texture2D(colortex1, uv);
-        // transparentColorData = texture2D(colortex5, uv);
     #endif
 }

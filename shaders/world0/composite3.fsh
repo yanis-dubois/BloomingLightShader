@@ -77,11 +77,11 @@ void process(sampler2D colorTexture, sampler2D bloomTexture, sampler2D depthText
     if (blurFactor > 0.0) {
         // near plane
         if (linearDepth < focusDistance) {
-            DOFData.rgb = vec3(1.0, 0.0, blurFactor);
+            DOFData.rgb = vec3(blurFactor, 0.0, 0.0);
         }
         // far plane
         else if (linearDepth > focusDistance) {
-            DOFData.rgb = vec3(0.0, 1.0, blurFactor);
+            DOFData.rgb = vec3(0.0, blurFactor, 0.0);
         }
     }
 }

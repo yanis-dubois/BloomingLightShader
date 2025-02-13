@@ -4,10 +4,9 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float r
     vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
     // retrieve depth of field data
     DOFdata = texture2D(DOFTexture, uv);
-    bool isNearPlane = DOFdata.r > 0.1 ? true : false;
-    bool isFarPlane = !isNearPlane && DOFdata.g > 0.1 ? true : false;
+    bool isNearPlane = DOFdata.r > 0.0 ? true : false;
+    bool isFarPlane = DOFdata.g > 0.0 ? true : false;
     bool isInFocus = !isNearPlane && !isFarPlane;
-    float blurFactor = DOFdata.b;
 
     // prepare loop
     float ratio = viewWidth / viewHeight;
@@ -34,27 +33,21 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float r
 
         // sample
         vec4 sampleDOFdata = texture2D(DOFTexture, coord);
-        bool sampleIsNearPlane = sampleDOFdata.r > 0.1 ? true : false;
-        bool sampleIsFarPlane = !sampleIsNearPlane && sampleDOFdata.g > 0.1 ? true : false;
+        bool sampleIsNearPlane = sampleDOFdata.r > 0.0 ? true : false;
+        bool sampleIsFarPlane = sampleDOFdata.g > 0.0 ? true : false;
         bool sampleIsInFocus = !sampleIsNearPlane && !sampleIsFarPlane;
         float sampleBlurFactor = sampleDOFdata.b;
 
         // far plane mix only with far & near planes
         if (isFarPlane && (sampleIsFarPlane || sampleIsNearPlane)) {
-            weight *= sampleBlurFactor;
             farDOF += weight * SRGBtoLinear(texture2D(colorTexture, coord).rgb);
             farTotalWeight += weight;
         }
         // update blur factor
-        if ((isInFocus && sampleIsNearPlane)) {
-            blurFactor = max(blurFactor, sampleBlurFactor);
-        }
-        // ...
         if (sampleIsNearPlane) {
+            DOFdata.r = max(DOFdata.r, sampleBlurFactor);
             if (sampleDOFdata.r > DOFdata.r) {
                 DOFdata.r = sampleDOFdata.r;
-                DOFdata.g = 0.0;
-                DOFdata.b = sampleBlurFactor;
             }
         }
 
@@ -68,13 +61,9 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float r
     if (farTotalWeight > 0.0) farDOF /= farTotalWeight;
 
     // choose values depending on planes
-    vec3 DOF = vec3(0.0);
-    if (isFarPlane) {
-        DOF = mix(color, farDOF, blurFactor);
-    }
-    else {
-        DOF = mix(color, nearDOF, blurFactor);
-    }
+    vec3 DOF = color;
+    DOF = mix(DOF, farDOF, DOFdata.g);
+    DOF = mix(DOF, nearDOF, DOFdata.r);
 
     return DOF;
 }
