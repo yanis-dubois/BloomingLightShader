@@ -13,6 +13,14 @@ vec3 saturate(vec3 color, float factor) {
     vec3 luminance = vec3(dot(color, vec3(0.2125, 0.7154, 0.0721)));
     return mix(getLuminance(color), color, factor);
 }
+// from [0;inf] to [0;1]
+vec3 toneMap(vec3 color) {
+    return color / (1 + getLightness(color));
+}
+// from [0;1] to [0;inf]
+vec3 inverseToneMap(vec3 color) {
+    return color / max(1 - getLightness(color), 0.001);
+}
 
 // -- brdf stuff -- //
 float getReflectance(float n1, float n2) {

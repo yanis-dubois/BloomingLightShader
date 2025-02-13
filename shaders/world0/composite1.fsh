@@ -373,14 +373,16 @@ vec4 SSR(sampler2D colorTexture_opaque, sampler2D colorTexture_transparent,
 }
 
 // results
-/* RENDERTARGETS: 0,2,4,6 */
+/* RENDERTARGETS: 0,1,2,4,5,6 */
 layout(location = 0) out vec4 opaqueColorData;
-layout(location = 1) out vec4 opaqueLightData;
-layout(location = 2) out vec4 transparentColorData;
-layout(location = 3) out vec4 transparentLightData;
+layout(location = 1) out vec4 opaqueBloomData;
+layout(location = 2) out vec4 opaqueDOFData;
+layout(location = 3) out vec4 transparentColorData;
+layout(location = 4) out vec4 transparentBloomData;
+layout(location = 5) out vec4 transparentDOFData;
 
 void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
-            out vec4 colorData, out vec4 lightData, bool isTransparent) {
+            out vec4 colorData, out vec4 bloomData, out vec4 DOFData, bool isTransparent) {
 
     // -- get input buffer values & init output buffers -- //
     // albedo
@@ -392,7 +394,7 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
     vec3 normal = vec3(0);
     getNormalData(normalData, normal);
     // light
-    lightData = texture2D(lightTexture, uv);
+    vec4 lightData = texture2D(lightTexture, uv);
     float blockLightIntensity = 0, ambiantSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
     getLightData(lightData, blockLightIntensity, ambiantSkyLightIntensity, emissivness, ambient_occlusion);
     // material
@@ -479,20 +481,56 @@ void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTe
         colorData.rgb = linearToSRGB(colorData.rgb);
     }
 
-    // prepare bloom texture 
+    // -- prepare bloom texture -- //
     if (isTransparent) {
-        lightData = vec4(colorData.rgb * emissivness, transparency);
+        bloomData = vec4(colorData.rgb * emissivness, transparency);
     }
     else {
         float lightness = getLightness(colorData.rgb);
-        lightData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
+        bloomData = vec4(colorData.rgb * max(pow(lightness, 5) * 0.5, emissivness), transparency);
+    }
+
+    // -- prepare depth of field -- //
+    // focal plane distance
+    float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
+    vec3 playerSpaceFocusPosition = screenToPlayer(vec2(0.5), focusDepth);
+    float focusDistance = length(playerSpaceFocusPosition);
+    focusDistance = min(focusDistance, far);
+    // actual distance
+    depth = texture2D(depthTexture, uv).r;
+    vec3 playerSpacePosition = screenToPlayer(uv, depth);
+    float linearDepth = length(playerSpacePosition);
+    // blur amount
+    float blurFactor = 0;
+    if (focusDepth == 1.0) {
+        blurFactor = depth < 1.0 ? 1.0 : 0.0;
+    }
+    else if (depth == 1.0) {
+        blurFactor = 1.0;
+    }
+    else {
+        float diff = abs(linearDepth - focusDistance);
+        blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
+        blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2*DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
+    }
+    // write buffer
+    DOFData = vec4(vec3(0.0), 1.0);
+    if (blurFactor > 0.0) {
+        // near plane
+        if (linearDepth < focusDistance) {
+            DOFData.rgb = vec3(blurFactor, 0.0, 0.0);
+        }
+        // far plane
+        else if (linearDepth > focusDistance) {
+            DOFData.rgb = vec3(0.0, blurFactor, 0.0);
+        }
     }
 }
 
 /******************************************
 ******************* SSR *******************
-*******************************************/
+******************************************/
 void main() {
-    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueLightData, false);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentLightData, true);
+    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueBloomData, opaqueDOFData, false);
+    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentBloomData, transparentDOFData, true);
 }

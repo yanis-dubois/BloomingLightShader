@@ -1,14 +1,15 @@
-vec4 blur(vec2 uv, sampler2D texture, float range, float samples, float std, bool isGaussian, bool isFirstPass) {
+vec4 blur(vec2 uv, sampler2D texture, float range, float resolution, float std, bool isGaussian, bool isFirstPass) {
 
     // no blur
-    if (range <= 0.0 || samples < 1)
+    if (range <= 0.0 || resolution <= 0.0)
         return SRGBtoLinear(texture2D(texture, uv));
 
     // prepare loop
     float ratio = viewWidth / viewHeight;
-    float stepLength = range / samples;
+    float samples = isFirstPass ? viewWidth * range / ratio : viewHeight * range;
+    float stepLength = range / (resolution * samples);
     vec4 color = vec4(0.0);
-    float totalWeight = 0.;
+    float totalWeight = 0.0;
 
     for (float x=-range; x<=range; x+=stepLength) {
         vec2 offset = vec2(0.0, x);
