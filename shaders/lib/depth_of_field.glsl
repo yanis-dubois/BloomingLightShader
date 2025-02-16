@@ -1,25 +1,29 @@
-vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float range, float resolution, float std, bool isGaussian, bool isFirstPass, out vec4 DOFdata) {
+vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass, out vec4 DOFdata) {
 
     // color data
     vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
     color = inverseToneMap(color);
     // retrieve depth of field data
     DOFdata = texture2D(DOFTexture, uv);
-    bool isNearPlane = DOFdata.r > 0.1 ? true : false;
-    bool isFarPlane = DOFdata.g > 0.1 ? true : false;
+    float threshold = 0.2;
+    bool isNearPlane = DOFdata.r > threshold ? true : false;
+    bool isFarPlane = DOFdata.g > threshold ? true : false;
     bool isInFocus = !isNearPlane && !isFarPlane;
 
     // prepare loop
     float ratio = viewWidth / viewHeight;
-    float samples = isFirstPass ? viewWidth * range / ratio : viewHeight * range;
-    float stepLength = range / (resolution * samples);
+    float range  = isFirstPass ? normalizedRange / ratio : normalizedRange;
+    float pixels  = isFirstPass ? viewWidth * range : viewHeight * range;
+    float samples = pixels * resolution;
+    float stepLength = range / samples;
+    // init sums
     vec3 nearDOF = vec3(0.0), farDOF = vec3(0.0);
     float nearTotalWeight = 0.0;
     float farTotalWeight = 0.0;
 
     // loop
     for (float x=-range; x<=range; x+=stepLength) {
-        vec2 offset = isFirstPass ? vec2(x / ratio, 0.0) : vec2(0.0, x);
+        vec2 offset = isFirstPass ? vec2(x, 0.0) : vec2(0.0, x);
         vec2 coord = uv + offset;
         coord = clamp(coord, 0.0, 1.0);
 
@@ -32,8 +36,8 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float r
 
         // sample
         vec4 sampleDOFdata = texture2D(DOFTexture, coord);
-        bool sampleIsNearPlane = sampleDOFdata.r > 0.1 ? true : false;
-        bool sampleIsFarPlane = sampleDOFdata.g > 0.1 ? true : false;
+        bool sampleIsNearPlane = sampleDOFdata.r > threshold ? true : false;
+        bool sampleIsFarPlane = sampleDOFdata.g > threshold ? true : false;
         bool sampleIsInFocus = !sampleIsNearPlane && !sampleIsFarPlane;
 
         vec3 col = SRGBtoLinear(texture2D(colorTexture, coord).rgb);
@@ -64,8 +68,8 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float r
 
     // choose values depending on planes
     vec3 DOF = color;
-    DOF = mix(DOF, farDOF, DOFdata.g);
-    DOF = mix(DOF, nearDOF, DOFdata.r);
+    DOF = mix(DOF, farDOF, smoothstep(threshold+0.0001, 1.0, DOFdata.g));
+    DOF = mix(DOF, nearDOF, smoothstep(threshold+0.0001, 1.0, DOFdata.r));
 
     DOF = clamp(toneMap(DOF), 0.0, 1.0);
 
