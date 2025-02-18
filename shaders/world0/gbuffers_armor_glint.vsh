@@ -2,4 +2,4 @@
 
 #define GLINT
 
-#include "/programs/basic_vert.glsl"
+#include "/programs/gbuffers/basic_vert.glsl"

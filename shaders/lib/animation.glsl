@@ -12,10 +12,10 @@ float getNoise(vec3 seed, float amplitude) {
 vec2 doWaterRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
     float amplitude = 0.005;
     float speed = time * 0.15;
-    vec3 seed = vec3(eyeSpaceDirection * 3) + speed;
+    vec3 seed = vec3(eyeSpaceDirection * 3.0) + speed;
 
     uv.x = amplitude * snoise_3D(seed);
-    uv.y = amplitude * snoise_3D(seed + 1);
+    uv.y = amplitude * snoise_3D(seed + 1.0);
     return uv;
 }
 
@@ -27,7 +27,7 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     else if (animatedLight_isLow(id)) amplitude = 0.2;
     
     float speed = time * 0.25;
-    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.125, 0) + speed;
+    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.125, 0.0) + speed;
     float noise = snoise_4D(seed);
 
     return amplitude * noise;
@@ -45,7 +45,7 @@ float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
 vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     float amplitude = 1.0/32.0;
     float speed = time * 0.25;
-    vec3 seed = vec3(worldSpacePosition.xz/20.0, 0) + speed;
+    vec3 seed = vec3(worldSpacePosition.xz/20.0, 0.0) + speed;
     
     worldSpacePosition.y += amplitude * snoise_3D(seed);
     return worldSpacePosition;
@@ -57,8 +57,8 @@ vec3 doLeafAnimation(float time, vec3 worldSpacePosition) {
     vec3 seed = vec3(worldSpacePosition.xz/20.0, worldSpacePosition.y/50.0) + speed;
 
     worldSpacePosition.x += getNoise(seed, amplitude);
-    worldSpacePosition.y += getNoise(seed+1, amplitude);
-    worldSpacePosition.z += getNoise(seed+2, amplitude);
+    worldSpacePosition.y += getNoise(seed+1.0, amplitude);
+    worldSpacePosition.z += getNoise(seed+2.0, amplitude);
     return worldSpacePosition;
 }
 
@@ -75,7 +75,7 @@ vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id
     }
     
     worldSpacePosition.x += getNoise(seed, amplitude);
-    worldSpacePosition.z += getNoise(seed+2, amplitude);
+    worldSpacePosition.z += getNoise(seed+2.0, amplitude);
     return worldSpacePosition;
 }
 

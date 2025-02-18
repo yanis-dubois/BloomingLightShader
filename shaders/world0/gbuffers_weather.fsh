@@ -4,4 +4,4 @@
 // #define PARTICLE
 #define WEATHER
 
-#include "/programs/lit_frag.glsl"
+#include "/programs/gbuffers/lit_frag.glsl"

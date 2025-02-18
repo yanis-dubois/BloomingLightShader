@@ -2,4 +2,4 @@
 
 #define BEACON_BEAM
 
-#include "/programs/basic_frag.glsl"
+#include "/programs/gbuffers/basic_frag.glsl"

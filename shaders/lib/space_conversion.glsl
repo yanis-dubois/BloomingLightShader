@@ -7,8 +7,8 @@ vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
 
 mat3 generateTBN(vec3 normal) {
     // tangent 
-    vec3 t1 = cross(normal, vec3(0,0,1));
-    vec3 t2 = cross(normal, vec3(0,1,0));
+    vec3 t1 = cross(normal, southDirection);
+    vec3 t2 = cross(normal, upDirection);
     vec3 tangent = length(t1)>length(t2) ? t1 : t2;
     tangent = normalize(tangent);
     // bitangent
@@ -85,7 +85,7 @@ vec3 NDCToView(vec3 NDCPosition) {
 vec3 viewToNDC(vec3 viewPosition) {
     bool behind = viewPosition.z > 0;
     vec3 NDCPosition = projectAndDivide(gbufferProjection, viewPosition);
-    if (behind) NDCPosition.z = - (NDCPosition.z + 1) - 1;
+    if (behind) NDCPosition.z = - (NDCPosition.z + 1.0) - 1.0;
     return NDCPosition;
 }
 
@@ -106,7 +106,7 @@ vec3 worldToScreen(vec3 worldSpacePosition) {
 }
 
 vec3 screenToTexel(vec3 screenPosition) {
-    return screenPosition * vec3(viewWidth, viewHeight, 1);
+    return screenPosition * vec3(viewWidth, viewHeight, 1.0);
 }
 
 vec2 screenToTexel(vec2 screenPosition) {
@@ -114,7 +114,7 @@ vec2 screenToTexel(vec2 screenPosition) {
 }
 
 vec3 texelToScreen(vec3 texelPosition) {
-    return texelPosition / vec3(viewWidth, viewHeight, 1);
+    return texelPosition / vec3(viewWidth, viewHeight, 1.0);
 }
 
 vec2 texelToScreen(vec2 texelPosition) {
@@ -170,7 +170,7 @@ vec3 shadowClipToShadowScreen(vec4 shadowClipPosition) {
 }
 
 vec3 shadowScreenToWorld(vec3 shadowScreenPosition) {
-    vec3 shadowNDCPosition = shadowScreenPosition * 2 - 1;
+    vec3 shadowNDCPosition = shadowScreenPosition * 2.0 - 1.0;
     vec3 shadowViewPosition = projectAndDivide(shadowProjectionInverse, shadowScreenPosition);
     return playerToWorld(shadowViewToPlayer(shadowViewPosition));
 }

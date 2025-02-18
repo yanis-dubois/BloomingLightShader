@@ -5,6 +5,7 @@
 #include "/lib/space_conversion.glsl"
 #include "/lib/atmospheric.glsl"
 #include "/lib/animation.glsl"
+#include "/lib/BRDF.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
@@ -61,11 +62,17 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
         reflectance = getReflectance(n1, 1.4);
     }
     // specular
-    else if (id == 20040) {
+    else if (id == 20040 || id == 20041) {
         // grass block
         if (normal.y > 0.5) {
-            smoothness = 0.4;
-            reflectance = getReflectance(n1, 1.3);
+            if (id == 20040) {
+                smoothness = 0.4;
+                reflectance = getReflectance(n1, 1.3);
+            }
+            else if (id == 20041) {
+                smoothness = 0.2;
+                reflectance = getReflectance(n1, 1.3);
+            }
         }
     }
     // rough
@@ -187,7 +194,7 @@ void main() {
     #ifdef PARTICLE 
         encodedNormal = encodeNormal(-normalize(playerLookVector));
     #endif
-    
+
     /* light */
     float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);

@@ -1,5 +1,9 @@
 vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass, out vec4 DOFdata) {
 
+    // no blur
+    if (normalizedRange <= 0.0 || resolution <= 0.0)
+        return SRGBtoLinear(texture2D(colorTexture, uv).rgb);
+
     // color data
     vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
     color = inverseToneMap(color);
@@ -11,11 +15,8 @@ vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float n
     bool isInFocus = !isNearPlane && !isFarPlane;
 
     // prepare loop
-    float ratio = viewWidth / viewHeight;
-    float range  = isFirstPass ? normalizedRange / ratio : normalizedRange;
-    float pixels  = isFirstPass ? viewWidth * range : viewHeight * range;
-    float samples = pixels * resolution;
-    float stepLength = range / samples;
+    float range = 0.0, stepLength = 0.0;
+    prepareBlurLoop(normalizedRange, resolution, isFirstPass, range, stepLength);
     // init sums
     vec3 nearDOF = vec3(0.0), farDOF = vec3(0.0);
     float nearTotalWeight = 0.0;

@@ -1,5 +1,3 @@
-#version 140
-
 out vec2 uv;
 
 void main() {

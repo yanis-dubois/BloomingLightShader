@@ -2,4 +2,4 @@
 
 #define BEACON_BEAM
 
-#include "/programs/basic_vert.glsl"
+#include "/programs/gbuffers/basic_vert.glsl"

@@ -3,4 +3,4 @@
 #define TRANSPARENT
 #define PARTICLE
 
-#include "/programs/lit_frag.glsl"
+#include "/programs/gbuffers/lit_frag.glsl"

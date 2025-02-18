@@ -1,6 +1,46 @@
-// constants
-const float PI = 3.14159265359;
-const float e = 2.71828182846;
+// -- -- //
+vec4 addMatrixRows(mat4 matrix, int row1, int row2) {
+    return vec4(
+        matrix[0][row1] + matrix[0][row2],
+        matrix[1][row1] + matrix[1][row2],
+        matrix[2][row1] + matrix[2][row2],
+        matrix[3][row1] + matrix[3][row2]
+    );
+}
+vec4 subtractMatrixRows(mat4 matrix, int row1, int row2) {
+    return vec4(
+        matrix[0][row1] - matrix[0][row2],
+        matrix[1][row1] - matrix[1][row2],
+        matrix[2][row1] - matrix[2][row2],
+        matrix[3][row1] - matrix[3][row2]
+    );
+}
+
+// -- gamma correction -- //
+float SRGBtoLinear(float x) {
+    return pow(x, gamma);
+}
+vec2 SRGBtoLinear(vec2 x) {
+    return pow(x, vec2(gamma));
+}
+vec3 SRGBtoLinear(vec3 x) {
+    return pow(x, vec3(gamma));
+}
+vec4 SRGBtoLinear(vec4 x) {
+    return pow(x, vec4(gamma));
+}
+float linearToSRGB(float x) {
+    return clamp(pow(x, 1.0/gamma), 0.0, 1.0);
+}
+vec2 linearToSRGB(vec2 x) {
+    return clamp(pow(x, vec2(1.0/gamma)), 0.0, 1.0);
+}
+vec3 linearToSRGB(vec3 x) {
+    return clamp(pow(x, vec3(1.0/gamma)), 0.0, 1.0);
+}
+vec4 linearToSRGB(vec4 x) {
+    return clamp(pow(x, vec4(1.0/gamma)), 0.0, 1.0);
+}
 
 // -- color stuff -- //
 vec3 getLuminance(vec3 color) {
@@ -10,111 +50,38 @@ float getLightness(vec3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }
 vec3 saturate(vec3 color, float factor) {
-    vec3 luminance = vec3(dot(color, vec3(0.2125, 0.7154, 0.0721)));
     return mix(getLuminance(color), color, factor);
 }
 // from [0;inf] to [0;1]
 vec3 toneMap(vec3 color) {
-    return color / (1 + getLightness(color));
+    return color / (1.0 + getLightness(color));
 }
 // from [0;1] to [0;inf]
 vec3 inverseToneMap(vec3 color) {
-    return color / max(1 - getLightness(color), 0.001);
+    return color / max(1.0 - getLightness(color), 0.001);
 }
 
-// -- brdf stuff -- //
-float getReflectance(float n1, float n2) {
-    float R0 = (n1 - n2) / (n1 + n2);
-    return R0 * R0;
+// -- random generator -- //
+float pseudoRandom(vec2 pos) {
+    return fract(sin(dot(pos, vec2(12.9898, 78.233))) * 43758.5453);
 }
-float schlick(float cosTheta, float F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+float pseudoRandom(vec3 pos){
+    return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
-float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
-    vec3 H = normalize(lightDirection + viewDirection);
-    float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
+vec2 sampleDiskArea(vec2 seed) {
+    // pseudo uniform 
+    float zeta1 = pseudoRandom(seed);
+    float zeta2 = pseudoRandom(seed + 0.5);
 
-    return schlick(VdotH, reflectance);
-}
-// GGX normal distribution function
-float GGXNDF(float NdotH, float roughness) {
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-    float denom = (NdotH * NdotH * (alpha2 - 1.0) + 1.0);
-    return alpha2 / (PI * denom * denom);
-}
-// Smith GGX geometry function
-float Smith_G(float NdotV, float NdotL, float roughness) {
-    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
-    float G_V = NdotV / (NdotV * (1.0 - k) + k);
-    float G_L = NdotL / (NdotL * (1.0 - k) + k);
-    return G_V * G_L;
-}
-// Cook Torrance BRDF
-vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float reflectance) {
-    vec3 H = normalize(V + L);
+    // uniform to polar
+    float theta = zeta1 * 2.0*PI;
+    float radius = sqrt(zeta2);
 
-    float NdotV = dot(N, V);
-    float NdotL = dot(N, L);
-    float NdotH = dot(N, H);
-    float VdotH = dot(V, H);
+    // polar to cartesian
+    float x = radius * cos(theta);
+    float y = radius * sin(theta);
 
-    NdotV = max(NdotV, 0.001);
-    NdotL = max(NdotL, 0.001);
-    NdotH = max(NdotH, 0.001);
-    VdotH = max(VdotH, 0.001);
-
-    float D = GGXNDF(NdotH, roughness);
-    float F = schlick(VdotH, reflectance);
-    float G = Smith_G(NdotV, NdotL, roughness);
-
-    vec3 transmittedColor = saturate(albedo, 1.3); transmittedColor = albedo;
-    transmittedColor = mix(transmittedColor, vec3(1.0), 0.075);
-
-    return 25 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
-
-    // not used
-    // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
-    // return diffuse + specular;
-}
-// subsurface BRDF (not even close to reality)
-vec3 specularSubsurfaceBRDF(vec3 V, vec3 L, vec3 albedo) {
-    float VdotL = dot(V, - L);
-    VdotL = max(VdotL, 0.0);
-
-    vec3 transmittedColor = saturate(albedo, VdotL * 1.4);
-    transmittedColor = mix(transmittedColor, vec3(1.0), 0.05);
-
-    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 7.5;
-    return specular;
-}
-// sample GGX visible normal
-vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
-
-    // transforming the view direction to the hemisphere configuration
-    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
-
-    // orthonormal basis (with special case if cross product is zero)
-    float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
-    vec3 T1 = lensq > 0 ? vec3(-Vh.y, Vh.x, 0) * inversesqrt(lensq) 
-                        : vec3(1,0,0);
-    vec3 T2 = cross(Vh, T1);
-
-    // parameterization of the projected area
-    float r = sqrt(U1);
-    float phi = 2.0 * PI * U2;
-    float t1 = r * cos(phi);
-    float t2 = r * sin(phi);
-    float s = 0.5 * (1.0 + Vh.z);
-    t2 = (1.0 - s)*sqrt(1.0 - t1*t1) + s*t2;
-
-    // reprojection onto hemisphere
-    vec3 Nh = t1*T1 + t2*T2 + sqrt(max(0.0, 1.0 - t1*t1 - t2*t2))*Vh;
-
-    // transforming the normal back to the ellipsoid configuration
-    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
-
-    return Ne;
+    return vec2(x,y);
 }
 
 // -- cartesian & polar coordinates conversions -- //
@@ -147,29 +114,6 @@ vec3 polarToCartesian(vec3 polarCoordinate) {
     return vec3(x, y, z);
 }
 
-// -- random generator -- //
-float pseudoRandom(vec2 pos) {
-    return fract(sin(dot(pos, vec2(12.9898, 78.233))) * 43758.5453);
-}
-float pseudoRandom(vec3 pos){
-    return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
-}
-vec2 sampleDiskArea(vec2 seed) {
-    // pseudo uniform 
-    float zeta1 = pseudoRandom(seed);
-    float zeta2 = pseudoRandom(seed + 0.5);
-
-    // uniform to polar
-    float theta = zeta1 * 2*PI;
-    float radius = sqrt(zeta2);
-
-    // polar to cartesian
-    float x = radius * cos(theta);
-    float y = radius * sin(theta);
-
-    return vec2(x,y);
-}
-
 // -- interval stuff -- //
 bool isInRange(int x, int min_, int max_) {
     return min_ <= x && x <= max_;
@@ -185,7 +129,7 @@ float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
     return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]
 }
 
-// -- misc -- //
+// -- distance -- //
 float distance1(vec2 p1, vec2 p2) {
     return abs(p2.x - p1.x) + abs(p2.y - p1.y);
 }
@@ -195,43 +139,16 @@ float distanceInf(vec2 p1, vec2 p2) {
 float distanceInf(vec3 p1, vec3 p2) {
     return max(distanceInf(p1.xy, p2.xy), abs(p2.z - p1.z));
 }
-float perspectiveMix(float a, float b, float factor) {
-    return 1. / ( (1./a) + (factor * ((1./b) - (1./a))) );
-}
+
+// -- gaussian -- //
 float gaussian(float x, float y, float mu, float sigma) {
-    return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2*sigma*sigma)));
+    return exp(- (((x-mu)*(x-mu) + (y-mu)*(y-mu)) / (2.0*sigma*sigma)));
 }
 float gaussian(float x, float y, float sigma) {
-    return exp(- ((x*x + y*y) / (2*sigma*sigma)));
+    return exp(- ((x*x + y*y) / (2.0*sigma*sigma)));
 }
 float gaussian(float x, float sigma) {
-    return exp(- ((x*x) / (2*sigma*sigma)));
-}
-
-// -- gamma correction -- //
-float SRGBtoLinear(float x) {
-    return pow(x, gamma);
-}
-vec2 SRGBtoLinear(vec2 x) {
-    return pow(x, vec2(gamma));
-}
-vec3 SRGBtoLinear(vec3 x) {
-    return pow(x, vec3(gamma));
-}
-vec4 SRGBtoLinear(vec4 x) {
-    return pow(x, vec4(gamma));
-}
-float linearToSRGB(float x) {
-    return clamp(pow(x, 1.0/gamma), 0.0, 1.0);
-}
-vec2 linearToSRGB(vec2 x) {
-    return clamp(pow(x, vec2(1.0/gamma)), 0.0, 1.0);
-}
-vec3 linearToSRGB(vec3 x) {
-    return clamp(pow(x, vec3(1.0/gamma)), 0.0, 1.0);
-}
-vec4 linearToSRGB(vec4 x) {
-    return clamp(pow(x, vec4(1.0/gamma)), 0.0, 1.0);
+    return exp(- ((x*x) / (2.0*sigma*sigma)));
 }
 
 // -- very specific stuff -- //
@@ -256,7 +173,7 @@ vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], 
 
         // compute intersection
         float t = - (dot(normal, (origin - point))) / denom;
-        if (t > 0) {
+        if (t > 0.0) {
             intersections[i] = origin + (t - 1e-2) * direction;
         } else {
             hasIntersection[i] = false;
@@ -269,7 +186,7 @@ vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], 
 
         bool isInside = true;
         for (int j=0; j<6; ++j) {
-            if (dot(-planes_normal[j], intersections[i] - planes_point[j]) < 0) {
+            if (dot(-planes_normal[j], intersections[i] - planes_point[j]) < 0.0) {
                 isInside = false;
                 break;
             }
@@ -280,7 +197,24 @@ vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], 
         }
     }
 
-    return vec3(0);
+    return vec3(0.0);
+}
+// assure consistency for all screen size
+void prepareBlurLoop(float normalizedRange, float resolution, bool isFirstPass,
+                    out float range, out float stepLength) {
+    float ratio = viewWidth / viewHeight;
+    range  = isFirstPass ? normalizedRange / ratio : normalizedRange;
+    float pixels  = isFirstPass ? viewWidth * range : viewHeight * range;
+    float samples = pixels * resolution;
+    stepLength = range / samples;
+}
+// day-night transition
+float getDayNightBlend() {
+    return map(shadowAngle, 0.0, 0.02, 0.0, 1.0) * map(shadowAngle, 0.5, 0.48, 0.0, 1.0);
+}
+// 
+float perspectiveMix(float a, float b, float factor) {
+    return 1.0 / ( (1.0/a) + (factor * ((1.0/b) - (1.0/a))) );
 }
 
 // -- data encoding & decoding -- //
@@ -305,7 +239,7 @@ void getLightData(vec4 lightData, out float blockLightIntensity, out float ambia
     blockLightIntensity = receivedLight.x;
     ambiantSkyLightIntensity = receivedLight.y;
     emissivness = lightData.z;
-    ambiant_occlusion = 1 - map(lightData.w, 0.5, 1, 0, 1);
+    ambiant_occlusion = 1.0 - map(lightData.w, 0.5, 1.0, 0.0, 1.0);
 }
 void getMaterialData(vec4 materialData, out float type, out float smoothness, out float reflectance, out float subsurface) {
     type = materialData.x;
@@ -424,13 +358,13 @@ bool animatedLight_isLow(int id) {
 vec3 midBlockToRoot(int id, vec3 midBlock) {
     midBlock /= 64.0;
 
-    midBlock.y = -1 * midBlock.y + 0.5;
-    if (isSmall(id)) midBlock.y *= 2;
-    else if (isTiny(id)) midBlock.y *= 4;
-    else if (isCeilingRooted(id)) midBlock.y = 1 - midBlock.y;
+    midBlock.y = -1.0 * midBlock.y + 0.5;
+    if (isSmall(id)) midBlock.y *= 2.0;
+    else if (isTiny(id)) midBlock.y *= 4.0;
+    else if (isCeilingRooted(id)) midBlock.y = 1.0 - midBlock.y;
     else if (isTallLower(id)) midBlock.y *= 0.5;
     else if (isTallUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5;
-    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.6875 - 0.3125, 0);
+    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.6875 - 0.3125, 0.0);
     else if (isPicherCropUpper(id)) midBlock.y = midBlock.y * 0.6875 + 0.6875 - 0.3125;
 
     return midBlock;

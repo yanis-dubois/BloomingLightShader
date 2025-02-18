@@ -35,7 +35,7 @@ const bool shadowHardwareFiltering = true;
 ////////////////////////////////////////////////////
 
 // sun and moon
-const float sunPathRotation = 0;
+const float sunPathRotation = 0.0;
 #define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
 #define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
 
@@ -58,7 +58,7 @@ const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
+#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
 #define SSR_RESOLUTION 1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 5 // from 0=too_precise to inf=awful
@@ -80,14 +80,14 @@ const float endShadowDecrease = 150;
 
 // bloom
 #define BLOOM_TYPE 1 // 0=off 1=on
-#define BLOOM_RANGE 0.01 // extent of the kernel
+#define BLOOM_RANGE 0.015 // extent of the kernel
 #define BLOOM_RESOLUTION 0.5 // half number of samples (int)
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
 #define BLOOM_FACTOR 1.5 // from 0=none to 1=too_much
 
 // depth of field
-#define DOF_TYPE 1 // 0=off 1=on
+#define DOF_TYPE 0 // 0=off 1=on
 #define DOF_RANGE 0.005 // extent of the kernel
 #define DOF_RESOLUTION 1 // in [0;1]
 #define DOF_KERNEL 0 // 0=box 1=gaussian
@@ -161,3 +161,17 @@ uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning
 uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;
 uniform int isEyeInWater;
+
+///////////////////////////////////////////////////
+//////////////////// Constants ////////////////////
+///////////////////////////////////////////////////
+
+const vec3 eastDirection = vec3(1.0, 0.0, 0.0);
+const vec3 westDirection = vec3(-1.0, 0.0, 0.0);
+const vec3 upDirection = vec3(0.0, 1.0, 0.0);
+const vec3 downDirection = vec3(0.0, -1.0, 0.0);
+const vec3 northDirection = vec3(0.0, 0.0, -1.0);
+const vec3 southDirection = vec3(0.0, 0.0, 1.0);
+
+const float PI = 3.14159265359;
+const float e = 2.71828182846;
