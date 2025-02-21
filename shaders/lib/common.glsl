@@ -2,63 +2,50 @@
 ///////////////////// Textures /////////////////////
 ////////////////////////////////////////////////////
 
+// -- setup buffers -- //
 // format
 /*
-const int colortex0Format = RGBA16F; // opaque color
-const int colortex1Format = RGBA16F; // opaque normal
-const int colortex2Format = RGBA8; // opaque light
-const int colortex3Format = RGBA8; // opaque material
-const int colortex4Format = RGBA16F; // transparent color
-const int colortex5Format = RGBA16F; // transparent normal
-const int colortex6Format = RGBA8; // transparent light
-const int colortex7Format = RGBA8; // transparent material
+const int colortex0Format = RGBA16F; // color
+const int colortex1Format = RGBA16F; // normal - bloom
+const int colortex2Format = RGBA8; // light & material - depth of field mask
+const int colortex3Format = RGBA16F; // TAA
 */
-
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
 const bool colortex2Clear = true;
-const bool colortex3Clear = true;
-const bool colortex4Clear = true;
-const bool colortex5Clear = true;
-const bool colortex6Clear = true;
-const bool colortex7Clear = true;
+const bool colortex3Clear = false;
 
-const bool colortex0MipmapEnabled = true;
+// -- setup shadow map -- //
 
-// resolution
-const int shadowMapResolution = 2048; // 1024 1536 2048
 const bool shadowHardwareFiltering = true;
-// const int noiseTextureResolution = 256;
+const int shadowMapResolution = 2048; // 1024 1536 2048
+const float startShadowDecrease = 100;
+const float endShadowDecrease = 150;
 
 ////////////////////////////////////////////////////
 //////////////////// Parameters ////////////////////
 ////////////////////////////////////////////////////
 
-// sun and moon
+// sky
 const float sunPathRotation = 0.0;
+#define SKY_TYPE 1 // 0=vanilla 1=custom
+
+// light
 #define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
 #define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
-
-// sky
-#define SKY_TYPE 1 // 0=vanilla 1=custom
+#define SPLIT_TONING 1 // 0=off 1=on (give a blueish tint to shadows)
 
 // fog
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
 #define SHADOW_TYPE 2 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_RANGE 1 // width of the sample area (in uv)
-#define SHADOW_SAMPLES 4 // half number of samples
+#define SHADOW_RANGE 0.66 // width of the sample area (in uv)
+#define SHADOW_SAMPLES 2 // number of samples (for stochastic)
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
-const bool shadowtex0Nearest = true;
-const bool shadowtex1Nearest = true;
-const bool shadowcolor0Nearest = true;
-const float startShadowDecrease = 100;
-const float endShadowDecrease = 150;
-
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
+#define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
 #define SSR_RESOLUTION 1 // from 0=low to 1=high
 #define SSR_STEPS 10 // from 0=none to inf=too_much
 #define SSR_THICKNESS 5 // from 0=too_precise to inf=awful
@@ -74,14 +61,14 @@ const float endShadowDecrease = 150;
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
 #define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
-#define VOLUMETRIC_LIGHT_MIN_SAMPLE 8
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 12
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 6
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 10
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 1 // 0=off 1=on
+#define BLOOM_TYPE 2 // 0=off 1=on 2=ULTRA
 #define BLOOM_RANGE 0.015 // extent of the kernel
-#define BLOOM_RESOLUTION 0.5 // half number of samples (int)
+#define BLOOM_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
 #define BLOOM_FACTOR 1.5 // from 0=none to 1=too_much
@@ -89,7 +76,7 @@ const float endShadowDecrease = 150;
 // depth of field
 #define DOF_TYPE 0 // 0=off 1=on
 #define DOF_RANGE 0.005 // extent of the kernel
-#define DOF_RESOLUTION 1 // in [0;1]
+#define DOF_RESOLUTION 1 // in [0;1], proportion of pixel to be sampled
 #define DOF_KERNEL 0 // 0=box 1=gaussian
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
 #define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
@@ -141,7 +128,6 @@ uniform ivec2 eyeBrightnessSmooth;
 
 uniform float shadowAngle;
 uniform float sunAngle; // 0 is sunrise, 0.25 is noon, 0.5 is sunset, 0.75 is midnight
-uniform float rainfall;
 uniform float fogStart;
 uniform float fogEnd;
 uniform float rainStrength;

@@ -1,4 +1,4 @@
-vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth, float smoothness, float reflectance, float subsurface,
+vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, float smoothness, float reflectance, float subsurface,
               float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent, float type) {
 
     vec3 skyLightColor = getSkyLightColor();
@@ -6,16 +6,14 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // directions and angles 
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normal);
-    vec3 worldSpacePosition = viewToWorld(screenToView(uv, depth));
     vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     float normalizedLinearDepth = distanceFromCamera / far;
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
-    /* shadow */
+    // -- shadow -- //
     // offset position in normal direction (avoid self shadowing)
     vec3 offsetWorldSpacePosition = worldSpacePosition + normal * 0.1;
-    vec3 offsetScreenSpacePosition = worldToScreen(offsetWorldSpacePosition);
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
@@ -23,8 +21,9 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     // fade into the distance
     float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
     shadow *= shadow_fade;
+    shadow.a *= getDayNightBlend();
 
-    /* lighting */
+    // -- lighting -- //
 
     // -- light factors
     float skyDirectLightFactor = max(lightDirectionDotNormal, 0.0);
@@ -32,8 +31,8 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     float ambientLightFactor = 0.007;
     float faceTweak = 1.0;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
-    faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
+    faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
+    faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
     faceTweak = mix(faceTweak, 0.4, smoothstep(0.8, 0.9, (dot(normal, downDirection))));
     skyDirectLightFactor = mix(skyDirectLightFactor, 0.2, abs(dot(normal, southDirection)));
 
@@ -50,16 +49,25 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         }
     #endif
     // reduce contribution if no ambiant sky light (avoid cave leak)
-    if (ambientSkyLightIntensity < 0.01) skyDirectLight *= 0.0;
+    skyDirectLight *= map(smoothstep(0.0, 0.5, ambientSkyLightIntensity), 0.0, 1.0, 0.05, 1.0);
     // reduce contribution as it rains
-    skyDirectLight *= mix(1.0, 0.5, rainStrength);
+    skyDirectLight *= mix(1.0, 0.2, rainStrength);
     // reduce contribution during day-night transition
     skyDirectLight *= getDayNightBlend();
+    // face tweak ?
+    skyDirectLight *= map(faceTweak, 0.4, 0.8, 0.2, 1.0);
     // apply shadow
     skyDirectLight = mix(skyDirectLight, skyDirectLight * shadow.rgb, shadow.a);
+    // brighten
+    skyDirectLight *= 1.5;
 
     // -- ambient sky light
-    vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity * (1.0 - skyDirectLight);
+    #if SPLIT_TONING > 0
+        vec3 ambientSkyLightColor = mix(skyLightColor, getShadowLightColor(), smoothstep(0.1, 0.9, shadow.a));
+    #else
+        vec3 ambientSkyLightColor = skyLightColor;
+    #endif
+    vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * ambientSkyLightColor * ambientSkyLightIntensity * (1.0 - skyDirectLight);
 
     // -- block light
     vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
@@ -70,8 +78,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
 
     // -- filter underwater light
-    if (!isTransparent && (isEyeInWater==1 || isWater(texture2D(colortex7, uv).x))) {
-        skyDirectLight *= smoothstep(0.0, 0.5, ambientSkyLightIntensity);
+    if (isEyeInWater==1) {
         vec3 waterColor = mix(getWaterFogColor(), vec3(0.5), 0.5);
         skyDirectLight = getLightness(skyDirectLight) * waterColor;
         ambientSkyLight = getLightness(ambientSkyLight) * waterColor;
@@ -79,7 +86,7 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         ambientLight = getLightness(ambientLight) * waterColor * 1.5;
     }
 
-    /* BRDF */
+    // -- BRDF -- //
     // -- diffuse
     vec3 light = skyDirectLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * light;
@@ -103,9 +110,9 @@ vec4 lighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, float depth
         color += specularFade * skyDirectLight * specular;
     }
 
-    /* fog */
+    // -- fog -- //
     if (!isParticle(type))
-        color = foggify(color, worldSpacePosition, normalizedLinearDepth);
+       color = foggify(color, worldSpacePosition);
 
     return vec4(color, transparency);
 }

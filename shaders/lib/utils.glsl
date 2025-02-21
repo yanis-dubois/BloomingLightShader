@@ -60,6 +60,17 @@ vec3 toneMap(vec3 color) {
 vec3 inverseToneMap(vec3 color) {
     return color / max(1.0 - getLightness(color), 0.001);
 }
+vec3 rgbToHsv(vec3 c) {
+    vec4 p = (c.g < c.b) ? vec4(c.bg, -1.0, 2.0 / 3.0) : vec4(c.gb, 0.0, -1.0 / 3.0);
+    vec4 q = (c.r < p.x) ? vec4(p.xyw, c.r) : vec4(c.r, p.yzx);
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10; // Small epsilon to avoid division by zero
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+vec3 hsvToRgb(vec3 c) {
+    vec3 p = abs(fract(c.x + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
 
 // -- random generator -- //
 float pseudoRandom(vec2 pos) {
@@ -205,16 +216,26 @@ void prepareBlurLoop(float normalizedRange, float resolution, bool isFirstPass,
     float ratio = viewWidth / viewHeight;
     range  = isFirstPass ? normalizedRange / ratio : normalizedRange;
     float pixels  = isFirstPass ? viewWidth * range : viewHeight * range;
+    pixels = floor(pixels);
+    if (pixels <= 0.0) {
+        range = 0.0;
+        stepLength = 1.0;
+    }
     float samples = pixels * resolution;
     stepLength = range / samples;
+}
+// 
+float perspectiveMix(float a, float b, float factor) {
+    return 1.0 / ( (1.0/a) + (factor * ((1.0/b) - (1.0/a))) );
 }
 // day-night transition
 float getDayNightBlend() {
     return map(shadowAngle, 0.0, 0.02, 0.0, 1.0) * map(shadowAngle, 0.5, 0.48, 0.0, 1.0);
 }
-// 
-float perspectiveMix(float a, float b, float factor) {
-    return 1.0 / ( (1.0/a) + (factor * ((1.0/b) - (1.0/a))) );
+// [0;1] new=0, full=1
+float getMoonPhase() {
+    float moonPhaseBlend = moonPhase < 4 ? float(moonPhase) / 4.0 : (4.0 - (float(moonPhase)-4.0)) / 4.0; 
+    return cos(moonPhaseBlend * PI) / 2.0 + 0.5; 
 }
 
 // -- data encoding & decoding -- //

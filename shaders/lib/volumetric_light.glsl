@@ -1,8 +1,9 @@
-void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity, bool isWater,
-                        inout vec4 opaqueColorData, inout vec4 transparentColorData) {
+void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater,
+                        inout vec3 color) {
 
-    if (VOLUMETRIC_LIGHT_TYPE == 0)
+    #if VOLUMETRIC_LIGHT_TYPE == 0
         return;
+    #endif
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -27,7 +28,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     // -> avoid player shadow monster 
     vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
-    float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.35);
+    float attenuationFactor = smoothstep(-1.0, 1.0, LdotV);
 
     // decrease volumetric light that is added on sky
     // which is even truer the further up you look
@@ -36,7 +37,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     attenuationFactor *= invVdotU * invVdotU;
 
     // init loop
-    vec3 opaqueAccumulatedLight = vec3(0.0), transparentAccumulatedLight = vec3(0.0);
+    vec3 accumulatedLight = vec3(0.0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
     float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
     vec2 seed = uv;
@@ -46,16 +47,15 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     bool transparentHit = false;
 
+    vec3 shadowColor = vec3(1.0);
+    float cpt = 0.0;
+
     // loop
     for (int i=0; i<stepsCount; ++i) {
         rayDistance = distance(cameraPosition, rayWorldSpacePosition);
 
         // ray goes beneath block
-        if (!transparentHit && rayDistance>transparentFragmentDistance) {
-            transparentHit = true;
-            transparentAccumulatedLight = opaqueAccumulatedLight;
-        }
-        if (rayDistance>opaqueFragmentDistance) {
+        if (rayDistance > opaqueFragmentDistance) {
             break;
         }
 
@@ -68,14 +68,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         // density 
         // water density 
         if (isInWater && isEyeInWater==1) {
-            // when camera inside water (broke rendering equation by creating energy, but it looks better)
-            if (isEyeInWater==1) {
-                scatteringCoefficient = 20.0;
-            }
-            // when camera outside water (avoid adding energy)
-            else {
-                scatteringCoefficient = 1.0;
-            }
+            scatteringCoefficient = 10.0;
         }
         // air density depending at altitude
         else {
@@ -89,6 +82,10 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         // get shadow
         vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
         vec4 shadow = getShadow(shadowClipPos);
+        if (0.0 < shadow.a && shadow.a < 1.0) {
+            shadowColor *= shadow.rgb;
+            cpt++;
+        }
         vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
 
         // compute inscattered light 
@@ -99,7 +96,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         inscatteredLight *= getFogColor(isInWater);
 
         // add light contribution
-        opaqueAccumulatedLight += inscatteredLight;
+        accumulatedLight += inscatteredLight;
 
         // go a step further
         seed ++;
@@ -108,20 +105,14 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     }
 
-    // in case ray didn't goes through water
-    if (!transparentHit) {
-        transparentAccumulatedLight = opaqueAccumulatedLight;
+    // apply attenuation
+    accumulatedLight *= attenuationFactor;
+    // color adjustment & day-night blend
+    accumulatedLight *= skyLightColor * mix(1.0, 0.5, rainStrength) * getDayNightBlend();
+    if (cpt > 0.0 && isEyeInWater==0) {
+        accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
     }
 
-    // apply attenuation
-    opaqueAccumulatedLight *= attenuationFactor;
-    transparentAccumulatedLight *= attenuationFactor;
-
-    // color adjustment & day-night blend
-    opaqueAccumulatedLight *= skyLightColor * mix(1.0, 0.5, rainStrength) * getDayNightBlend();
-    transparentAccumulatedLight *= skyLightColor * mix(1.0, 0.5, rainStrength) * getDayNightBlend();
-
     // write values
-    opaqueColorData.rgb += opaqueAccumulatedLight / pow(far, 0.75);
-    transparentColorData.rgb += transparentAccumulatedLight / pow(far, 0.75);
+    color += accumulatedLight / pow(far, 0.75);
 }

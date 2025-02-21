@@ -48,9 +48,9 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, floa
     float G = Smith_G(NdotV, NdotL, roughness);
 
     vec3 transmittedColor = saturate(albedo, 1.3); transmittedColor = albedo;
-    transmittedColor = mix(transmittedColor, vec3(1.0), 0.075);
+    transmittedColor = mix(transmittedColor, vec3(1.0), 0.05); // 0.075
 
-    return 25.0 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
+    return 20.0 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
 
     // not used
     // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);

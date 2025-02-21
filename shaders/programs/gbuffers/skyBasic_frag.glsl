@@ -4,34 +4,36 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/atmospheric.glsl"
+#include "/lib/lightColor.glsl"
+#include "/lib/sky.glsl"
 
 // attribute
 in vec4 starData;
 
 // results
-/* RENDERTARGETS: 0,2,3 */
-layout(location = 0) out vec4 opaqueAlbedoData;
-layout(location = 1) out vec4 opaqueLightData;
-layout(location = 2) out vec4 opaqueMaterialData;
+/* RENDERTARGETS: 0,1,2 */
+layout(location = 0) out vec4 colorData;
+layout(location = 1) out vec4 normalData;
+layout(location = 2) out vec4 lightAndMaterialData;
 
 void main() {
 	vec3 albedo = vec3(0);
-	float transparency = 0;
-	float emissivness = 0;
+	float transparency = 0.0;
+	float emissivness = 0.0;
 
 	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 0.99999);
 	vec3 eyeSpacePosition = mat3(gbufferModelViewInverse) * viewSpacePosition;
 
 	#if SKY_TYPE == 1
 		// sky & stars
-		albedo = getSkyColor(eyeSpacePosition);
+		albedo = getSkyColor(eyeSpacePosition, false);
 	#else
 		// stars
 		if (starData.a > 0.5) {
-			transparency = 1;
+			transparency = 1.0;
 			albedo = starData.rgb;
-			emissivness = getLightness(SRGBtoLinear(albedo) * 2);
+			emissivness = getLightness(SRGBtoLinear(albedo) * 2.0);
+			emissivness = clamp(emissivness, 0.0, 1.0);
 		} 
 		// sky
 		else {
@@ -40,7 +42,6 @@ void main() {
 	#endif
 
 	/* buffers */
-    opaqueAlbedoData = vec4(albedo, transparency);
-	opaqueLightData = vec4(0, 0, emissivness, 1);
-    opaqueMaterialData = vec4(typeBasic, 0, 0, 1);
+    colorData = vec4(albedo, transparency);
+	lightAndMaterialData = vec4(0.0, emissivness, 0.0, 1.0);
 }

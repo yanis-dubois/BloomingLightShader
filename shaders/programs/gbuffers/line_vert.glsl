@@ -16,7 +16,7 @@ in vec3 vaPosition;
 in vec3 vaNormal;
 in vec4 vaColor;
 
-out vec4 tint;
+out vec4 albedo;
 
 void main() {
 	vec2 resolution   = vec2(viewWidth, viewHeight);
@@ -33,5 +33,5 @@ void main() {
 	if (gl_VertexID % 2 != 0) lineOffset = -lineOffset;
 	gl_Position = vec4((ndc1 + vec3(lineOffset, 0.0)) * linePosStart.w, linePosStart.w);
 
-	tint = vec4(0.0, 0.0, 0.0, 1.0);
+	albedo = vec4(0.0, 0.0, 0.0, 1.0);
 }

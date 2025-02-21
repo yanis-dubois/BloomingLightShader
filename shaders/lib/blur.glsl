@@ -1,14 +1,14 @@
-vec4 blur(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
+vec3 blur(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
 
     // no blur
     if (normalizedRange <= 0.0 || resolution <= 0.0)
-        return SRGBtoLinear(texture2D(texture, uv));
+        return SRGBtoLinear(texture2D(texture, uv).rgb);
 
     // prepare loop
     float range = 0.0, stepLength = 0.0;
     prepareBlurLoop(normalizedRange, resolution, isFirstPass, range, stepLength);
     // init sums
-    vec4 color = vec4(0.0);
+    vec3 color = vec3(0.0);
     float totalWeight = 0.0;
 
     for (float x=-range; x<=range; x+=stepLength) {
@@ -20,10 +20,10 @@ vec4 blur(vec2 uv, sampler2D texture, float normalizedRange, float resolution, f
         float weight = 1.0;
         // gaussian kernel
         if (isGaussian) {
-            weight = gaussian(x / range, std);
+            weight  = gaussian(x / range, std);
         }
 
-        color += weight * SRGBtoLinear(texture2D(texture, coord));
+        color += weight * SRGBtoLinear(texture2D(texture, coord).rgb);
         totalWeight += weight;
     }
 

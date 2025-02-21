@@ -1,6 +1,6 @@
 // uniforms
-uniform sampler2D shadowtex0; // all shadow
-uniform sampler2D shadowtex1; // only opaque shadow
+uniform sampler2DShadow shadowtex0; // all shadow
+uniform sampler2DShadow shadowtex1; // only opaque shadow
 uniform sampler2D shadowcolor0; // shadow color
 
 const float bias = 0.0; // 0.002
@@ -30,22 +30,21 @@ vec4 distortAndBiasShadowClipPosition(vec4 shadowClipPosition) {
 }
 
 // say if a pixel is in shadow and apply a shadow color to it if needed
-vec4 getShadow(vec3 shadowScreenPosition) {
+vec4 sampleShadow(vec3 shadowScreenPosition) {
     shadowScreenPosition.xy = clamp(shadowScreenPosition.xy, 0.0, 1.0);
-    float isInShadow = step(shadowScreenPosition.z, shadow2D(shadowtex0, shadowScreenPosition.xy).r);
+    float shadow0 = shadow2D(shadowtex0, shadowScreenPosition.xyz).r;
 
-    vec4 shadow = vec4(vec3(1.0), 0.0);
-    if (isInShadow == 0.0) {
-        float isntInColoredShadow = step(shadowScreenPosition.z, shadow2D(shadowtex1, shadowScreenPosition.xy).r);
-        if (isntInColoredShadow == 0.0) {
-            shadow = vec4(vec3(0.0), 1.0);
+    vec4 shadowColor = vec4(vec3(1.0), 0.0);
+    if (shadow0 < 1.0) {
+        float shadow1 = shadow2D(shadowtex1, shadowScreenPosition.xyz).r;
+        if (shadow1 < 1.0) {
+            shadowColor = vec4(vec3(0.0), 1.0);
         } else {
-            vec4 shadowColor = texture2D(shadowcolor0, shadowScreenPosition.xy);
-            shadow = shadowColor;
+            shadowColor = texture2D(shadowcolor0, shadowScreenPosition.xy);
         }
     }
 
-    return shadow;
+    return shadowColor;
 }
 
 // get shadow from shadow clip position
@@ -53,7 +52,7 @@ vec4 getShadow(vec4 shadowClipPosition) {
     shadowClipPosition = distortAndBiasShadowClipPosition(shadowClipPosition);
     vec3 shadowScreenPosition = shadowClipToShadowScreen(shadowClipPosition);
 
-    return getShadow(shadowScreenPosition);
+    return sampleShadow(shadowScreenPosition);
 }
 
 // blur shadow by calling getShadow around actual pixel and average the results
@@ -81,8 +80,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
             float range = SHADOW_RANGE; // how far away from the original position we take our samples from
             range *= blend; // increase range as the shadow is further away
+            //range *= pseudoRandom(uv+1.0) * 0.5 + 0.5;
             float samples = SHADOW_SAMPLES;
-            float step_length = (2.0 * range) / samples; // distance between each sample
+            float step_length = range / samples; // distance between each sample
 
             vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
             float count = 0.0;
@@ -92,7 +92,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 for (float i=0; i<samples; ++i) {
 
                     // random offset by sampling disk area
-                    vec2 seed = uv + i ;//+ frameTimeCounter;
+                    vec2 seed = uv + 0.1 * i ;//+ frameTimeCounter;
                     vec2 offset = sampleDiskArea(seed);
 
                     // gaussian
@@ -115,7 +115,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 #if SHADOW_TYPE == 2
                     // get noise
                     float noise = pseudoRandom(uv);
-                    float theta = noise * 2*PI;
+                    float theta = noise * 2.0*PI;
                     float cosTheta = cos(theta);
                     float sinTheta = sin(theta);
                     // rotation matrix

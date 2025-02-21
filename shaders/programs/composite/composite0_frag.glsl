@@ -1,14 +1,10 @@
 #extension GL_ARB_explicit_attrib_location : enable
 
 // textures
-uniform sampler2D colortex0; // opaque albedo
-uniform sampler2D colortex1; // opaque normal
-uniform sampler2D colortex2; // opaque light (block_light, sky_ambiant_light, emmissivness)
-uniform sampler2D colortex3; // opaque material (type, smoothness, reflectance)
-uniform sampler2D colortex4; // transparent albedo
-uniform sampler2D colortex5; // transparent normal
-uniform sampler2D colortex6; // transparent light (block_light, sky_ambiant_light, emmissivness)
-uniform sampler2D colortex7; // transparent material (type, smoothness, reflectance)
+uniform sampler2D colortex0; // color
+uniform sampler2D colortex1; // normal
+uniform sampler2D colortex2; // light & material (sky_ambiant_light, emmissivness, smoothness, reflectance)
+uniform sampler2D colortex3; // TAA
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth
 
@@ -18,133 +14,91 @@ in vec2 uv;
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/atmospheric.glsl"
-#include "/lib/animation.glsl"
+#include "/lib/lightColor.glsl"
+#include "/lib/sky.glsl"
+#include "/lib/fog.glsl"
 #include "/lib/shadow.glsl"
-#include "/lib/BRDF.glsl"
-#include "/lib/lighting.glsl"
 #include "/lib/volumetric_light.glsl"
 
 // results
-/* RENDERTARGETS: 0,1,2,3,4,5,6,7 */
-layout(location = 0) out vec4 opaqueColorData;
-layout(location = 1) out vec4 opaqueNormalData;
-layout(location = 2) out vec4 opaqueLightData;
-layout(location = 3) out vec4 opaqueMaterialData;
-layout(location = 4) out vec4 transparentColorData;
-layout(location = 5) out vec4 transparentNormalData;
-layout(location = 6) out vec4 transparentLightData;
-layout(location = 7) out vec4 transparentMaterialData;
+/* RENDERTARGETS: 0,1,2 */
+layout(location = 0) out vec4 colorData;
+layout(location = 1) out vec4 bloomData;
+layout(location = 2) out vec4 depthOfFieldData;
 
-void process(sampler2D albedoTexture, sampler2D normalTexture, sampler2D lightTexture, sampler2D materialTexture, sampler2D depthTexture,
-            out vec4 colorData, out vec4 normalData, out vec4 lightData, out vec4 materialData, out float depth, bool isTransparent) {
-
-    vec2 UV = uv;
-
-    // -- water refraction -- //
-    #if DISTORTION_WATER_REFRACTION > 0
-        if (!isTransparent && isEyeInWater!=1 && isWater(texture2D(colortex7, uv).x)) {
-            float depth = texture2D(depthtex0, uv).r;
-            vec3 eyeSpacePosition = viewToEye(screenToView(uv, depth));
-            vec3 eyeSpaceDirection = normalize(eyeSpacePosition);
-            // attenuate as player is far from water
-            float amplitude = map(distance(eyeSpacePosition, vec3(0)), 16, 0, 0, 1);
-            UV = uv + amplitude * doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
-        }
-    #endif
-
-    // -- get input buffer values & init output buffers -- //
-    // albedo
-    colorData = texture2D(albedoTexture, UV);
-    vec3 albedo = vec3(0); float transparency = 0;
-    getColorData(colorData, albedo, transparency);
-    // normal
-    normalData = texture2D(normalTexture, UV);
-    vec3 normal = vec3(0);
-    getNormalData(normalData, normal);
-    // light
-    lightData = texture2D(lightTexture, UV);
-    float blockLightIntensity = 0, ambientSkyLightIntensity = 0, emissivness = 0, ambient_occlusion = 0;
-    getLightData(lightData, blockLightIntensity, ambientSkyLightIntensity, emissivness, ambient_occlusion);
-    // material
-    materialData = texture2D(materialTexture, UV);
-    float type = 0, smoothness = 0, reflectance = 0, subsurface = 0;
-    getMaterialData(materialData, type, smoothness, reflectance, subsurface);
-    // depth
-    vec4 depthData = texture2D(depthTexture, UV);
-    depth = 0;
-    getDepthData(depthData, depth);
-
-    // -- light computation -- //
-    // basic or glowing
-    if (isBasic(type)) {
-        // glowing
-        if (isTransparent && getLightness(albedo) > 0.01) {
-            // depth check
-            vec3 worldSpacePosition = screenToWorld(UV, depth);
-            float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-
-            // apply glow 
-            if (distanceFromCamera > 0.3) {
-                // apply fog
-                float normalizedLinearDepth = distanceFromCamera / far;
-                albedo = foggify(albedo, worldSpacePosition, normalizedLinearDepth);
-
-                // write in opaque buffer
-                opaqueColorData.rgb = albedo;
-                opaqueLightData.z = emissivness; // add emissivness
-            }
-
-            // delete it from transparent ('cause its transfered from transparent to opaque)
-            colorData = vec4(0);
-        }
-        // sky
-        else if (!isTransparent) {
-            // write value as it is
-            colorData = vec4(albedo, transparency);
-
-            // foggify if camera in water
-            if (isEyeInWater==1) {
-                vec3 worldSpacePosition = screenToWorld(UV, depth);
-                float normalizedLinearDepth = distance(cameraPosition, worldSpacePosition) / far;
-                colorData.rgb = foggify(colorData.rgb, worldSpacePosition, normalizedLinearDepth);
-            }
-        }
-    }
-    // lit
-    else {
-        colorData = lighting(
-            UV, 
-            albedo, 
-            transparency, 
-            normal, 
-            depth,
-            smoothness,
-            reflectance,
-            subsurface,
-            ambientSkyLightIntensity, 
-            blockLightIntensity,
-            emissivness,
-            ambient_occlusion,
-            isTransparent, type
-        );
-    }
-}
-
-/*****************************************
-************* lighting & fog *************
-******************************************/
+/******************************************/
+/************ volumetric light ************/
+/******************************************/
 void main() {
-    float depthAll=0, depthOpaque=0;
-    process(colortex0, colortex1, colortex2, colortex3, depthtex1, opaqueColorData, opaqueNormalData, opaqueLightData, opaqueMaterialData, depthOpaque, false);
-    process(colortex4, colortex5, colortex6, colortex7, depthtex0, transparentColorData, transparentNormalData, transparentLightData, transparentMaterialData, depthAll, true); 
+    // retrieve data
+    colorData = texture2D(colortex0, uv);
+    vec3 color = SRGBtoLinear(colorData.rgb);
+    float emissivness = texture2D(colortex2, uv).g;
+
+    // depth
+    float depthAll = texture2D(depthtex0, uv).r;
+    float depthOpaque = texture2D(depthtex1, uv).r;
+
+    // apply underwater fog on sky box after water rendering
+    if (isEyeInWater == 1 && depthAll == 1.0) {
+        vec3 worldSpacePosition = screenToWorld(uv, depthAll);
+        color = foggify(color, worldSpacePosition);
+    }
 
     // -- volumetric light -- //
-    if (VOLUMETRIC_LIGHT_TYPE > 0) {
-        volumetricLighting(uv, depthAll, depthOpaque, min(opaqueLightData.y, transparentLightData.y), isWater(transparentMaterialData.x), opaqueColorData, transparentColorData);
-    }
+    volumetricLighting(uv, depthAll, depthOpaque, true, color);
 
-    // convert back to SRGB
-    opaqueColorData.rgb = linearToSRGB(opaqueColorData.rgb);
-    transparentColorData.rgb = linearToSRGB(transparentColorData.rgb);
+    // gamma correct & write
+    colorData.rgb = linearToSRGB(color);
+
+    // -- prepare new buffers -- //
+
+    // -- bloom buffer -- //
+    #if BLOOM_TYPE > 0
+        float lightness = getLightness(color);
+        vec3 bloom = color * max(pow(lightness, 5) * 0.5, emissivness);
+        bloomData = vec4(clamp(bloom, 0.0, 1.0), 1.0);
+    #else
+        bloomData = vec4(vec3(0.0), 1.0);
+    #endif
+
+    // -- depth of field buffer -- //
+    depthOfFieldData = vec4(vec3(0.0), 1.0);
+    #if DOF_TYPE > 0
+        // focal plane distance
+        float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
+        vec3 viewSpaceFocusPosition = screenToView(vec2(0.5), focusDepth);
+        float focusDistance = - viewSpaceFocusPosition.z;
+        focusDistance = min(focusDistance, far);
+
+        // actual distance
+        vec3 viewSpacePosition = screenToView(uv, depthOpaque);
+        float linearDepth = - viewSpacePosition.z;
+
+        // blur amount
+        float blurFactor = 0.0;
+        if (focusDepth == 1.0) {
+            blurFactor = depthOpaque < 1.0 ? 1.0 : 0.0;
+        }
+        else if (depthOpaque == 1.0) {
+            blurFactor = 1.0;
+        }
+        else {
+            float diff = abs(linearDepth - focusDistance);
+            blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
+            blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2.0 * DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
+        }
+
+        // write buffer
+        if (blurFactor > 0.0) {
+            // near plane
+            if (linearDepth < focusDistance) {
+                depthOfFieldData.r = blurFactor;
+            }
+            // far plane
+            else if (linearDepth > focusDistance) {
+                depthOfFieldData.g = blurFactor;
+            }
+        }
+    #endif
 }
