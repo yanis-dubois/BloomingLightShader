@@ -8,7 +8,7 @@
 const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // normal - bloom
 const int colortex2Format = RGBA8; // light & material - depth of field mask
-const int colortex3Format = RGBA16F; // TAA
+const int colortex3Format = RGBA16F; // TAA - last color & depth
 */
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
@@ -80,6 +80,9 @@ const float sunPathRotation = 0.0;
 #define DOF_KERNEL 0 // 0=box 1=gaussian
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
 #define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
+
+// TAA
+#define TAA 1 // 0=off 1=on
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on

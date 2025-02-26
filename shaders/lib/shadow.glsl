@@ -114,7 +114,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             #elif SHADOW_TYPE > 1
                 #if SHADOW_TYPE == 2
                     // get noise
-                    float noise = pseudoRandom(uv + frameTimeCounter);
+                    float noise = pseudoRandom(uv);
                     float theta = noise * 2.0*PI;
                     float cosTheta = cos(theta);
                     float sinTheta = sin(theta);
@@ -147,7 +147,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 }
             #endif
 
-            return shadowAccum / count;
+            shadowAccum /= count;
+            // shadowAccum = pow(shadowAccum, vec4(1.5));
+            return shadowAccum;
         #endif
     #endif
 }

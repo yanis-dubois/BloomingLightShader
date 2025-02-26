@@ -17,16 +17,23 @@
 uniform sampler2D colortex0; // color
 uniform sampler2D colortex1; // bloom
 uniform sampler2D colortex2; // depth of field
-uniform sampler2D colortex3; // TAA
 uniform sampler2D depthtex0; // depth all
+#if TAA == 1
+    uniform sampler2D colortex3; // TAA
+#endif
 
 // attributes
 in vec2 uv;
 
 // results
-/* RENDERTARGETS: 0,3 */
-layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec4 taaData;
+#if TAA == 1
+    /* RENDERTARGETS: 0,3 */
+    layout(location = 0) out vec4 colorData;
+    layout(location = 1) out vec4 taaData;
+#else
+    /* RENDERTARGETS: 0 */
+    layout(location = 0) out vec4 colorData;
+#endif
 
 /*******************************************/
 /**** bloom & depth of field : 2nd pass ****/
@@ -42,29 +49,51 @@ void main() {
     #endif
 
     // -- temporal anti aliasing -- //
-    float depth = texture2D(depthtex0, uv).r;
-    if (frameTimeCounter > 0.0) {
-        // get last uv position of actual fragment
-        vec3 worldSpacePosition = screenToWorld(uv, depth);
-        vec3 previousPlayerSpacePosition = worldSpacePosition - previousCameraPosition;
-        vec3 previousScreenSpacePosition = previousPlayerToScreen(previousPlayerSpacePosition);
-        vec2 prevUV = previousScreenSpacePosition.xy;
+    #if TAA == 1
+        float depth = texture2D(depthtex0, uv).r;
+        if (frameTimeCounter > 0.0) {
+            // get last uv position of actual fragment
+            vec3 worldSpacePosition = screenToWorld(uv, depth);
+            vec3 previousPlayerSpacePosition = worldSpacePosition - previousCameraPosition;
+            vec3 previousScreenSpacePosition = previousPlayerToScreen(previousPlayerSpacePosition);
+            vec2 prevUV = previousScreenSpacePosition.xy;
 
-        if (isInRange(prevUV, 0.0, 1.0)) {
-            vec4 taaData = texture2D(colortex3, prevUV);
-            vec3 previousColor = SRGBtoLinear(taaData.rgb);
+            if (isInRange(prevUV, 0.0, 1.0)) {
+                vec4 taaData = texture2D(colortex3, prevUV);
+                vec3 previousColor = SRGBtoLinear(taaData.rgb);
+                float previousDepth = taaData.a;
 
-            float previousDepth = taaData.a;
-            vec3 realPreviousWorldSpacePosition = screenToWorld(uv, previousDepth);
+                vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
+                // depth reject
+                float blendFactor = 1.0 - smoothstep(0.0, 0.005, abs(previousDepth - depth));
+                // pixel velocity reject
+                // blendFactor *= 1.0 - smoothstep(0.0, 1.0, length(pixelVelocity));
 
-            vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
-            float blendFactor = 1 - smoothstep(0.0, 1.0, length(pixelVelocity));
-            blendFactor *= 1 - smoothstep(0.0, 1.0, distance(realPreviousWorldSpacePosition, worldSpacePosition));
+                // neighborhood clipping
+                vec3 minColor = vec3(1.0), maxColor = vec3(0.0);
+                for (int i=-2; i<=2; i+=2) {
+                    for (int j=-2; j<=2; j+=2) {
+                        if (i==0 && j==0) continue;
+                        vec2 offset = vec2(i, j) / vec2(viewWidth, viewHeight);
+                        vec3 neighborColor = SRGBtoLinear(texture2D(colortex0, uv + offset).rgb);
 
-            color = mix(color, previousColor, 0.9 * blendFactor);
-        }   
-    }
-    taaData = vec4(linearToSRGB(color), depth);
+                        minColor = min(minColor, neighborColor);
+                        maxColor = max(maxColor, neighborColor);
+                    } 
+                }
+                previousColor = clamp(previousColor, minColor, maxColor);
+
+                color = mix(color, previousColor, 0.8 * blendFactor);
+            }   
+        }
+        // wild effect
+        // {
+        //     vec4 taaData = texture2D(colortex3, uv);
+        //     vec3 previousColor = SRGBtoLinear(taaData.rgb);
+        //     color = mix(color, previousColor, 0.92);
+        // }
+        taaData = vec4(linearToSRGB(color), depth);
+    #endif
 
     // -- bloom -- //
     #if BLOOM_TYPE == 1
@@ -75,7 +104,7 @@ void main() {
         bloom = pow(bloom, 1.0 / vec3(1.75));
         color += bloom * BLOOM_FACTOR;
     #elif BLOOM_TYPE == 3
-        int n = 2; // 1 | 2
+        int n = 2; // 2
         vec3 bloom = vec3(0.0);
 
         for (int lod=3; lod<=6; ++lod) {
@@ -96,7 +125,7 @@ void main() {
 
                     float lodFactor = (1.0 - 0.12*lod);
                     lodFactor = exp(-lod * 0.33);
-                    float weight = 0.03 * lodFactor * gaussian(x/n, y/n, 0.5); // 0.25 | 0.03
+                    float weight = 0.03 * lodFactor * gaussian(x/n, y/n, 0.5); // 0.03
 
                     bloom += weight * texture2DLod(colortex1, uv+offset, lod).rgb;
                 }
@@ -107,6 +136,4 @@ void main() {
     #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);
-    //colorData = vec4(linearToSRGB(bloom), 1.0);
-    //colorData = texture2D(colortex1, uv);
 }
