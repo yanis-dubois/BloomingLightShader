@@ -5,10 +5,11 @@
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/blur.glsl"
+#include "/lib/bloom.glsl"
 #include "/lib/depth_of_field.glsl"
 
 // mipmap bloom
-#if BLOOM_TYPE == 2
+#if BLOOM_TYPE > 1
     const bool colortex1MipmapEnabled = true;
 #endif
 
@@ -17,6 +18,7 @@ uniform sampler2D colortex0; // color
 uniform sampler2D colortex1; // bloom
 uniform sampler2D colortex2; // depth of field
 uniform sampler2D colortex3; // TAA
+uniform sampler2D depthtex0; // depth all
 
 // attributes
 in vec2 uv;
@@ -39,17 +41,45 @@ void main() {
         vec3 color = SRGBtoLinear(texture2D(colortex0, uv).rgb);
     #endif
 
+    // -- temporal anti aliasing -- //
+    float depth = texture2D(depthtex0, uv).r;
+    if (frameTimeCounter > 0.0) {
+        // get last uv position of actual fragment
+        vec3 worldSpacePosition = screenToWorld(uv, depth);
+        vec3 previousPlayerSpacePosition = worldSpacePosition - previousCameraPosition;
+        vec3 previousScreenSpacePosition = previousPlayerToScreen(previousPlayerSpacePosition);
+        vec2 prevUV = previousScreenSpacePosition.xy;
+
+        if (isInRange(prevUV, 0.0, 1.0)) {
+            vec4 taaData = texture2D(colortex3, prevUV);
+            vec3 previousColor = SRGBtoLinear(taaData.rgb);
+
+            float previousDepth = taaData.a;
+            vec3 realPreviousWorldSpacePosition = screenToWorld(uv, previousDepth);
+
+            vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
+            float blendFactor = 1 - smoothstep(0.0, 1.0, length(pixelVelocity));
+            blendFactor *= 1 - smoothstep(0.0, 1.0, distance(realPreviousWorldSpacePosition, worldSpacePosition));
+
+            color = mix(color, previousColor, 0.9 * blendFactor);
+        }   
+    }
+    taaData = vec4(linearToSRGB(color), depth);
+
     // -- bloom -- //
     #if BLOOM_TYPE == 1
         vec3 bloom = blur(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
         color += bloom * BLOOM_FACTOR;
     #elif BLOOM_TYPE == 2
-        float range = 0.1 * BLOOM_RANGE;
-        int n = 2;
+        vec3 bloom = bloom(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
+        bloom = pow(bloom, 1.0 / vec3(1.75));
+        color += bloom * BLOOM_FACTOR;
+    #elif BLOOM_TYPE == 3
+        int n = 2; // 1 | 2
         vec3 bloom = vec3(0.0);
 
-        for (int lod=3; lod<7; ++lod) {
-            float blurSize = pow(2.0, float(lod)) / 2;
+        for (int lod=3; lod<=6; ++lod) {
+            float blurSize = pow(2.0, float(lod));
 
             // get noise
             float noise = pseudoRandom(uv+0.1*lod + frameTimeCounter);
@@ -62,22 +92,21 @@ void main() {
             for (int x=-n; x<=n; ++x) {
                 for (int y=-n; y<=n; ++y) {
                     vec2 offset = vec2(x, y) * blurSize / vec2(viewWidth, viewHeight);
-                    offset = rotation * offset;
+                    // offset = rotation * offset;
+
                     float lodFactor = (1.0 - 0.12*lod);
-                    float weight = lodFactor * gaussian(x/n, y/n, 0.5);
-                    bloom += 0.1 * weight * texture2DLod(colortex1, uv+offset, lod).rgb;
+                    lodFactor = exp(-lod * 0.33);
+                    float weight = 0.03 * lodFactor * gaussian(x/n, y/n, 0.5); // 0.25 | 0.03
+
+                    bloom += weight * texture2DLod(colortex1, uv+offset, lod).rgb;
                 }
             }
         }
 
-        color += 0.3 * bloom * BLOOM_FACTOR;
+        color += bloom * BLOOM_FACTOR;
     #endif
 
-    if (frameTimeCounter > 0.0) {
-        vec3 taa = SRGBtoLinear(texture2D(colortex3, uv).rgb);
-        color = mix(color, taa, 0.5);
-    }
-
     colorData = vec4(linearToSRGB(color), 1.0);
-    taaData = vec4(linearToSRGB(color), 1.0);
+    //colorData = vec4(linearToSRGB(bloom), 1.0);
+    //colorData = texture2D(colortex1, uv);
 }

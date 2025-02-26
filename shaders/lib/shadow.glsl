@@ -92,7 +92,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 for (float i=0; i<samples; ++i) {
 
                     // random offset by sampling disk area
-                    vec2 seed = uv + 0.1 * i ;//+ frameTimeCounter;
+                    vec2 seed = uv + 0.1 * i + frameTimeCounter;
                     vec2 offset = sampleDiskArea(seed);
 
                     // gaussian
@@ -114,7 +114,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             #elif SHADOW_TYPE > 1
                 #if SHADOW_TYPE == 2
                     // get noise
-                    float noise = pseudoRandom(uv);
+                    float noise = pseudoRandom(uv + frameTimeCounter);
                     float theta = noise * 2.0*PI;
                     float cosTheta = cos(theta);
                     float sinTheta = sin(theta);

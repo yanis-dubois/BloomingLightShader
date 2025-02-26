@@ -27,7 +27,7 @@ flat in int id;
 // results
 /* RENDERTARGETS: 0,1,2 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec4 normalData;
+layout(location = 1) out vec3 normalData;
 layout(location = 2) out vec4 lightAndMaterialData;
 
 void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
@@ -233,13 +233,7 @@ void main() {
     #endif
 
     /* type */
-    float type = typeLit;
-    #ifdef TRANSPARENT
-        if (id == 20000) type = typeWater;
-    #endif
     #ifdef PARTICLE
-        type = typeParticle;
-
         // is glowing particle ?
         bool isGray = (albedo.r - albedo.g)*(albedo.r - albedo.g) + (albedo.r - albedo.b)*(albedo.r - albedo.b) + (albedo.b - albedo.g)*(albedo.b - albedo.g) < 0.05;
         bool isUnderwaterParticle = (albedo.r == albedo.g && albedo.r - 0.5 * albedo.b < 0.06);
@@ -253,7 +247,6 @@ void main() {
 
     // weather smooth transition
     #ifdef WEATHER
-        type = typeParticle;
         transparency *= rainStrength;
     #endif
 
@@ -265,11 +258,11 @@ void main() {
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, false, type);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, false);
     color.rgb = linearToSRGB(color.rgb);
 
     /* buffers */
     colorData = vec4(color);
-    normalData = vec4(encodedNormal, 1.0);
+    normalData = encodedNormal;
     lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
 }

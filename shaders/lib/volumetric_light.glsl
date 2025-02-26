@@ -40,7 +40,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     vec3 accumulatedLight = vec3(0.0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
     float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
-    vec2 seed = uv;
+    vec2 seed = uv + 0.1*frameTimeCounter;
     float randomizedStepSize = stepSize * pseudoRandom(seed);
     vec3 rayWorldSpacePosition = cameraPosition;
     float rayDistance = 0.0;

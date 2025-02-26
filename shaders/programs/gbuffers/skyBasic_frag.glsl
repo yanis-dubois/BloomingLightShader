@@ -11,9 +11,8 @@
 in vec4 starData;
 
 // results
-/* RENDERTARGETS: 0,1,2 */
+/* RENDERTARGETS: 0,2 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec4 normalData;
 layout(location = 2) out vec4 lightAndMaterialData;
 
 void main() {
@@ -26,13 +25,13 @@ void main() {
 
 	#if SKY_TYPE == 1
 		// sky & stars
-		albedo = getSkyColor(eyeSpacePosition, false);
+		albedo = getSkyColor(eyeSpacePosition, false, emissivness);
 	#else
 		// stars
 		if (starData.a > 0.5) {
 			transparency = 1.0;
 			albedo = starData.rgb;
-			emissivness = getLightness(SRGBtoLinear(albedo) * 2.0);
+			emissivness = getLightness(SRGBtoLinear(albedo) * 5.0);
 			emissivness = clamp(emissivness, 0.0, 1.0);
 		} 
 		// sky

@@ -1,5 +1,5 @@
 vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, float smoothness, float reflectance, float subsurface,
-              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent, float type) {
+              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -21,7 +21,6 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // fade into the distance
     float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
     shadow *= shadow_fade;
-    shadow.a *= getDayNightBlend();
 
     // -- lighting -- //
 
@@ -30,6 +29,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float ambientSkyLightFactor = isTransparent ? 0.6 : 0.3;
     float ambientLightFactor = 0.007;
     float faceTweak = 1.0;
+    float dayNightBlend = getDayNightBlend();
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
     faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
     faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
@@ -53,7 +53,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // reduce contribution as it rains
     skyDirectLight *= mix(1.0, 0.2, rainStrength);
     // reduce contribution during day-night transition
-    skyDirectLight *= getDayNightBlend();
+    skyDirectLight *= dayNightBlend;
     // face tweak ?
     skyDirectLight *= map(faceTweak, 0.4, 0.8, 0.2, 1.0);
     // apply shadow
@@ -63,7 +63,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
 
     // -- ambient sky light
     #if SPLIT_TONING > 0
-        vec3 ambientSkyLightColor = mix(skyLightColor, getShadowLightColor(), smoothstep(0.1, 0.9, shadow.a));
+        vec3 ambientSkyLightColor = mix(skyLightColor, getShadowLightColor(), smoothstep(0.1, 0.9, shadow.a) * dayNightBlend);
     #else
         vec3 ambientSkyLightColor = skyLightColor;
     #endif
@@ -111,8 +111,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     }
 
     // -- fog -- //
-    if (!isParticle(type))
-       color = foggify(color, worldSpacePosition);
+    color = foggify(color, worldSpacePosition);
 
     return vec4(color, transparency);
 }

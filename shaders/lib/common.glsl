@@ -6,7 +6,7 @@
 // format
 /*
 const int colortex0Format = RGBA16F; // color
-const int colortex1Format = RGBA16F; // normal - bloom
+const int colortex1Format = RGB16F; // normal - bloom
 const int colortex2Format = RGBA8; // light & material - depth of field mask
 const int colortex3Format = RGBA16F; // TAA
 */
@@ -39,9 +39,9 @@ const float sunPathRotation = 0.0;
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
-#define SHADOW_TYPE 2 // 0=off 1=stochastic 2=classic+rotation 3=classic
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
 #define SHADOW_RANGE 0.66 // width of the sample area (in uv)
-#define SHADOW_SAMPLES 2 // number of samples (for stochastic)
+#define SHADOW_SAMPLES 4 // number of samples (for stochastic)
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 // Screen Space Reflection (SSR)
@@ -66,12 +66,12 @@ const float sunPathRotation = 0.0;
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 2 // 0=off 1=on 2=ULTRA
+#define BLOOM_TYPE 2 // 0=off 1=on 2=ULTRA 3=ULTRA_unoptimzed
 #define BLOOM_RANGE 0.015 // extent of the kernel
 #define BLOOM_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
-#define BLOOM_FACTOR 1.5 // from 0=none to 1=too_much
+#define BLOOM_FACTOR 2.0 // from 0=none to 1=too_much
 
 // depth of field
 #define DOF_TYPE 0 // 0=off 1=on
@@ -96,17 +96,14 @@ const float sunPathRotation = 0.0;
 ///////////////////// Uniforms /////////////////////
 ////////////////////////////////////////////////////
 
-const float typeBasic = 0.0;
-const float typeParticle = 0.33;
-const float typeWater = 0.66;
-const float typeLit = 1.0;
-
 // uniform sampler2D noisetex;
 
 uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 gbufferProjection;
 uniform mat4 gbufferProjectionInverse;
+uniform mat4 gbufferPreviousProjection;
+uniform mat4 gbufferPreviousModelView;
 uniform mat4 shadowModelView;
 uniform mat4 shadowModelViewInverse;
 uniform mat4 shadowProjection;
@@ -116,6 +113,7 @@ uniform vec4 entityColor;
 
 uniform vec3 eyePosition;
 uniform vec3 cameraPosition;
+uniform vec3 previousCameraPosition;
 uniform vec3 playerLookVector;
 uniform vec3 sunPosition;
 uniform vec3 moonPosition;

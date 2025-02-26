@@ -28,7 +28,8 @@ vec3 getVanillaSkyColor(vec3 eyeSpacePosition) {
 }
 
 // custom
-vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog) {
+vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {
+    emissivness = 0.0;
 
     // directions 
     vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
@@ -113,7 +114,9 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog) {
                 float intensity = noise_*noise_;
                 intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
                 intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
-                skyColor = mix(skyColor, vec3(1.0), min(max(intensity, 0.0), (1 - rainStrength)));
+                intensity = min(max(intensity, 0.0), (1 - rainStrength));
+                skyColor = mix(skyColor, vec3(1.0), intensity);
+                emissivness = 1.0;
             }
         }
     }
@@ -131,10 +134,12 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog) {
     return skyColor;
 }
 
-vec3 getSkyColor(vec3 eyeSpacePosition, bool isFog) {
+vec3 getSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {
+    emissivness = 0.0;
+
     #if SKY_TYPE == 0
         return getVanillaSkyColor(eyeSpacePosition);
     #else
-        return getCustomSkyColor(eyeSpacePosition, isFog);
+        return getCustomSkyColor(eyeSpacePosition, isFog, emissivness);
     #endif
 }

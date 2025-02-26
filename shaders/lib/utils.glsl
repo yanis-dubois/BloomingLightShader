@@ -272,23 +272,6 @@ void getDepthData(vec4 depthData, out float depth) {
     depth = depthData.x;
 }
 
-// -- type checking -- //
-bool areNearlyEqual(float x, float y) {
-    return abs(x-y) < 0.15;
-}
-bool isBasic(float type) {
-    return areNearlyEqual(type, typeBasic);
-}
-bool isParticle(float type) {
-    return areNearlyEqual(type, typeParticle);
-}
-bool isWater(float type) {
-    return areNearlyEqual(type, typeWater);
-}
-bool isLit(float type) {
-    return areNearlyEqual(type, typeLit);
-}
-
 // ---------------------- //
 // -- vertex animation -- //
 // ---------------------- //

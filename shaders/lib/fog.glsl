@@ -10,7 +10,8 @@ vec3 getFogColor(bool isInWater) {
 
 vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
     if (isInWater) return getWaterFogColor();
-    return getSkyColor(eyeSpacePosition, true);
+    float _; // useless here
+    return getSkyColor(eyeSpacePosition, true, _);
 }
 
 const float minimumFogDensity = 0.5;

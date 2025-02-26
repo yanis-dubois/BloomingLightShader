@@ -161,12 +161,8 @@ vec3 shadowClipToShadowNDC(vec4 shadowClipPosition) {
     return shadowClipPosition.xyz / shadowClipPosition.w;
 }
 
-vec3 shadowNDCToShadowScreen(vec3 shadowNDCPosition) {
-    return shadowNDCPosition * 0.5 + 0.5;
-}
-
 vec3 shadowClipToShadowScreen(vec4 shadowClipPosition) {
-    return shadowNDCToShadowScreen(shadowClipToShadowNDC(shadowClipPosition));
+    return NDCToScreen(shadowClipToShadowNDC(shadowClipPosition));
 }
 
 vec3 shadowScreenToWorld(vec3 shadowScreenPosition) {
@@ -177,4 +173,16 @@ vec3 shadowScreenToWorld(vec3 shadowScreenPosition) {
 
 vec3 shadowClipToWorld(vec4 shadowClipPosition) {
     return playerToWorld(shadowViewToPlayer(shadowClipToShadowView(shadowClipPosition)));
+}
+
+vec3 previousPlayerToView(vec3 previousPlayerPosition) {
+    return (gbufferPreviousModelView * vec4(previousPlayerPosition, 1.0)).xyz;
+}
+
+vec3 previousViewToNDC(vec3 previousViewPosition) {
+    return projectAndDivide(gbufferPreviousProjection, previousViewPosition);
+}
+
+vec3 previousPlayerToScreen(vec3 previousPlayerPosition) {
+    return NDCToScreen(previousViewToNDC(previousPlayerToView(previousPlayerPosition)));
 }

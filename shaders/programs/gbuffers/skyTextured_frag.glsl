@@ -12,9 +12,8 @@ in vec4 additionalColor; // foliage, water, particules
 in vec2 textureCoordinate; // immuable block & item
 
 // results
-/* RENDERTARGETS: 0,1,2 */
+/* RENDERTARGETS: 0,2 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec4 normalData;
 layout(location = 2) out vec4 lightAndMaterialData;
 
 void main() {
@@ -54,8 +53,8 @@ void main() {
     #endif
 
     // adapt emissivness with moon phase
-    if (VdotS < 0.0)
-        emissivness *= getMoonPhase();
+    //if (VdotS < 0.0)
+    //    emissivness *= getMoonPhase();
 
     /* buffers */
     colorData = vec4(albedo, transparency);
