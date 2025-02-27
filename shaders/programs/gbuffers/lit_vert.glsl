@@ -1,7 +1,11 @@
+// includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
 #include "/lib/animation.glsl"
+#if TAA_TYPE > 1
+    #include "/lib/jitter.glsl"
+#endif
 
 // attributes
 // gl_MultiTexCoord0.xy - block and item texture coordinate
@@ -62,5 +66,9 @@ void main() {
             vec3 viewSpacePosition = worldToView(worldSpacePosition);
             gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
         }
+    #endif
+
+    #if TAA_TYPE > 1 && !defined HAND
+        gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
     #endif
 }

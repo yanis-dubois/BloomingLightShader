@@ -1,10 +1,6 @@
 void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater,
                         inout vec3 color) {
 
-    #if VOLUMETRIC_LIGHT_TYPE == 0
-        return;
-    #endif
-
     vec3 skyLightColor = getSkyLightColor();
 
     // parameters

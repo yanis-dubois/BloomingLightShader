@@ -43,7 +43,9 @@ void main() {
     }
 
     // -- volumetric light -- //
-    volumetricLighting(uv, depthAll, depthOpaque, true, color);
+    #if VOLUMETRIC_LIGHT_TYPE > 0
+        volumetricLighting(uv, depthAll, depthOpaque, true, color);
+    #endif
 
     // gamma correct & write
     colorData = vec4(linearToSRGB(color), 1.0);

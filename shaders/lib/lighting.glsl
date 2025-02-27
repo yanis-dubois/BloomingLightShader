@@ -13,7 +13,11 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
 
     // -- shadow -- //
     // offset position in normal direction (avoid self shadowing)
-    vec3 offsetWorldSpacePosition = worldSpacePosition + normal * 0.1;
+    float offsetAmplitude = offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.1, 1.5);
+    // add noise to offset to reduce shadow acne
+    float noise = pseudoRandom(uv + 0.14312 * frameTimeCounter);
+    noise = map(noise, 0.0, 1.0, 0.5, 1.1);
+    vec3 offsetWorldSpacePosition = worldSpacePosition + noise * normal * offsetAmplitude;
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)

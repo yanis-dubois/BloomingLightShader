@@ -64,8 +64,8 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
     #else
 
         // space conversion
-        vec3 playerPosition = worldToPlayer(worldSpacePosition);
-        vec4 shadowClipPosition = playerToShadowClip(playerPosition);
+        vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
+        vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
 
         // hard shadowing
         #if float(SHADOW_RANGE) <= 0.01 || SHADOW_SAMPLES < 1
@@ -75,12 +75,12 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         #else
 
             // distant shadows are smoother
-            float distanceToPlayer = distance(vec3(0.0), playerPosition);
+            float distanceToPlayer = distance(vec3(0.0), playerSpacePosition);
             float blend = map(distanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
+            blend = 1.0 + 19.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
 
             float range = SHADOW_RANGE; // how far away from the original position we take our samples from
-            range *= blend; // increase range as the shadow is further away
-            //range *= pseudoRandom(uv+1.0) * 0.5 + 0.5;
+            // range *= blend; // increase range as the shadow is further away
             float samples = SHADOW_SAMPLES;
             float step_length = range / samples; // distance between each sample
 
@@ -114,7 +114,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             #elif SHADOW_TYPE > 1
                 #if SHADOW_TYPE == 2
                     // get noise
-                    float noise = pseudoRandom(uv);
+                    float noise = pseudoRandom(uv + 0.1382 * frameTimeCounter);
                     float theta = noise * 2.0*PI;
                     float cosTheta = cos(theta);
                     float sinTheta = sin(theta);

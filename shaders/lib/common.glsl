@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////
-///////////////////// Textures /////////////////////
+///////////////////// textures /////////////////////
 ////////////////////////////////////////////////////
 
 // -- setup buffers -- //
@@ -8,12 +8,14 @@
 const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // normal - bloom
 const int colortex2Format = RGBA8; // light & material - depth of field mask
-const int colortex3Format = RGBA16F; // TAA - last color & depth
+const int colortex3Format = RGB16F; // TAA - last frame color
+const int colortex4Format = R32F; // TAA - last frame depth depth
 */
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
 const bool colortex2Clear = true;
 const bool colortex3Clear = false;
+const bool colortex4Clear = false;
 
 // -- setup shadow map -- //
 
@@ -23,7 +25,7 @@ const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
 ////////////////////////////////////////////////////
-//////////////////// Parameters ////////////////////
+//////////////////// parameters ////////////////////
 ////////////////////////////////////////////////////
 
 // sky
@@ -66,7 +68,7 @@ const float sunPathRotation = 0.0;
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
-#define BLOOM_TYPE 2 // 0=off 1=on 2=ULTRA 3=ULTRA_unoptimzed
+#define BLOOM_TYPE 2 // 0=off 1=old_school 2=ULTRA
 #define BLOOM_RANGE 0.015 // extent of the kernel
 #define BLOOM_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define BLOOM_KERNEL 1 // 0=box 1=gaussian
@@ -82,7 +84,7 @@ const float sunPathRotation = 0.0;
 #define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
 
 // TAA
-#define TAA 1 // 0=off 1=on
+#define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on
@@ -96,10 +98,8 @@ const float sunPathRotation = 0.0;
 #define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.02=too_much
 
 ////////////////////////////////////////////////////
-///////////////////// Uniforms /////////////////////
+///////////////////// uniforms /////////////////////
 ////////////////////////////////////////////////////
-
-// uniform sampler2D noisetex;
 
 uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
@@ -149,8 +149,14 @@ uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;
 uniform int isEyeInWater;
 
+////////////////////////////////////////////////////
+///////////////// custom uniforms //////////////////
+////////////////////////////////////////////////////
+
+uniform float framemod8;
+
 ///////////////////////////////////////////////////
-//////////////////// Constants ////////////////////
+//////////////////// constants ////////////////////
 ///////////////////////////////////////////////////
 
 const vec3 eastDirection = vec3(1.0, 0.0, 0.0);
