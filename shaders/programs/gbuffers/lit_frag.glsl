@@ -90,9 +90,12 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
         if (id < 30040) {
             emissivness = getLightness(albedo);
         }
-        else if (id == 30040 || id == 31000) {
+        else if (id == 30040) {
             emissivness = 1;
             albedo *= 1.5;
+        }
+        else if (id == 31000) {
+            emissivness = getLightness(albedo) < 0.2 ? 0.0 : 1.0;
         }
     }
 
@@ -185,30 +188,26 @@ void main() {
             albedo *= bloup;
             albedo = mix(albedo * 2.0, bloup, length(albedo));
             albedo += bloup * 0.08;
+            albedo *= 1.5;
         }
     #endif
 
-    /* normal */
+    // weather smooth transition
+    #ifdef WEATHER
+        transparency *= rainStrength;
+    #endif
+
+    // material data
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
+    getMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
+
+    // normal
     vec3 encodedNormal = encodeNormal(normal);
     #ifdef PARTICLE 
         encodedNormal = encodeNormal(-normalize(playerLookVector));
     #endif
 
-    /* light */
-    float distanceFromEye = distance(eyePosition, worldSpacePosition);
-    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
-    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
-    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
-    float ambientSkyLightIntensity = lightMapCoordinate.y;
-    // gamma correct light
-    blockLightIntensity = SRGBtoLinear(blockLightIntensity);
-    ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
-
-    /* material data */
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
-    getMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);
-
-    // -- animated normal -- //
+    // animated normal
     #if VERTEX_ANIMATION == 2
         if (isAnimated(id) && smoothness > 0.5) {
             mat3 TBN = generateTBN(normal);
@@ -230,9 +229,19 @@ void main() {
 
             encodedNormal = encodeNormal(newNormal);
         }
-    #endif
+    #endif 
 
-    /* type */
+    // light
+    float distanceFromEye = distance(eyePosition, worldSpacePosition);
+    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
+    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
+    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
+    float ambientSkyLightIntensity = lightMapCoordinate.y;
+    // gamma correct light
+    blockLightIntensity = SRGBtoLinear(blockLightIntensity);
+    ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
+
+    // glowing particles
     #ifdef PARTICLE
         // is glowing particle ?
         bool isGray = (albedo.r - albedo.g)*(albedo.r - albedo.g) + (albedo.r - albedo.b)*(albedo.r - albedo.b) + (albedo.b - albedo.g)*(albedo.b - albedo.g) < 0.05;
@@ -243,11 +252,6 @@ void main() {
             emissivness = 1.0;
             albedo *= 1.5;
         }
-    #endif
-
-    // weather smooth transition
-    #ifdef WEATHER
-        transparency *= rainStrength;
     #endif
 
     // light animation
@@ -261,7 +265,7 @@ void main() {
     vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, false);
     color.rgb = linearToSRGB(color.rgb);
 
-    /* buffers */
+    // -- buffers -- //
     colorData = vec4(color);
     normalData = encodedNormal;
     lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);

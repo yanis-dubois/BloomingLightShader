@@ -55,7 +55,7 @@ const float sunPathRotation = 0.0;
 // animation
 #define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
 #define SHADOW_WATER_ANIMATION 1 // 0=off 1=on
-#define LIGHT_EMISSION_ANIMATION 1 // 0=off 1=on
+#define LIGHT_EMISSION_ANIMATION 0 // 0=off 1=on
 
 // subsurface scattering
 #define SUBSURFACE_TYPE 1 // 0=off 1=on
