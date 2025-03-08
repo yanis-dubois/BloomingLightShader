@@ -1,3 +1,4 @@
+// hard TAA : soft shadows & anti aliasing, but may add a bit of blur
 vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D taaColorTexture, 
             out vec3 taaColorData) {
 
@@ -14,7 +15,7 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
             float blendFactor = 0.9;
             // pixel velocity reject
             vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
-            blendFactor *= map(exp(- length(pixelVelocity)), 0.0, 1.0, 0.7, 1.0);
+            blendFactor *= map(exp(- 2 * length(pixelVelocity)), 0.0, 1.0, 0.7, 1.0);
 
             // neighborhood clipping
             vec3 minColor = vec3(1.0), maxColor = vec3(0.0);
@@ -39,6 +40,7 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
     return color;
 }
 
+// soft TAA : only soft shadows, a bit slower
 vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D taaColorTexture, sampler2D taaDepthTexture, 
             out vec3 taaColorData, out float taaDepthData) {
 

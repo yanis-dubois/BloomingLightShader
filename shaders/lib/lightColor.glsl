@@ -44,22 +44,22 @@ vec3 getSkyLightColor() {
 }
 
 vec3 getShadowLightColor() {
+
     // day time
     vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
     float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
 
     // day
-    vec3 dayShadow = mix(light2000K, light4500K, smoothstep(0.05, 0.3, sunDotUp));
-    dayShadow = mix(dayShadow, light7500K, smoothstep(0.25, 0.7, sunDotUp));
+    vec3 dayShadow = mix(light6000K, light7500K, smoothstep(0.05, 0.3, sunDotUp));
+    dayShadow = mix(dayShadow, light10000K, smoothstep(0.25, 0.7, sunDotUp));
 
     // night shadow
-    vec3 nightShadow = 0.5 * light20000K;
+    vec3 nightShadow = light20000K;
 
     // blend
     vec3 shadowColor = mix(nightShadow, dayShadow, smoothstep(-0.1, 0.1, sunDotUp));
     // rainy shadow
-    vec3 rainyColor = mix(shadowColor, light8000K, 0.5);
-    shadowColor = mix(shadowColor, linearToSRGB(getSkyLightColor()) * light8000K * 0.9, rainStrength);
+    shadowColor = mix(shadowColor, shadowColor * 0.9 * light8000K, rainStrength);
 
     // under water shadow
     if (isEyeInWater==1) 

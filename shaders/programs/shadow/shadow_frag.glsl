@@ -24,6 +24,8 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     float transparency = textureColor.a;
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
+    if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
+    if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
     if (SHADOW_WATER_ANIMATION == 1 && isLiquid(id)) {

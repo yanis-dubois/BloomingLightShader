@@ -68,7 +68,7 @@ void main() {
         }
     #endif
 
-    #if TAA_TYPE > 1 && !defined HAND
+    #if defined TERRAIN && TAA_TYPE > 1
         gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
     #endif
 }

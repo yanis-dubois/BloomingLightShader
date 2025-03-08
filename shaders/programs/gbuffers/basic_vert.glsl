@@ -12,8 +12,4 @@ void main() {
     textureCoordinate = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     additionalColor = gl_Color;
     gl_Position = ftransform();
-
-    #if TAA_TYPE > 1
-        gl_Position.xy = TAAJitter(gl_Position.xy, gl_Position.w);
-    #endif
 }
