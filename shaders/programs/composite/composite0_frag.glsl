@@ -59,9 +59,6 @@ void main() {
 
         vec3 bloom = color * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
         bloomData = linearToSRGB(bloom);
-
-        // test
-        
     #else
         bloomData = vec3(0.0);
     #endif
@@ -69,29 +66,34 @@ void main() {
     // -- depth of field buffer -- //
     depthOfFieldData = vec4(vec3(0.0), 1.0);
     #if DOF_TYPE > 0
-        // focal plane distance
-        float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
-        vec3 viewSpaceFocusPosition = screenToView(vec2(0.5), focusDepth);
-        float focusDistance = - viewSpaceFocusPosition.z;
-        focusDistance = min(focusDistance, far);
-
         // actual distance
         vec3 viewSpacePosition = screenToView(uv, depthOpaque);
         float linearDepth = - viewSpacePosition.z;
 
         // blur amount
-        float blurFactor = 0.0;
-        if (focusDepth == 1.0) {
-            blurFactor = depthOpaque < 1.0 ? 1.0 : 0.0;
-        }
-        else if (depthOpaque == 1.0) {
-            blurFactor = 1.0;
-        }
-        else {
-            float diff = abs(linearDepth - focusDistance);
-            blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
-            blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2.0 * DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
-        }
+        #if DOF_TYPE == 1
+            // focal plane distance
+            float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
+            vec3 viewSpaceFocusPosition = screenToView(vec2(0.5), focusDepth);
+            float focusDistance = - viewSpaceFocusPosition.z;
+            focusDistance = min(focusDistance, far);
+
+            float blurFactor = 0.0;
+            if (focusDepth == 1.0) {
+                blurFactor = depthOpaque < 1.0 ? 1.0 : 0.0;
+            }
+            else if (depthOpaque == 1.0) {
+                blurFactor = 1.0;
+            }
+            else {
+                float diff = abs(linearDepth - focusDistance);
+                blurFactor = diff < DOF_FOCAL_PLANE_LENGTH ? 0.0 : 1.0;
+                blurFactor *= map(diff, DOF_FOCAL_PLANE_LENGTH, 2.0 * DOF_FOCAL_PLANE_LENGTH, 0.0, 1.0);
+            }
+        #else
+            float focusDistance = 0.0;
+            float blurFactor = pow(linearDepth / far, 1.8);
+        #endif
 
         // write buffer
         if (blurFactor > 0.0) {

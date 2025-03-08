@@ -34,7 +34,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
 
     // init loop
     vec3 accumulatedLight = vec3(0.0);
-    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps (minimum 16)
+    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps
     float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
     vec2 seed = uv + 0.1*frameTimeCounter;
     float randomizedStepSize = stepSize * pseudoRandom(seed);
@@ -105,6 +105,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     accumulatedLight *= attenuationFactor;
     // color adjustment & day-night blend
     accumulatedLight *= skyLightColor * mix(1.0, 0.5, rainStrength) * getDayNightBlend();
+    // enhance colored shaft
     if (cpt > 0.0 && isEyeInWater==0) {
         accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
     }

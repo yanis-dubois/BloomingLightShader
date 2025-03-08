@@ -1,86 +1,79 @@
-
 #extension GL_ARB_explicit_attrib_location : enable
 
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/animation.glsl"
+#include "/lib/blur.glsl"
+#include "/lib/bloom.glsl"
+#if TAA_TYPE > 0
+    #include "/lib/TAA.glsl"
+#endif
+
+// mipmap bloom
+#if BLOOM_TYPE > 1
+    const bool colortex1MipmapEnabled = true;
+#endif
 
 // textures
 uniform sampler2D colortex0; // color
-uniform sampler2D depthtex0; // all depth
+uniform sampler2D colortex1; // bloom
+uniform sampler2D depthtex0; // depth all
+#if TAA_TYPE > 0
+    uniform sampler2D colortex3; // TAA - last frame color
+#endif
+#if TAA_TYPE == 1
+    uniform sampler2D colortex4; // TAA - last frame depth
+#endif
 
 // attributes
 in vec2 uv;
 
-// Bayer matrix for dithering (4x4)
-const mat4 bayerMatrix = mat4(
-    0.0,  8.0,  2.0, 10.0,
-    12.0,  4.0, 14.0,  6.0,
-    3.0, 11.0,  1.0,  9.0,
-    15.0,  7.0, 13.0,  5.0
-);
-
 // results
-/* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 colorData;
+#if TAA_TYPE == 0
+    /* RENDERTARGETS: 0 */
+    layout(location = 0) out vec4 colorData;
+#elif TAA_TYPE == 1
+    /* RENDERTARGETS: 0,3,4 */
+    layout(location = 0) out vec4 colorData;
+    layout(location = 1) out vec3 taaColorData;
+    layout(location = 2) out float taaDepthData;
+#else
+    /* RENDERTARGETS: 0,3 */
+    layout(location = 0) out vec4 colorData;
+    layout(location = 1) out vec3 taaColorData;
+#endif
 
-/******************************************/
-/************** wild effects **************/
-/******************************************/
+/*******************************************/
+/*************** bloom + TAA ***************/
+/*******************************************/
 void main() {
-    vec2 UV = uv;
 
-    // -- water refraction -- //
-    #if DISTORTION_WATER_REFRACTION > 0
-        if (isEyeInWater == 1) {
-            float depth = texture2D(depthtex0, uv).r;
-            vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
-            UV = uv + doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
-        }
-    #endif
+    vec3 color = SRGBtoLinear(texture2D(colortex0, uv).rgb);
 
-    // -- chromatic aberation -- //
-    #if CHROMATIC_ABERATION_TYPE > 0
-        // direction & amplitude
-        vec2 direction = (uv * 2 - 1);
-        float dist = length(direction);
-        direction = normalize(direction);
-        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist*dist;
-
-        // respective offets
-        vec2 offsetR = - direction * amplitude;
-        vec2 offsetG = vec2(0);
-        vec2 offsetB = direction * amplitude;
-
-        // get respective values
-        float R = texture2D(colortex0, UV + offsetR).r;
-        float G = texture2D(colortex0, UV + offsetG).g;
-        float B = texture2D(colortex0, UV + offsetB).b;
-        vec3 color = SRGBtoLinear(vec3(R,G,B));
-
-    // -- get input buffer values -- //
-    #else
-        vec3 color = SRGBtoLinear(texture2D(colortex0, UV).rgb);
-    #endif
-
-    // -- quantization & dithering -- //
-    #if QUANTIZATION_TYPE > 0
-        // quantization
-        float quantization = QUANTIZATION_AMOUNT;
-        vec3 quantizedColor = floor(color * quantization) / quantization; // Reduce to 'quantization' levels per channel
-        
-        // dithering
-        #if QUANTIZATION_TYPE == 2
-            // get Bayer matrix value
-            ivec2 pixelPos = ivec2(gl_FragCoord.xy) % 4;
-            float threshold = (bayerMatrix[pixelPos.x][pixelPos.y] + 0.5) / 16.0;
-            // apply it
-            quantizedColor = mix(quantizedColor, quantizedColor + 1.0 / quantization, step(threshold, fract(color * quantization)));
+    // -- temporal anti aliasing -- //
+    #if TAA_TYPE > 0
+        float depth = texture2D(depthtex0, uv).r;
+        #if TAA_TYPE == 1
+            color = doTAA(uv, depth, color, colortex0, colortex3, colortex4, taaColorData, taaDepthData);
+        #else
+            color = doTAA(uv, depth, color, colortex0, colortex3, taaColorData);
         #endif
+    #endif
+    // wild effect
+    // {
+    //     vec4 taaData = texture2D(colortex3, uv);
+    //     vec3 previousColor = SRGBtoLinear(taaData.rgb);
+    //     color = mix(color, previousColor, 0.92);
+    // }
 
-        color = quantizedColor;
+    // -- apply bloom -- //
+    #if BLOOM_TYPE > 0
+        vec3 bloom = SRGBtoLinear(texture2D(colortex1, uv).rgb);
+        #if BLOOM_TYPE == 2
+            bloom = pow(bloom, 1.0 / vec3(1.75));
+        #endif
+        color += bloom * BLOOM_FACTOR;
     #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);

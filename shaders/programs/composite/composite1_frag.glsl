@@ -31,7 +31,7 @@ layout(location = 2) out vec4 depthOfFieldData;
 /**** bloom & depth of field : 1st pass ****/
 /*******************************************/
 void main() {
-    // -- depth of field -- //
+    // -- depth of field : 1st pass -- //
     #if DOF_TYPE > 0
         vec3 DOF = depthOfField(uv, colortex0, colortex2, DOF_RANGE, DOF_RESOLUTION, DOF_STD, DOF_KERNEL == 1, true, depthOfFieldData);
         colorData = vec4(linearToSRGB(DOF), 1.0);
@@ -39,14 +39,12 @@ void main() {
         colorData = texture2D(colortex0, uv);
     #endif
 
-    // -- bloom -- //
+    // -- bloom : 1st pass -- //
     #if BLOOM_TYPE == 1
         vec3 bloom = blur(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
         bloomData = linearToSRGB(bloom);
     #elif BLOOM_TYPE == 2
         vec3 bloom = bloom(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
         bloomData = linearToSRGB(bloom);
-    #elif BLOOM_TYPE == 3
-        bloomData = texture2D(colortex1, uv).rgb;
     #endif
 }

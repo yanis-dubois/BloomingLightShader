@@ -38,7 +38,7 @@ vec4 sampleShadow(vec3 shadowScreenPosition) {
     if (shadow0 < 1.0) {
         float shadow1 = shadow2D(shadowtex1, shadowScreenPosition.xyz).r;
         if (shadow1 < 1.0) {
-            shadowColor = vec4(vec3(0.0), 1.0);
+            shadowColor = vec4(vec3(shadow0), 1.0);
         } else {
             shadowColor = texture2D(shadowcolor0, shadowScreenPosition.xy);
         }
@@ -80,7 +80,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             blend = 1.0 + 19.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
 
             float range = SHADOW_RANGE; // how far away from the original position we take our samples from
-            // range *= blend; // increase range as the shadow is further away
+            range *= blend; // increase range as the shadow is further away
             float samples = SHADOW_SAMPLES;
             float step_length = range / samples; // distance between each sample
 
@@ -147,9 +147,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 }
             #endif
 
-            shadowAccum /= count;
-            // shadowAccum = pow(shadowAccum, vec4(1.5));
-            return shadowAccum;
+            return shadowAccum / count;
         #endif
     #endif
 }

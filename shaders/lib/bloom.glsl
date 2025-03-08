@@ -11,7 +11,7 @@ vec3 bloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution, 
     vec3 totalBloom = vec3(0.0);
 
     const int n = 2;
-    const int lodMin = 2;
+    const int lodMin = 3;
     const int lodMax = 7;
     for (int lod=lodMin; lod<=lodMax; ++lod) {
         float blurSize = pow(2.0, float(lod)) / n;

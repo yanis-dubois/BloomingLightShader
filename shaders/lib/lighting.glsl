@@ -13,13 +13,13 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
 
     // -- shadow -- //
     // offset position in normal direction (avoid self shadowing)
-    float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.1, 1.5);
+    float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.15, 0.9);
     // add noise to offset to reduce shadow acne
     float noise = pseudoRandom(uv + 0.14312 * frameTimeCounter);
     noise = map(noise, 0.0, 1.0, 0.5, 1.1);
     // apply offset
     vec3 offsetWorldSpacePosition = worldSpacePosition + noise * normal * offsetAmplitude;
-    // lowers shadows a bit for subsurface on foliage hhjh
+    // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
         offsetWorldSpacePosition.y += 0.2;
     // get shadow
@@ -54,7 +54,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
             float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
             directSkyLightIntensity = max(lightDirectionDotNormal, subsurface_fade);
             ambient_occlusion = smoothstep(0.0, 0.9, ambient_occlusion);
-            directSkyLightIntensity *= ambient_occlusion * (abs(lightDirectionDotNormal) * 0.5 + 0.5);
+            directSkyLightIntensity *= ambient_occlusion * map(abs(lightDirectionDotNormal), 0.0, 1.0, 0.2, 1.0);
         }
     #endif
     // reduce contribution if no ambiant sky light (avoid cave leak)
@@ -67,11 +67,8 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     directSkyLightIntensity *= map(faceTweak, 0.4, 0.8, 0.2, 1.0);
     // split toning
     #if SPLIT_TONING > 0
-        // skyLightColor = mix(skyLightColor, getShadowLightColor(), clamp(shadow.a, 0.0, 1.0));
-        vec3 splitToningTint = getLightness(skyLightColor) * getShadowLightColor();
-        // vec3 splitToningColor = mix(skyLightColor, splitToningTint, );
-        // skyLightColor = mix(skyLightColor, splitToningTint, clamp(shadow.a, 0.0, 1.0));
-        skyLightColor = mix(splitToningTint, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity * (1 - shadow.a)));
+        vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
+        skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity * (1 - shadow.a)));
     #endif
     // apply sky light color
     vec3 directSkyLight = directSkyLightIntensity * skyLightColor;

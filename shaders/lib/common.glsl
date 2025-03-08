@@ -9,7 +9,7 @@ const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // normal - bloom
 const int colortex2Format = RGBA8; // light & material - depth of field mask
 const int colortex3Format = RGB16F; // TAA - last frame color
-const int colortex4Format = R32F; // TAA - last frame depth depth
+const int colortex4Format = R32F; // TAA - last frame depth
 */
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
@@ -20,7 +20,7 @@ const bool colortex4Clear = false;
 // -- setup shadow map -- //
 
 const bool shadowHardwareFiltering = true;
-const int shadowMapResolution = 2048; // 1024 1536 2048
+const int shadowMapResolution = 1024; // 1024 1536 2048
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
@@ -63,8 +63,8 @@ const float sunPathRotation = 0.0;
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
 #define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
-#define VOLUMETRIC_LIGHT_MIN_SAMPLE 6
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 10
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
 #define VOLUMETRIC_LIGHT_INTENSITY 1
 
 // bloom
@@ -76,7 +76,7 @@ const float sunPathRotation = 0.0;
 #define BLOOM_FACTOR 2.0 // from 0=none to 1=too_much
 
 // depth of field
-#define DOF_TYPE 0 // 0=off 1=on
+#define DOF_TYPE 0 // 0=off 1=dynamic_focus 2=static_focus
 #define DOF_RANGE 0.005 // extent of the kernel
 #define DOF_RESOLUTION 1 // in [0;1], proportion of pixel to be sampled
 #define DOF_KERNEL 0 // 0=box 1=gaussian
