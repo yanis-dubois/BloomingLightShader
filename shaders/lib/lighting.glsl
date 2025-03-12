@@ -33,18 +33,21 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // -- lighting -- //
 
     // -- light factors
-    float ambientSkyLightFactor = isTransparent ? 0.6 : 0.6;
+    float ambientSkyLightFactor = 0.6;
     float ambientLightFactor = 0.007;
     float faceTweak = 1.0;
     float dayNightBlend = getDayNightBlend();
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
     faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
     faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
-    faceTweak = mix(faceTweak, 0.4, smoothstep(0.8, 0.9, (dot(normal, downDirection))));
+    faceTweak = mix(faceTweak, 0.4, smoothstep(0.8, 0.9, dot(normal, downDirection)));
     float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
 
     // -- direct sky light
     float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
+    if (isTransparent) {
+        directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
+    }
     // tweak for south and north facing fragment
     directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
     // subsurface scattering
@@ -118,6 +121,11 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         // add specular contribution
         color += specularFade * directSkyLight * specular;
     }
+    // -- fresnel
+    // if (isTransparent) {
+    //     float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+    //     transparency = max(transparency, fresnel);
+    // }
 
     // -- fog -- //
     color = foggify(color, worldSpacePosition);

@@ -1,4 +1,4 @@
-// hard TAA : soft shadows & anti aliasing, but may add a bit of blur
+// hard TAA : soft shadows & anti aliasing, but may add a bit of blur or ghosting
 vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D taaColorTexture, 
             out vec3 taaColorData) {
 

@@ -7,10 +7,15 @@ float schlick(float cosTheta, float F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
-    vec3 H = normalize(lightDirection + viewDirection);
-    float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
-    return schlick(VdotH, reflectance);
+// float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
+//     vec3 H = normalize(lightDirection + viewDirection);
+//     float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
+//     return schlick(VdotH, reflectance);
+// }
+
+float fresnel(vec3 viewDirection, vec3 normal, float reflectance) {
+    float VdotN = clamp(dot(viewDirection, normal), 0.001, 1.0);
+    return schlick(VdotN, reflectance);
 }
 
 // GGX normal distribution function

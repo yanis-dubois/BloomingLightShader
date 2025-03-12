@@ -17,7 +17,7 @@ vec3 getSkyLightColor() {
         // day time
         vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
         vec3 eyeSpaceMoonDirection = normalize(mat3(gbufferModelViewInverse) * moonPosition);
-        float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
+        float sunDotUp = dot(eyeSpaceSunDirection, upDirection); // highly redundant !!!!!!!!!!!!!!!!!!!!!!!!!!
         float moonDotUp = dot(eyeSpaceMoonDirection, upDirection);
 
         // sun light

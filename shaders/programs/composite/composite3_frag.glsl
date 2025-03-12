@@ -18,7 +18,7 @@
 // textures
 uniform sampler2D colortex0; // color
 uniform sampler2D colortex1; // bloom
-uniform sampler2D depthtex0; // depth all
+uniform sampler2D depthtex1; // depth opaque
 #if TAA_TYPE > 0
     uniform sampler2D colortex3; // TAA - last frame color
 #endif
@@ -53,7 +53,7 @@ void main() {
 
     // -- temporal anti aliasing -- //
     #if TAA_TYPE > 0
-        float depth = texture2D(depthtex0, uv).r;
+        float depth = texture2D(depthtex1, uv).r;
         #if TAA_TYPE == 1
             color = doTAA(uv, depth, color, colortex0, colortex3, colortex4, taaColorData, taaDepthData);
         #else

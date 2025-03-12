@@ -100,11 +100,11 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     }
 
     // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
-    if (id == 20012) {
-        smoothness = 0.25; // 0.45
-        reflectance = getReflectance(n1, 2.5);
-        ambient_occlusion = 0.9;
-    }
+    // if (id == 20012) {
+    //     smoothness = 0.25; // 0.45
+    //     reflectance = getReflectance(n1, 2.5);
+    //     ambient_occlusion = 0.9;
+    // }
     // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
 
     // -- subsurface & ao -- //
@@ -200,6 +200,12 @@ void main() {
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
     getMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
+    // opaque or transparent pass
+    #ifdef TRANSPARENT
+        bool isTransparent = true;
+    #else
+        bool isTransparent = false;
+    #endif
 
     // normal
     vec3 encodedNormal = encodeNormal(normal);
@@ -262,7 +268,7 @@ void main() {
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, false);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
     color.rgb = linearToSRGB(color.rgb);
 
     // -- buffers -- //
