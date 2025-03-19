@@ -3,20 +3,29 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/lightColor.glsl"
+#include "/lib/light_color.glsl"
 #include "/lib/sky.glsl"
 #include "/lib/fog.glsl"
 #include "/lib/animation.glsl"
 #include "/lib/shadow.glsl"
 #include "/lib/BRDF.glsl"
 #include "/lib/lighting.glsl"
+#ifdef TRANSPARENT
+    #include "/lib/reflection.glsl"
+#endif
 
 // uniforms
 uniform sampler2D gtexture;
 
+#ifdef TRANSPARENT
+    uniform sampler2D colortex4; // reflection (color)
+    uniform sampler2D colortex5; // reflection (emissivness)
+    uniform sampler2D depthtex1; // excludes transparent
+#endif
+
 // attributes
-in vec4 additionalColor; // foliage, water, particules albedo
-in vec3 normal;
+in vec4 additionalColor; // albedo of : foliage, water, particules
+in vec3 Vnormal;
 in vec3 unanimatedWorldPosition;
 in vec3 midBlock;
 in vec3 worldSpacePosition;
@@ -25,12 +34,12 @@ in vec2 lightMapCoordinate; // light map
 flat in int id;
 
 // results
-/* RENDERTARGETS: 0,1,2 */
+/* RENDERTARGETS: 0,1,5 */
 layout(location = 0) out vec4 colorData;
 layout(location = 1) out vec3 normalData;
 layout(location = 2) out vec4 lightAndMaterialData;
 
-void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
+void getMaterialData(int id, vec3 normal, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
     smoothness = 0.0;
     reflectance = 1.0;
     emissivness = 0.0;
@@ -53,7 +62,7 @@ void getMaterialData(int id, inout vec3 albedo, out float smoothness, out float 
     // metal
     else if (id == 20020) {
         smoothness = 0.75;
-        reflectance = getReflectance(n1, 3);
+        reflectance = getReflectance(n1, 3.0);
     }
     // polished
     else if (id == 20030 || id == 20031) {
@@ -149,13 +158,18 @@ const vec3[7] endPortalColors = vec3[](
 
 void main() {
     // retrieve data
+    vec2 uv = texelToScreen(gl_FragCoord.xy);
+    float depth = gl_FragCoord.z;
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
+    vec3 normal = Vnormal;
+
     // tweak transparency
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
+
     // apply red flash when mob are hitted
     albedo = mix(albedo, entityColor.rgb, entityColor.a); 
 
@@ -199,7 +213,7 @@ void main() {
 
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
-    getMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
+    getMaterialData(id, normal, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
     // opaque or transparent pass
     #ifdef TRANSPARENT
         bool isTransparent = true;
@@ -208,11 +222,9 @@ void main() {
     #endif
 
     // normal
-    vec3 encodedNormal = encodeNormal(normal);
     #ifdef PARTICLE 
-        encodedNormal = encodeNormal(-normalize(playerLookVector));
+        normal = -normalize(playerLookVector);
     #endif
-
     // animated normal
     #if VERTEX_ANIMATION == 2
         if (isAnimated(id) && smoothness > 0.5) {
@@ -233,7 +245,7 @@ void main() {
             vec3 viewDirection = normalize(cameraPosition - actualPosition);
             if (dot(viewDirection, newNormal) < 0.0) newNormal = normal;
 
-            encodedNormal = encodeNormal(newNormal);
+            normal = newNormal;
         }
     #endif 
 
@@ -269,10 +281,18 @@ void main() {
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
     vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
+
+    // -- reflection on transparent material -- //
+    #ifdef TRANSPARENT
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
+    #endif
+
+    // gamma correct
     color.rgb = linearToSRGB(color.rgb);
 
     // -- buffers -- //
     colorData = vec4(color);
-    normalData = encodedNormal;
+    normalData = encodeNormal(normal);
     lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
 }

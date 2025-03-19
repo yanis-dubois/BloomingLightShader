@@ -1,21 +1,3 @@
-// -- -- //
-vec4 addMatrixRows(mat4 matrix, int row1, int row2) {
-    return vec4(
-        matrix[0][row1] + matrix[0][row2],
-        matrix[1][row1] + matrix[1][row2],
-        matrix[2][row1] + matrix[2][row2],
-        matrix[3][row1] + matrix[3][row2]
-    );
-}
-vec4 subtractMatrixRows(mat4 matrix, int row1, int row2) {
-    return vec4(
-        matrix[0][row1] - matrix[0][row2],
-        matrix[1][row1] - matrix[1][row2],
-        matrix[2][row1] - matrix[2][row2],
-        matrix[3][row1] - matrix[3][row2]
-    );
-}
-
 // -- gamma correction -- //
 float SRGBtoLinear(float x) {
     return pow(x, gamma);
@@ -163,53 +145,6 @@ float gaussian(float x, float sigma) {
 }
 
 // -- very specific stuff -- //
-// find intersection between ray and frustum
-vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], vec3 planes_point[6]) {
-
-    // get intersections
-    bool hasIntersection[6];
-    vec3 intersections[6];
-    for (int i=0; i<6; ++i) {
-        hasIntersection[i] = true;
-
-        vec3 normal = planes_normal[i];
-        vec3 point = planes_point[i];
-
-        float denom = dot(normal, direction);
-        // segment parallel to the plane
-        if (denom < 1e-6) {
-            hasIntersection[i] = false;
-            continue;
-        }
-
-        // compute intersection
-        float t = - (dot(normal, (origin - point))) / denom;
-        if (t > 0.0) {
-            intersections[i] = origin + (t - 1e-2) * direction;
-        } else {
-            hasIntersection[i] = false;
-        }
-    }
-
-    // keep only intersections that are inside frustum
-    for (int i=0; i<6; ++i) {
-        if (!hasIntersection[i]) continue;
-
-        bool isInside = true;
-        for (int j=0; j<6; ++j) {
-            if (dot(-planes_normal[j], intersections[i] - planes_point[j]) < 0.0) {
-                isInside = false;
-                break;
-            }
-        }
-
-        if (isInside) {
-            return intersections[i];
-        }
-    }
-
-    return vec3(0.0);
-}
 // assure consistency for all screen size
 void prepareBlurLoop(float normalizedRange, float resolution, bool isFirstPass,
                     out float range, out float stepLength) {
@@ -223,10 +158,6 @@ void prepareBlurLoop(float normalizedRange, float resolution, bool isFirstPass,
     }
     float samples = pixels * resolution;
     stepLength = range / samples;
-}
-// 
-float perspectiveMix(float a, float b, float factor) {
-    return 1.0 / ( (1.0/a) + (factor * ((1.0/b) - (1.0/a))) );
 }
 // day-night transition
 float getDayNightBlend() {

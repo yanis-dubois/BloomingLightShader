@@ -7,15 +7,18 @@
 /*
 const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // normal - bloom
-const int colortex2Format = RGBA8; // light & material - depth of field mask
-const int colortex3Format = RGB16F; // TAA - last frame color
-const int colortex4Format = R32F; // TAA - last frame depth
+const int colortex2Format = RGB16F; // TAA - last frame color
+const int colortex3Format = R32F; // TAA - last frame depth
+const int colortex4Format = RGB16F; // deferred reflection color
+const int colortex5Format = RGBA8; // light & material - depth of field mask
+// -- 
 */
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
-const bool colortex2Clear = true;
+const bool colortex2Clear = false;
 const bool colortex3Clear = false;
-const bool colortex4Clear = false;
+const bool colortex4Clear = true;
+const bool colortex5Clear = true;
 
 // -- setup shadow map -- //
 
@@ -47,9 +50,9 @@ const float sunPathRotation = 0.0;
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 // Screen Space Reflection (SSR)
-#define SSR_TYPE 0 // 0=off 1=only_fresnel 2=SSR
+#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
 #define SSR_RESOLUTION 1 // from 0=low to 1=high
-#define SSR_STEPS 10 // from 0=none to inf=too_much
+#define SSR_MAX_STEPS 16 // from 0=none to inf=too_much
 #define SSR_THICKNESS 5 // from 0=too_precise to inf=awful
 
 // animation

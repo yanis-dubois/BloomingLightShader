@@ -1,4 +1,4 @@
-vec3 blur(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
+vec3 doBlur(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
 
     // no blur
     if (normalizedRange <= 0.0 || resolution <= 0.0)

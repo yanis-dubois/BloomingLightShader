@@ -16,7 +16,7 @@ in vec3 at_midBlock;
 
 // results
 out vec4 additionalColor;
-out vec3 normal;
+out vec3 Vnormal;
 out vec3 worldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
@@ -31,9 +31,9 @@ void main() {
     additionalColor = gl_Color;
 
     /* geometry infos */
-    normal = normalize(gl_NormalMatrix * gl_Normal);
+    Vnormal = normalize(gl_NormalMatrix * gl_Normal);
     // from view to world space
-    normal = mat3(gbufferModelViewInverse) * normal;
+    Vnormal = mat3(gbufferModelViewInverse) * Vnormal;
 
     id = int(mc_Entity.x);
     #ifdef TERRAIN

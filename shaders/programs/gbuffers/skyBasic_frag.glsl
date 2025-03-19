@@ -4,16 +4,16 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
-#include "/lib/lightColor.glsl"
+#include "/lib/light_color.glsl"
 #include "/lib/sky.glsl"
 
 // attribute
 in vec4 starData;
 
 // results
-/* RENDERTARGETS: 0,2 */
+/* RENDERTARGETS: 0,5 */
 layout(location = 0) out vec4 colorData;
-layout(location = 2) out vec4 lightAndMaterialData;
+layout(location = 1) out vec4 lightAndMaterialData;
 
 void main() {
 	vec3 albedo = vec3(0);

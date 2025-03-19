@@ -1,4 +1,4 @@
-vec3 depthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass, out vec4 DOFdata) {
+vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass, out vec4 DOFdata) {
 
     // no blur
     if (normalizedRange <= 0.0 || resolution <= 0.0)

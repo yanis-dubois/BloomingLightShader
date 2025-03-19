@@ -83,9 +83,7 @@ vec3 NDCToView(vec3 NDCPosition) {
 }
 
 vec3 viewToNDC(vec3 viewPosition) {
-    bool behind = viewPosition.z > 0;
     vec3 NDCPosition = projectAndDivide(gbufferProjection, viewPosition);
-    if (behind) NDCPosition.z = - (NDCPosition.z + 1.0) - 1.0;
     return NDCPosition;
 }
 
