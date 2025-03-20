@@ -35,7 +35,11 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 }
 
 // Cook Torrance BRDF
-vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, float reflectance) {
+vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance) {
+    bool isReflective = smoothness > 0.5;
+    smoothness = min(smoothness, 0.45);
+    float roughness = 1.0 - smoothness;
+
     vec3 H = normalize(V + L);
 
     float NdotV = dot(N, V);
@@ -52,10 +56,10 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float roughness, floa
     float F = schlick(VdotH, reflectance);
     float G = Smith_G(NdotV, NdotL, roughness);
 
-    vec3 transmittedColor = saturate(albedo, 1.3); transmittedColor = albedo;
-    transmittedColor = mix(transmittedColor, vec3(1.0), 0.05); // 0.075
+    vec3 specularColor = saturate(albedo, 1.3); specularColor = albedo;
+    specularColor = mix(specularColor, vec3(1.0), isReflective ? 0.1 : 0.05);
 
-    return 20.0 * transmittedColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
+    return 20.0 * specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
 
     // not used
     // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);

@@ -103,8 +103,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
     vec3 color = albedo * light;
     // -- specular
-    if (0.1 < smoothness && smoothness < 0.5) {
-        float roughness = 1.0 - smoothness;
+    if (0.1 < smoothness) {
         float specularFade = map(distanceFromCamera, endShadowDecrease * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
         vec3 specular = vec3(0.0);
 
@@ -116,19 +115,16 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         #endif
 
         // specular reflection
-        specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, roughness, reflectance);
+        specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
         // add specular contribution
         color += specularFade * directSkyLight * specular;
     }
     // -- fresnel
-    // if (isTransparent) {
-    //     float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
-    //     transparency = max(transparency, fresnel);
-    // }
-
-    // -- fog -- //
-    color = foggify(color, worldSpacePosition);
+    if (isTransparent) {
+        float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+        transparency = max(transparency, fresnel);
+    }
 
     return vec4(color, transparency);
 }

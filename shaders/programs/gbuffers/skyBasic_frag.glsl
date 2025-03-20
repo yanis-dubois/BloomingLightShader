@@ -21,7 +21,7 @@ void main() {
 	float emissivness = 0.0;
 
 	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 0.99999);
-	vec3 eyeSpacePosition = mat3(gbufferModelViewInverse) * viewSpacePosition;
+	vec3 eyeSpacePosition = viewToEye(normalize(viewSpacePosition));
 
 	#if SKY_TYPE == 1
 		// sky & stars
@@ -40,7 +40,7 @@ void main() {
 		}
 	#endif
 
-	/* buffers */
+	// buffers
     colorData = vec4(albedo, transparency);
 	lightAndMaterialData = vec4(0.0, emissivness, 0.0, 1.0);
 }

@@ -14,6 +14,7 @@ in vec2 uv;
 #include "/lib/space_conversion.glsl"
 #include "/lib/light_color.glsl"
 #include "/lib/sky.glsl"
+#include "/lib/fog.glsl"
 #include "/lib/BRDF.glsl"
 #include "/lib/reflection.glsl"
 

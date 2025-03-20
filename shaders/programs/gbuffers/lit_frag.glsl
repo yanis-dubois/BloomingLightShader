@@ -108,14 +108,6 @@ void getMaterialData(int id, vec3 normal, inout vec3 albedo, out float smoothnes
         }
     }
 
-    // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
-    // if (id == 20012) {
-    //     smoothness = 0.25; // 0.45
-    //     reflectance = getReflectance(n1, 2.5);
-    //     ambient_occlusion = 0.9;
-    // }
-    // -- TMP -- TMP -- TMP -- TMP -- TMP -- TMP -- //
-
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
         smoothness = 0.25; // 0.45
@@ -287,6 +279,9 @@ void main() {
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
     #endif
+
+    // -- fog -- //
+    color.rgb = foggify(color.rgb, worldSpacePosition);
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);

@@ -1,10 +1,12 @@
 void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater,
                         inout vec3 color) {
 
+    // if (depthAll == 1.0) return;
+
     vec3 skyLightColor = getSkyLightColor();
 
     // parameters
-    // float absorptionCoefficient = 0.0;
+    float absorptionCoefficient = 3.0;
     float scatteringCoefficient = 0.0;
     float sunIntensity = VOLUMETRIC_LIGHT_INTENSITY;
 
@@ -84,9 +86,11 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
         }
         vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
 
-        // compute inscattered light 
-        // float scattering = exp(-absorptionCoefficient * rayDistance);
+        // compute inscattered light
+        float normalizedRayDistance = min(rayDistance / far, 1.0);
+        float scattering = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
         vec3 inscatteredLight = shadowedLight * scatteringCoefficient * sunIntensity;
+        inscatteredLight *= scattering;
         // integrate over distance
         inscatteredLight *= randomizedStepSize;
         inscatteredLight *= getFogColor(isInWater);

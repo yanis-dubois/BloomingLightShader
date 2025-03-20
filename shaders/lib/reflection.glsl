@@ -147,18 +147,18 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
     float reflectionVisibility = schlick(viewDirectionDotNormal, reflectance);
     #ifdef TRANSPARENT
-        reflectionVisibility = pow(reflectionVisibility, 0.5);
+        reflectionVisibility = smoothstep(0.0, 0.6, reflectionVisibility);
     #endif
     if (reflectionVisibility <= 0.001)
         return vec4(0.0);
 
     // background color
-    float backgroundEmissivness; // TODO: use it
+    float backgroundEmissivness; // useless here
     vec3 outdoorBackground = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
     vec3 indoorBackGround = vec3(0.02);
     vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
     if (isEyeInWater==1) {
-        backgroundColor = indoorBackGround;
+        backgroundColor = SRGBtoLinear(getWaterFogColor());
     }
 
     // lite version (only fresnel)
@@ -179,11 +179,6 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     vec2 texelSpaceStartPosition = screenToTexel(screenSpaceStartPosition);
     vec2 texelSpaceEndPosition = screenToTexel(screenSpaceEndPosition);
     vec2 delta = texelSpaceEndPosition.xy - texelSpaceStartPosition.xy;
-
-    // avoid start position = end position
-    // if (delta.x == 0.0 && delta.y == 0.0) {
-    //     return reflection;
-    // }
 
     // determine the number of steps & their length
     float resolution = mix(0.1, SSR_RESOLUTION, smoothness*smoothness*smoothness);
@@ -296,10 +291,11 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         ? screenSpaceCurrentPosition 
         : screenSpaceEndPosition - texelToScreen(stepLength) * pseudoRandom(seed);
 
+    float finalPositionDepth = texture2D(depthTexture, screenSpaceFinalPosition.xy).r;
     vec3 playerSpaceHitPosition = screenToPlayer(
-                screenSpaceFinalPosition.xy, 
-                texture2D(depthTexture, screenSpaceFinalPosition.xy).r
-            );
+        screenSpaceFinalPosition.xy, 
+        finalPositionDepth
+    );
 
     // avoid handheld object reflection
     if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.5) {
@@ -324,9 +320,27 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // get reflection
     if (isValid) {
         reflection.rgb = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
+        float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
+
+        // underwater reflection
+        if (isEyeInWater==1) {
+            vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
+            // underwater sky box
+            if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
+                reflection.rgb = waterFogColor;
+            }
+            // attenuate reflection
+            else {
+                reflection.rgb = mix(reflection.rgb, waterFogColor, 0.5);
+            }
+        }
+
+        // sky box tweak
+        if (finalPositionDepth == 1.0 && emissivness == 0.0) {
+            reflection.rgb = backgroundColor;
+        }
 
         // enhance reflection of emissive objects
-        float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
         reflection.rgb += reflection.rgb * emissivness * 2.0;
     }
 
