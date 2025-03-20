@@ -50,7 +50,7 @@ void frustumPlane(out vec3 planes_normal[6], out vec3 planes_point[6]) {
 }
 
 // find intersection between ray and frustum
-vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], vec3 planes_point[6]) {
+vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], vec3 planes_point[6], out int index) {
 
     // get intersections
     bool hasIntersection[6];
@@ -90,6 +90,7 @@ vec3 rayFrustumIntersection(vec3 origin, vec3 direction, vec3 planes_normal[6], 
         }
 
         if (isInside) {
+            index = i;
             return intersections[i];
         }
     }
@@ -106,10 +107,10 @@ float perspectiveMix(float a, float b, float factor) {
 /******************* ssr *******************/
 /*******************************************/
 
-vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
 
     // perfectly rough material have no reflection
-    if (smoothness < 0.5 || isEyeInWater==1) {
+    if (smoothness < 0.5) {
         return vec4(0.0);
     }
 
@@ -119,8 +120,6 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     vec3 viewSpacePosition = screenToView(uv, depth);
     vec3 viewDirection = normalize(viewSpacePosition);
     vec3 viewSpaceNormal = eyeToView(normal);
-
-    // viewSpacePosition += 0.1 * viewSpaceNormal;
 
     // sample VNDF
     if (smoothness < 0.9) { // TODO: revoir ce threshold ?
@@ -147,14 +146,20 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // fresnel index
     float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
     float reflectionVisibility = schlick(viewDirectionDotNormal, reflectance);
+    #ifdef TRANSPARENT
+        reflectionVisibility = pow(reflectionVisibility, 0.5);
+    #endif
     if (reflectionVisibility <= 0.001)
         return vec4(0.0);
 
     // background color
     float backgroundEmissivness; // TODO: use it
-    vec3 backgroundColor = ambientSkyLightIntensity > 0.0
-        ? mix(vec3(0.0), SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness)), ambientSkyLightIntensity)
-        : vec3(0.0);
+    vec3 outdoorBackground = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
+    vec3 indoorBackGround = vec3(0.02);
+    vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
+    if (isEyeInWater==1) {
+        backgroundColor = indoorBackGround;
+    }
 
     // lite version (only fresnel)
     vec4 reflection = vec4(backgroundColor, reflectionVisibility);
@@ -162,10 +167,11 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // frustum planes
     vec3 planes_normal[6], planes_point[6];
     frustumPlane(planes_normal, planes_point);
+    int frustumPlaneIndex = -1;
 
     // define start & end search positions
     vec3 viewSpaceStartPosition = viewSpacePosition;
-    vec3 viewSpaceEndPosition = rayFrustumIntersection(viewSpaceStartPosition, reflectedDirection, planes_normal, planes_point);
+    vec3 viewSpaceEndPosition = rayFrustumIntersection(viewSpaceStartPosition, reflectedDirection, planes_normal, planes_point, frustumPlaneIndex);
     float startPositionDepth = viewSpaceStartPosition.z;
     float endPositionDepth = viewSpaceEndPosition.z;
     vec2 screenSpaceStartPosition = viewToScreen(viewSpaceStartPosition).xy;
@@ -204,7 +210,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // ray marching 1 : find intersection
     for (int i=0; i<stepsNumber; ++i) {
-        texelSpaceCurrentPosition += stepLength ;
+        texelSpaceCurrentPosition += stepLength;
         screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
         if (i == stepsNumber)
             screenSpaceCurrentPosition = screenSpaceEndPosition;
@@ -281,41 +287,65 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         }
     }
 
+    // ------------------ step 3 : adjustments and special cases ------------------ //
+
     // evalutate if reflection point is valid or not
     bool isValid = true;
     // current position for 2nd pass hitted : end position for other
-    vec2 screenSpaceFinalPosition = hitSecondPass ? screenSpaceCurrentPosition : screenSpaceEndPosition;
-    if (hitSecondPass) {
-        // restrict length of reflected ray that point towards the camera
-        if (reflectedDirectionDotZ < 0.0) {
-            vec3 hitPosition = screenToView(
+    vec2 screenSpaceFinalPosition = hitSecondPass 
+        ? screenSpaceCurrentPosition 
+        : screenSpaceEndPosition - texelToScreen(stepLength) * pseudoRandom(seed);
+
+    vec3 playerSpaceHitPosition = screenToPlayer(
                 screenSpaceFinalPosition.xy, 
                 texture2D(depthTexture, screenSpaceFinalPosition.xy).r
             );
-            float dist = distance(viewToWorld(hitPosition), viewToWorld(viewSpaceStartPosition));
-            if (dist > 2) isValid = false;
+
+    // avoid handheld object reflection
+    if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.5) {
+        isValid = false;
+    }
+
+    if (hitSecondPass) {
+        // restrict length of reflected ray that point towards the camera
+        if (reflectedDirectionDotZ < 0.0) {
+            if (distance(playerSpaceHitPosition, viewToPlayer(viewSpaceStartPosition)) > 2) {
+                isValid = false;
+            }
         }
     }
     else {
-        // invalid if reflected ray points towards the camera
-        if (reflectedDirectionDotZ < 0.0) {
+        // valid only if hitted the far frustum plane
+        if (frustumPlaneIndex != 5) {
             isValid = false;
         }
     }
 
     // get reflection
     if (isValid) {
-        vec4 colorData = texture2D(colorTexture, screenSpaceFinalPosition);
+        reflection.rgb = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
 
         // enhance reflection of emissive objects
         float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
-        reflection.rgb = colorData.rgb + colorData.rgb * emissivness * 2.0;
+        reflection.rgb += reflection.rgb * emissivness * 2.0;
     }
 
     // avoid abrupt transition
-    float fadeFactor = smoothstep(0.5, 0.92, 2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition));
+    float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
+    fadeFactor = pow(fadeFactor, 3.0);
     if (!isValid) fadeFactor = 1.0;
     reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
+
+    // debug
+    // vec3 col[6] = vec3[6](
+    //     vec3(1,0,0), // left : red
+    //     vec3(0,1,0), // right : green
+    //     vec3(0,0,1), // bottom : blue
+    //     vec3(1,1,0), // top : yellow
+    //     vec3(1,0,1), // near : magenta
+    //     vec3(0,1,1) // far : cyan
+    // );
+    // reflection.rgb = col[frustumPlaneIndex];
 
     return reflection;
 }

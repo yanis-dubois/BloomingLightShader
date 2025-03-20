@@ -284,7 +284,7 @@ void main() {
 
     // -- reflection on transparent material -- //
     #ifdef TRANSPARENT
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
     #endif
 

@@ -45,7 +45,7 @@ void main() {
         float depth = texture2D(depthtex0, uv).r;
 
         // apply reflection
-        vec4 reflection = doReflection(colortex0, colortex5, depthtex0, uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex0, colortex5, depthtex0, uv, depth, color, normal, ambientSkyLightIntensity, smoothness, reflectance);
         color = mix(color, reflection.rgb, reflection.a);
 
         // gamma correct

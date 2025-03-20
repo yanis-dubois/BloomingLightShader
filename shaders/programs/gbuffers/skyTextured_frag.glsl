@@ -12,7 +12,7 @@ in vec4 additionalColor; // foliage, water, particules
 in vec2 textureCoordinate; // immuable block & item
 
 // results
-/* RENDERTARGETS: 0,1 */
+/* RENDERTARGETS: 0,5 */
 layout(location = 0) out vec4 colorData;
 layout(location = 1) out vec4 lightAndMaterialData;
 
