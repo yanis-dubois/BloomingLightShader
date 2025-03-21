@@ -22,7 +22,7 @@ in vec2 uv;
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorData;
 
-#if SSR_TYPE > 0
+#if REFLECTION_TYPE > 0
     /* RENDERTARGETS: 0,4,5 */
     layout(location = 1) out vec4 reflectionColorData;
     layout(location = 2) out vec4 reflectionLightAndMaterialData;
@@ -34,7 +34,7 @@ layout(location = 0) out vec4 colorData;
 void main() {
 
     // -- reflection -- //
-    #if SSR_TYPE > 0
+    #if REFLECTION_TYPE > 0
         // retrieve data
         vec3 color = SRGBtoLinear(texture2D(colortex0, uv).rgb);
         vec3 normal = decodeNormal(texture2D(colortex1, uv).xyz);
@@ -46,8 +46,7 @@ void main() {
         float depth = texture2D(depthtex0, uv).r;
 
         // apply reflection
-        vec4 reflection = doReflection(colortex0, colortex5, depthtex0, uv, depth, color, normal, ambientSkyLightIntensity, smoothness, reflectance);
-        color = mix(color, reflection.rgb, reflection.a);
+        color.rgb = doReflection(colortex0, colortex5, depthtex0, uv, depth, color, normal, ambientSkyLightIntensity, smoothness, reflectance);
 
         // gamma correct
         color = linearToSRGB(color);

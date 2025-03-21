@@ -10,14 +10,14 @@
 #include "/lib/shadow.glsl"
 #include "/lib/BRDF.glsl"
 #include "/lib/lighting.glsl"
-#ifdef TRANSPARENT
+#if REFLECTION_TYPE > 0 && defined TRANSPARENT
     #include "/lib/reflection.glsl"
 #endif
 
 // uniforms
 uniform sampler2D gtexture;
 
-#ifdef TRANSPARENT
+#if REFLECTION_TYPE > 0 && defined TRANSPARENT
     uniform sampler2D colortex4; // reflection (color)
     uniform sampler2D colortex5; // reflection (emissivness)
     uniform sampler2D depthtex1; // excludes transparent
@@ -201,6 +201,7 @@ void main() {
     // weather smooth transition
     #ifdef WEATHER
         transparency *= rainStrength;
+        transparency = min(transparency, 0.2);
     #endif
 
     // material data
@@ -275,9 +276,8 @@ void main() {
     vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
 
     // -- reflection on transparent material -- //
-    #ifdef TRANSPARENT
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
-        color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
+    #if REFLECTION_TYPE > 0 && defined TRANSPARENT
+        color.rgb = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
     #endif
 
     // -- fog -- //

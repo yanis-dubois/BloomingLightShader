@@ -121,10 +121,12 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         color += specularFade * directSkyLight * specular;
     }
     // -- fresnel
-    if (isTransparent) {
-        float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
-        transparency = max(transparency, fresnel);
-    }
+    #if !defined WEATHER && !defined PARTICLE
+        if (isTransparent) {
+            float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+            transparency = max(transparency, fresnel);
+        }
+    #endif
 
     return vec4(color, transparency);
 }

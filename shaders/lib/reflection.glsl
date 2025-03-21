@@ -107,11 +107,52 @@ float perspectiveMix(float a, float b, float factor) {
 /******************* ssr *******************/
 /*******************************************/
 
-vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+bool SSR_secondPass(sampler2D depthTexture, vec2 texelSpaceStartPosition, vec2 texelSpaceEndPosition, float startPositionDepth, float endPositionDepth, float lastPosition, float currentPosition, 
+                    out vec2 screenSpaceFinalPosition) {
+    float lastTopPosition = lastPosition, lastUnderPosition = currentPosition;
+    float rayDepth, fragmentDepth, depthDifference;
+    vec2 texelSpaceCurrentPosition, screenSpaceCurrentPosition;
 
-    // perfectly rough material have no reflection
+    for (int i=0; i<4; ++i) {
+        texelSpaceCurrentPosition = mix(texelSpaceStartPosition, texelSpaceEndPosition, currentPosition);
+        screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
+
+        // depth at this uv coordinate
+        fragmentDepth = - screenToView(
+            screenSpaceCurrentPosition, 
+            texture2D(depthTexture, screenSpaceCurrentPosition).r
+        ).z;
+
+        // determine actual depth
+        rayDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
+
+        depthDifference = rayDepth - fragmentDepth;
+        if (-REFLECTION_THICKNESS < depthDifference && depthDifference < REFLECTION_THICKNESS) {
+            screenSpaceFinalPosition = screenSpaceCurrentPosition;
+            return true;
+        }
+
+        // adjust position
+        // if under depthmap 
+        if (rayDepth > fragmentDepth) {
+            lastUnderPosition = currentPosition;
+            currentPosition = (lastTopPosition + currentPosition) / 2.0;
+        }
+        // if above depthmap 
+        else {
+            lastTopPosition = currentPosition;
+            currentPosition = (lastUnderPosition + currentPosition) / 2.0;
+        }
+    }
+
+    return false;
+}
+
+vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+
+    // rough material have no reflection
     if (smoothness < 0.5) {
-        return vec4(0.0);
+        return color;
     }
 
     // ------------------ step 1 : preparation ------------------ //
@@ -147,16 +188,17 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
     float reflectionVisibility = schlick(viewDirectionDotNormal, reflectance);
     #ifdef TRANSPARENT
-        reflectionVisibility = smoothstep(0.0, 0.6, reflectionVisibility);
+        reflectionVisibility = 1.0 - pow(1.0 - reflectionVisibility, 2.0);
     #endif
     if (reflectionVisibility <= 0.001)
-        return vec4(0.0);
+        return color;
 
     // background color
     float backgroundEmissivness; // useless here
     vec3 outdoorBackground = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
     vec3 indoorBackGround = vec3(0.02);
     vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
+    backgroundColor = mix(indoorBackGround, outdoorBackground, smoothstep(-1.0, 0.0, dot(normal, upDirection)));
     if (isEyeInWater==1) {
         backgroundColor = SRGBtoLinear(getWaterFogColor());
     }
@@ -164,202 +206,190 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // lite version (only fresnel)
     vec4 reflection = vec4(backgroundColor, reflectionVisibility);
 
-    // frustum planes
-    vec3 planes_normal[6], planes_point[6];
-    frustumPlane(planes_normal, planes_point);
-    int frustumPlaneIndex = -1;
+    // only fresnel mod
+    #if REFLECTION_TYPE == 1
+        return mix(color, reflection.rgb, reflection.a);
+    #else
 
-    // define start & end search positions
-    vec3 viewSpaceStartPosition = viewSpacePosition;
-    vec3 viewSpaceEndPosition = rayFrustumIntersection(viewSpaceStartPosition, reflectedDirection, planes_normal, planes_point, frustumPlaneIndex);
-    float startPositionDepth = viewSpaceStartPosition.z;
-    float endPositionDepth = viewSpaceEndPosition.z;
-    vec2 screenSpaceStartPosition = viewToScreen(viewSpaceStartPosition).xy;
-    vec2 screenSpaceEndPosition = viewToScreen(viewSpaceEndPosition).xy;
-    vec2 texelSpaceStartPosition = screenToTexel(screenSpaceStartPosition);
-    vec2 texelSpaceEndPosition = screenToTexel(screenSpaceEndPosition);
-    vec2 delta = texelSpaceEndPosition.xy - texelSpaceStartPosition.xy;
+        // frustum planes
+        vec3 planes_normal[6], planes_point[6];
+        frustumPlane(planes_normal, planes_point);
+        int frustumPlaneIndex = -1;
 
-    // determine the number of steps & their length
-    float resolution = mix(0.1, SSR_RESOLUTION, smoothness*smoothness*smoothness);
-    resolution = clamp(resolution, 0.0, 1.0);
-    float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1.0 : 0.0;
-    int stepsNumber = int(max(abs(delta.x), abs(delta.y)) * resolution);
-    stepsNumber = min(stepsNumber, SSR_MAX_STEPS);
-    vec2 stepLength = delta / stepsNumber;
+        // define start & end search positions
+        vec3 viewSpaceStartPosition = viewSpacePosition;
+        vec3 viewSpaceEndPosition = rayFrustumIntersection(viewSpaceStartPosition, reflectedDirection, planes_normal, planes_point, frustumPlaneIndex);
+        float startPositionDepth = viewSpaceStartPosition.z;
+        float endPositionDepth = viewSpaceEndPosition.z;
+        vec2 screenSpaceStartPosition = viewToScreen(viewSpaceStartPosition).xy;
+        vec2 screenSpaceEndPosition = viewToScreen(viewSpaceEndPosition).xy;
+        vec2 texelSpaceStartPosition = screenToTexel(screenSpaceStartPosition);
+        vec2 texelSpaceEndPosition = screenToTexel(screenSpaceEndPosition);
+        vec2 delta = texelSpaceEndPosition.xy - texelSpaceStartPosition.xy;
 
-    // position used during the intersection search 
-    // (factor of linear interpolation between start and end positions)
-    float lastPosition = 0.0, currentPosition = 0.0;
+        // determine the number of steps & their length
+        float resolution = mix(0.1, REFLECTION_RESOLUTION, smoothness*smoothness*smoothness);
+        resolution = clamp(resolution, 0.0, 1.0);
+        float isXtheLargestDimmension = abs(delta.x) > abs(delta.y) ? 1.0 : 0.0;
+        int stepsNumber = int(max(abs(delta.x), abs(delta.y)) * resolution);
+        stepsNumber = min(stepsNumber, REFLECTION_MAX_STEPS);
+        vec2 stepLength = delta / stepsNumber;
 
-    // initialize some variable
-    vec2 seed = uv + 0.1 * frameTimeCounter;
-    vec2 texelSpaceCurrentPosition = texelSpaceStartPosition;
-    texelSpaceCurrentPosition += stepLength * pseudoRandom(seed);
-    vec2 screenSpaceCurrentPosition = screenSpaceStartPosition;
-    float rayDepth = startPositionDepth;
-    float fragmentDepth = startPositionDepth;
-    bool hitFirstPass = false, hitSecondPass = false;
+        // position used during the intersection search 
+        // (factor of linear interpolation between start and end positions)
+        float lastPosition = 0.0, currentPosition = 0.0;
 
-    // ------------------ step 2 : find reflection ------------------ //
+        // initialize some variable
+        vec2 seed = uv + 0.1 * frameTimeCounter;
+        vec2 texelSpaceCurrentPosition = texelSpaceStartPosition;
+        texelSpaceCurrentPosition += stepLength * pseudoRandom(seed);
+        vec2 screenSpaceCurrentPosition = screenSpaceStartPosition;
+        float rayDepth = startPositionDepth;
+        float fragmentDepth = startPositionDepth;
+        bool hitFirstPass = false, hitSecondPass = false;
 
-    // ray marching 1 : find intersection
-    for (int i=0; i<stepsNumber; ++i) {
-        texelSpaceCurrentPosition += stepLength;
-        screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
-        if (i == stepsNumber)
-            screenSpaceCurrentPosition = screenSpaceEndPosition;
+        #if REFLECTION_TYPE == 2
+            vec2 screenSpaceFinalPosition = screenSpaceEndPosition;
+        #else
 
-        if (!isInRange(screenSpaceCurrentPosition, 0.0, 1.0)) {
-            break;
-        }
+            // ------------------ step 2 : find reflection ------------------ //
 
-        // depth at this uv coordinate
-        fragmentDepth = - screenToView(
-            screenSpaceCurrentPosition, 
-            texture2D(depthTexture, screenSpaceCurrentPosition).r
-        ).z;
+            // ray marching 1 : find intersection
+            for (int i=0; i<stepsNumber; ++i) {
+                texelSpaceCurrentPosition += stepLength;
+                screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
+                if (i == stepsNumber)
+                    screenSpaceCurrentPosition = screenSpaceEndPosition;
 
-        // percentage of progression on the line
-        currentPosition = mix(
-            (texelSpaceCurrentPosition.y - texelSpaceStartPosition.y) / delta.y,
-            (texelSpaceCurrentPosition.x - texelSpaceStartPosition.x) / delta.x,
-            isXtheLargestDimmension
+                if (!isInRange(screenSpaceCurrentPosition, 0.0, 1.0)) {
+                    break;
+                }
+
+                // depth at this uv coordinate
+                fragmentDepth = - screenToView(
+                    screenSpaceCurrentPosition, 
+                    texture2D(depthTexture, screenSpaceCurrentPosition).r
+                ).z;
+
+                // percentage of progression on the line
+                currentPosition = mix(
+                    (texelSpaceCurrentPosition.y - texelSpaceStartPosition.y) / delta.y,
+                    (texelSpaceCurrentPosition.x - texelSpaceStartPosition.x) / delta.x,
+                    isXtheLargestDimmension
+                );
+
+                // determine actual depth
+                if (startPositionDepth < endPositionDepth) {
+                    rayDepth = - perspectiveMix(endPositionDepth, startPositionDepth, (1-currentPosition));
+                }
+                else {
+                    rayDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
+                }
+
+                // hit surface
+                if (rayDepth > fragmentDepth) {
+                    vec2 resultingPosition;
+                    hitSecondPass = SSR_secondPass(
+                        depthTexture, 
+                        texelSpaceStartPosition, 
+                        texelSpaceEndPosition, 
+                        startPositionDepth, 
+                        endPositionDepth, 
+                        lastPosition, 
+                        currentPosition, 
+                        resultingPosition
+                    );
+
+                    if (hitSecondPass) {
+                        screenSpaceCurrentPosition = resultingPosition;
+                        break;
+                    }  
+                }
+
+                lastPosition = currentPosition;
+            }
+
+            // ------------------ step 3 : adjustments and special cases ------------------ //
+
+            // current position for 2nd pass hitted : end position for other
+            vec2 screenSpaceFinalPosition = hitSecondPass 
+                ? screenSpaceCurrentPosition 
+                : screenSpaceEndPosition - texelToScreen(stepLength) * pseudoRandom(seed);
+        #endif
+
+        // evalutate if reflection point is valid or not
+        bool isValid = true;
+
+        float finalPositionDepth = texture2D(depthTexture, screenSpaceFinalPosition.xy).r;
+        vec3 playerSpaceHitPosition = screenToPlayer(
+            screenSpaceFinalPosition.xy, 
+            finalPositionDepth
         );
 
-        // determine actual depth
-        if (startPositionDepth < endPositionDepth) {
-            rayDepth = - perspectiveMix(endPositionDepth, startPositionDepth, (1-currentPosition));
+        // avoid handheld object reflection
+        if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.5) {
+            isValid = false;
+        }
+
+        if (hitSecondPass) {
+            // restrict length of reflected ray that point towards the camera
+            if (reflectedDirectionDotZ < 0.0) {
+                if (distance(playerSpaceHitPosition, viewToPlayer(viewSpaceStartPosition)) > 2) {
+                    isValid = false;
+                }
+            }
         }
         else {
-            rayDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
-        }
-
-        // hit surface
-        if (rayDepth > fragmentDepth) {
-            hitFirstPass = true;
-            break;
-        }
-
-        lastPosition = currentPosition;
-    }
-
-    float lastTopPosition = lastPosition, lastUnderPosition = currentPosition;
-    float depthDifference = 0.0;
-
-    // ray marching 2 : adjust position
-    if (hitFirstPass) {
-        for (int i=0; i<10; ++i) {
-            texelSpaceCurrentPosition = mix(texelSpaceStartPosition, texelSpaceEndPosition, currentPosition);
-            screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
-
-            // depth at this uv coordinate
-            fragmentDepth = - screenToView(
-                screenSpaceCurrentPosition, 
-                texture2D(depthTexture, screenSpaceCurrentPosition).r
-            ).z;
-
-            // determine actual depth
-            rayDepth = - perspectiveMix(startPositionDepth, endPositionDepth, currentPosition);
-
-            depthDifference = rayDepth - fragmentDepth;
-            if (-SSR_THICKNESS < depthDifference && depthDifference < SSR_THICKNESS) {
-                hitSecondPass = true;
-                break;
-            }
-
-            // adjust position
-            // if under depthmap 
-            if (rayDepth > fragmentDepth) {
-                lastUnderPosition = currentPosition;
-                currentPosition = (lastTopPosition + currentPosition) / 2.0;
-            }
-            // if above depthmap 
-            else {
-                lastTopPosition = currentPosition;
-                currentPosition = (lastUnderPosition + currentPosition) / 2.0;
-            }
-        }
-    }
-
-    // ------------------ step 3 : adjustments and special cases ------------------ //
-
-    // evalutate if reflection point is valid or not
-    bool isValid = true;
-    // current position for 2nd pass hitted : end position for other
-    vec2 screenSpaceFinalPosition = hitSecondPass 
-        ? screenSpaceCurrentPosition 
-        : screenSpaceEndPosition - texelToScreen(stepLength) * pseudoRandom(seed);
-
-    float finalPositionDepth = texture2D(depthTexture, screenSpaceFinalPosition.xy).r;
-    vec3 playerSpaceHitPosition = screenToPlayer(
-        screenSpaceFinalPosition.xy, 
-        finalPositionDepth
-    );
-
-    // avoid handheld object reflection
-    if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.5) {
-        isValid = false;
-    }
-
-    if (hitSecondPass) {
-        // restrict length of reflected ray that point towards the camera
-        if (reflectedDirectionDotZ < 0.0) {
-            if (distance(playerSpaceHitPosition, viewToPlayer(viewSpaceStartPosition)) > 2) {
+            // valid only if hitted the far frustum plane
+            if (frustumPlaneIndex != 5) {
                 isValid = false;
             }
         }
-    }
-    else {
-        // valid only if hitted the far frustum plane
-        if (frustumPlaneIndex != 5) {
-            isValid = false;
-        }
-    }
 
-    // get reflection
-    if (isValid) {
-        reflection.rgb = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
-        float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
+        // get reflection
+        if (isValid) {
+            reflection.rgb = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
+            float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
 
-        // underwater reflection
-        if (isEyeInWater==1) {
-            vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
-            // underwater sky box
-            if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
-                reflection.rgb = waterFogColor;
+            // underwater reflection
+            if (isEyeInWater==1) {
+                vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
+                // underwater sky box
+                if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
+                    reflection.rgb = waterFogColor;
+                }
+                // attenuate reflection
+                else {
+                    reflection.rgb = mix(reflection.rgb, waterFogColor, 0.5);
+                }
             }
-            // attenuate reflection
-            else {
-                reflection.rgb = mix(reflection.rgb, waterFogColor, 0.5);
+
+            // sky box tweak
+            if (finalPositionDepth == 1.0 && emissivness == 0.0) {
+                reflection.rgb = backgroundColor;
             }
+
+            // enhance reflection of emissive objects
+            reflection.rgb += reflection.rgb * emissivness * 2.0;
         }
 
-        // sky box tweak
-        if (finalPositionDepth == 1.0 && emissivness == 0.0) {
-            reflection.rgb = backgroundColor;
-        }
+        // avoid abrupt transition
+        float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
+        fadeFactor = pow(fadeFactor, 3.0);
+        if (!isValid) fadeFactor = 1.0;
+        reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
 
-        // enhance reflection of emissive objects
-        reflection.rgb += reflection.rgb * emissivness * 2.0;
-    }
+        // debug
+        // vec3 col[6] = vec3[6](
+        //     vec3(1,0,0), // left : red
+        //     vec3(0,1,0), // right : green
+        //     vec3(0,0,1), // bottom : blue
+        //     vec3(1,1,0), // top : yellow
+        //     vec3(1,0,1), // near : magenta
+        //     vec3(0,1,1) // far : cyan
+        // );
+        // reflection.rgb = col[frustumPlaneIndex];
 
-    // avoid abrupt transition
-    float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
-    fadeFactor = pow(fadeFactor, 3.0);
-    if (!isValid) fadeFactor = 1.0;
-    reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
-
-    // debug
-    // vec3 col[6] = vec3[6](
-    //     vec3(1,0,0), // left : red
-    //     vec3(0,1,0), // right : green
-    //     vec3(0,0,1), // bottom : blue
-    //     vec3(1,1,0), // top : yellow
-    //     vec3(1,0,1), // near : magenta
-    //     vec3(0,1,1) // far : cyan
-    // );
-    // reflection.rgb = col[frustumPlaneIndex];
-
-    return reflection;
+        return mix(color, reflection.rgb, reflection.a);
+    #endif
 }

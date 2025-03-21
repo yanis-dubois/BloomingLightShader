@@ -49,11 +49,12 @@ const float sunPathRotation = 0.0;
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic)
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
-// Screen Space Reflection (SSR)
-#define SSR_TYPE 2 // 0=off 1=only_fresnel 2=SSR
-#define SSR_RESOLUTION 0.5 // from 0=low to 1=high
-#define SSR_MAX_STEPS 16 // from 0=none to inf=too_much
-#define SSR_THICKNESS 5 // from 0=too_precise to inf=awful
+// Screen Space Reflection
+#define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
+#define REFLECTION_BLUR_TYPE 0 // 0=LOD 1=VNDF
+#define REFLECTION_RESOLUTION 1 // from 0=low to 1=high 0.5
+#define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much 16
+#define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
 
 // animation
 #define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
