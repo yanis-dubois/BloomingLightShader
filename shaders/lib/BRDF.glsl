@@ -37,7 +37,7 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 // Cook Torrance BRDF
 vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance) {
     bool isReflective = smoothness > 0.5;
-    smoothness = min(smoothness, 0.45);
+    smoothness = min(smoothness, 0.5);
     float roughness = 1.0 - smoothness;
 
     vec3 H = normalize(V + L);

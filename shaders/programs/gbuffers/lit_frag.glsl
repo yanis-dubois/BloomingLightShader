@@ -135,6 +135,13 @@ void getMaterialData(int id, vec3 normal, inout vec3 albedo, out float smoothnes
             ambient_occlusion = distance(vec3(0), objectSpacePosition);
         }
     }
+
+    // -- porosity -- //
+    // if (20030 < id && id < 30000) {
+    //     float porosityFactor = 0.6;
+    //     smoothness = max(smoothness, mix(smoothness, 0.9 * porosityFactor, rainStrength));
+    //     reflectance = max(reflectance, mix(reflectance, getReflectance(1.0, 1.33) * porosityFactor, rainStrength));
+    // }
 }
 
 // end portal texture colors
@@ -281,7 +288,7 @@ void main() {
     #endif
 
     // -- fog -- //
-    color.rgb = foggify(color.rgb, worldSpacePosition);
+    foggify(worldSpacePosition, color.rgb, emissivness);
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);

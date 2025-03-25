@@ -36,10 +36,16 @@ void main() {
     float depthAll = texture2D(depthtex0, uv).r;
     float depthOpaque = texture2D(depthtex1, uv).r;
 
+    #if BLOOM_TYPE > 0
+        float emissivness = texture2D(colortex5, uv).g;
+    #else
+        float emissivness = 0.0;
+    #endif
+
     // apply underwater fog on sky box after water rendering
     if (isEyeInWater == 1 && depthAll == 1.0) {
         vec3 worldSpacePosition = screenToWorld(uv, depthAll);
-        color = foggify(color, worldSpacePosition);
+        foggify(worldSpacePosition, color, emissivness);
     }
 
     // -- volumetric light -- //
@@ -54,7 +60,6 @@ void main() {
 
     // -- bloom buffer -- //
     #if BLOOM_TYPE > 0
-        float emissivness = texture2D(colortex5, uv).g;
         float lightness = getLightness(color);
 
         vec3 bloom = color * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);

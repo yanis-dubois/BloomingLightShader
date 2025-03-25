@@ -55,6 +55,9 @@ vec3 hsvToRgb(vec3 c) {
 }
 
 // -- random generator -- //
+float pseudoRandom(float pos) {
+    return fract(sin(pos * 31.9428) * 91832.19424);
+}
 float pseudoRandom(vec2 pos) {
     return fract(sin(dot(pos, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -219,11 +222,14 @@ bool isLeaves(int id) {
     return id == 10030;
 }
 bool isVines(int id) {
+    return id == 10032;
+}
+bool isHangingMoss(int id) {
     return id == 10031;
 }
 // leaves & vines
 bool isFoliage(int id) {
-    return isLeaves(id) || isVines(id);
+    return isLeaves(id) || isHangingMoss(id) || isVines(id);
 }
 // bamboo, pumpkin & melon
 bool isSolidFoliage(int id) {

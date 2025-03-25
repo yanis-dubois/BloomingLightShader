@@ -52,9 +52,9 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
     // subsurface scattering
     #if SUBSURFACE_TYPE == 1
+        float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
         // subsurface diffuse part
         if (ambient_occlusion > 0.0) {
-            float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
             directSkyLightIntensity = max(lightDirectionDotNormal, subsurface_fade);
             ambient_occlusion = smoothstep(0.0, 0.9, ambient_occlusion);
             directSkyLightIntensity *= ambient_occlusion * map(abs(lightDirectionDotNormal), 0.0, 1.0, 0.2, 1.0);
@@ -110,7 +110,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         // subsurface transmission highlight
         #if SUBSURFACE_TYPE == 1
             if (ambient_occlusion > 0.0) {
-                specular = specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
+                specular = specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
             }
         #endif
 
@@ -118,7 +118,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
         // add specular contribution
-        color += specularFade * directSkyLight * specular;
+        color += directSkyLight * specular;
     }
     // -- fresnel
     #if !defined WEATHER && !defined PARTICLE

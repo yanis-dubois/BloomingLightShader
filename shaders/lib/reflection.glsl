@@ -186,11 +186,11 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // fresnel index
     float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
-    float reflectionVisibility = schlick(viewDirectionDotNormal, reflectance);
+    float fresnel = schlick(viewDirectionDotNormal, reflectance);
     #ifdef TRANSPARENT
-        reflectionVisibility = 1.0 - pow(1.0 - reflectionVisibility, 2.0);
+        fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
     #endif
-    if (reflectionVisibility <= 0.001)
+    if (fresnel <= 0.001)
         return color;
 
     // background color
@@ -204,11 +204,11 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     }
 
     // lite version (only fresnel)
-    vec4 reflection = vec4(backgroundColor, reflectionVisibility);
+    vec3 reflection = backgroundColor;
 
     // only fresnel mod
     #if REFLECTION_TYPE == 1
-        return mix(color, reflection.rgb, reflection.a);
+        return mix(color, reflection, fresnel);
     #else
 
         // frustum planes
@@ -348,7 +348,7 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
         // get reflection
         if (isValid) {
-            reflection.rgb = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
+            reflection = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
             float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
 
             // underwater reflection
@@ -356,28 +356,28 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
                 // underwater sky box
                 if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
-                    reflection.rgb = waterFogColor;
+                    reflection = waterFogColor;
                 }
                 // attenuate reflection
                 else {
-                    reflection.rgb = mix(reflection.rgb, waterFogColor, 0.5);
+                    reflection = mix(reflection, waterFogColor, 0.5);
                 }
             }
 
             // sky box tweak
             if (finalPositionDepth == 1.0 && emissivness == 0.0) {
-                reflection.rgb = backgroundColor;
+                reflection = backgroundColor;
             }
 
             // enhance reflection of emissive objects
-            reflection.rgb += reflection.rgb * emissivness * 2.0;
+            reflection += reflection * emissivness * 2.0;
         }
 
         // avoid abrupt transition
         float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
         fadeFactor = pow(fadeFactor, 3.0);
         if (!isValid) fadeFactor = 1.0;
-        reflection.rgb = mix(reflection.rgb, backgroundColor, fadeFactor);
+        reflection = mix(reflection, backgroundColor, fadeFactor);
 
         // debug
         // vec3 col[6] = vec3[6](
@@ -388,8 +388,8 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         //     vec3(1,0,1), // near : magenta
         //     vec3(0,1,1) // far : cyan
         // );
-        // reflection.rgb = col[frustumPlaneIndex];
+        // reflection = col[frustumPlaneIndex];
 
-        return mix(color, reflection.rgb, reflection.a);
+        return mix(color, reflection, fresnel);
     #endif
 }

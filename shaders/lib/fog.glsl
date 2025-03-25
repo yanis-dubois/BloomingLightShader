@@ -14,8 +14,8 @@ vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
     return getSkyColor(eyeSpacePosition, true, _);
 }
 
-const float minimumFogDensity = 0.5;
-const float maximumFogDensity = 3.0;
+const float minimumFogDensity = 0.5; // 0.5
+const float maximumFogDensity = 3.0; // 3.0
 float getFogDensity(float worldSpaceHeight, bool isInWater) {
     if (isInWater) return maximumFogDensity;
 
@@ -41,10 +41,12 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
 }
 
 float getFogAmount(float normalizedLinearDepth, float fogDensity) {
-    return 1.0 - pow(2.0, - pow((normalizedLinearDepth * fogDensity), 2.0));
+    // return smoothstep(0, 1.0, normalizedLinearDepth);
+    // return 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity)) * (1.0 - normalizedLinearDepth);
+    return 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
 }
 
-vec3 foggify(vec3 color, vec3 worldSpacePosition) {
+void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
 
     // normalized linear depth
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
@@ -60,17 +62,20 @@ vec3 foggify(vec3 color, vec3 worldSpacePosition) {
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
         color = mix(color, fogColor, vanillaFogBlend);
+        emissivness = mix(emissivness, 0.0, vanillaFogBlend);
+
     // custom fog
     #elif FOG_TYPE == 2
         // exponential function
         float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater == 1);
         float exponentialFog = getFogAmount(normalizedLinearDepth, fogDensity);
         color = mix(color, fogColor, exponentialFog);
+        emissivness = mix(emissivness, 0.0, exponentialFog);
+
         // linear function (for the end)
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float linearFog = map(distanceFromCameraXZ, far-16.0, far, 0.0, 1.0);
         color = mix(color, fogColor, linearFog);
+        emissivness = mix(emissivness, 0.0, linearFog);
     #endif
-
-    return color;
 }
