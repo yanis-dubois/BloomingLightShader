@@ -195,13 +195,12 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // background color
     float backgroundEmissivness; // useless here
-    vec3 outdoorBackground = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
-    vec3 indoorBackGround = vec3(0.02);
+    vec3 outdoorBackground = isEyeInWater==0 
+        ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
+        : SRGBtoLinear(getWaterFogColor());
+    if (normal.y < -0.1) outdoorBackground *= 0.5;
+    vec3 indoorBackGround = vec3(0.0);
     vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
-    backgroundColor = mix(indoorBackGround, outdoorBackground, smoothstep(-1.0, 0.0, dot(normal, upDirection)));
-    if (isEyeInWater==1) {
-        backgroundColor = SRGBtoLinear(getWaterFogColor());
-    }
 
     // lite version (only fresnel)
     vec3 reflection = backgroundColor;
@@ -344,6 +343,9 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
             if (frustumPlaneIndex != 5) {
                 isValid = false;
             }
+            if (finalPositionDepth < depth) {
+                isValid = false;
+            }
         }
 
         // get reflection
@@ -357,23 +359,31 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 // underwater sky box
                 if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
                     reflection = waterFogColor;
+                    emissivness = 0.0;
                 }
                 // attenuate reflection
                 else {
-                    reflection = mix(reflection, waterFogColor, 0.5);
+                    reflection = mix(reflection, waterFogColor * ambientSkyLightIntensity, 0.5);
                 }
             }
 
             // sky box tweak
-            if (finalPositionDepth == 1.0 && emissivness == 0.0) {
-                reflection = backgroundColor;
+            if (finalPositionDepth == 1.0) {
+                if (emissivness == 0.0) {
+                    reflection = backgroundColor;
+                }
+            }
+            else {
+                vec3 worldSpacePosition = playerToWorld(playerSpaceHitPosition);
+                float _;
+                foggify(worldSpacePosition, backgroundColor, reflection, _);
             }
 
             // enhance reflection of emissive objects
             reflection += reflection * emissivness * 2.0;
         }
 
-        // avoid abrupt transition
+        // avoid abrupt transition between valid & non-valid reflection
         float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
         fadeFactor = pow(fadeFactor, 3.0);
         if (!isValid) fadeFactor = 1.0;
@@ -390,6 +400,7 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // );
         // reflection = col[frustumPlaneIndex];
 
+        // return mix(color, reflection, 1);
         return mix(color, reflection, fresnel);
     #endif
 }

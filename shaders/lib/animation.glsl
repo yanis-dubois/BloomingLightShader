@@ -42,7 +42,7 @@ float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
     return amplitude * snoise_3D(seed);
 }
 
-vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
+vec3 doWaterAnimation(float time, vec3 worldSpacePosition, vec3 midBlock) {
     float amplitude = 1.0 / 32.0;
     float speed = time * 0.25;
     vec3 seed = vec3(worldSpacePosition.xz/20.0, 0.0) + speed;
@@ -80,8 +80,11 @@ vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id
 }
 
 vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock) {
+    midBlock /= 64.0; // from [32;-32] to [0.5;-0.5] 
+    midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
+
     if (isLiquid(id))
-        return doWaterAnimation(time, worldSpacePosition);
+        return doWaterAnimation(time, worldSpacePosition, midBlock);
     if (isFoliage(id))
         return doLeafAnimation(id, time, worldSpacePosition);
     if (isUnderGrowth(id))

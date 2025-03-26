@@ -21,7 +21,7 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.xyz * additionalColor.xyz;
     // transparency
-    float transparency = mix(1.0, 0.5, rainStrength);
+    float transparency = mix(1.0, 0.1, rainStrength);
     if (transparency < alphaTestRef) discard;
 
     // frag position

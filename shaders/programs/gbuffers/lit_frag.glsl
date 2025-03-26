@@ -169,6 +169,11 @@ void main() {
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
+   // avoid seeing water top surface when underwater
+    if (isEyeInWater == 1 && id == 20000 && normal.y > 0.1) {
+        discard;
+    }
+
     // apply red flash when mob are hitted
     albedo = mix(albedo, entityColor.rgb, entityColor.a); 
 

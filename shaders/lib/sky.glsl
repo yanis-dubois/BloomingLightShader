@@ -43,10 +43,6 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     // sky light color
     vec3 skylightColor = getSkyLightColor();
 
-    // fog color
-    vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
-    fogColor = vec3(getLightness(skylightColor));
-
     // -- base color -- //
     // day gradient
     vec3 dayColor = mix(dayDownColor, dayMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
@@ -80,6 +76,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     skyColor = mix(skyColor, rainyColor, rainStrength);
 
     // -- horizon fog -- //
+    vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
+    fogColor = vec3(getLightness(skylightColor));
     float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
     skyColor = mix(skyColor, fogColor, horizonFactor);
 

@@ -300,9 +300,6 @@ bool animatedLight_isLow(int id) {
 
 // offset midBlock coordinate to make the root of foliage the origin
 vec3 midBlockToRoot(int id, vec3 midBlock) {
-    midBlock /= 64.0;
-
-    midBlock.y = -1.0 * midBlock.y + 0.5;
     if (isSmall(id)) midBlock.y *= 2.0;
     else if (isTiny(id)) midBlock.y *= 4.0;
     else if (isCeilingRooted(id)) midBlock.y = 1.0 - midBlock.y;

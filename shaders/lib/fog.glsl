@@ -46,15 +46,11 @@ float getFogAmount(float normalizedLinearDepth, float fogDensity) {
     return 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
 }
 
-void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
+void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color, inout float emissivness) {
 
     // normalized linear depth
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     float normalizedLinearDepth = distanceFromCamera / far;
-
-    // fog color
-    vec3 fogColor = getFogColor(isEyeInWater == 1, worldToEye(worldSpacePosition));
-    fogColor = SRGBtoLinear(fogColor);
 
     // vanilla fog (not applied when camera is under water)
     #if FOG_TYPE == 1
@@ -79,3 +75,13 @@ void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness)
         emissivness = mix(emissivness, 0.0, linearFog);
     #endif
 }
+
+void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
+    // fog color
+    vec3 fogColor = getFogColor(isEyeInWater == 1, worldToEye(worldSpacePosition));
+    fogColor = SRGBtoLinear(fogColor);
+
+    foggify(worldSpacePosition, fogColor, color, emissivness);
+}
+
+
