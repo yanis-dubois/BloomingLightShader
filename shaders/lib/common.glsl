@@ -1,17 +1,15 @@
-////////////////////////////////////////////////////
-///////////////////// textures /////////////////////
-////////////////////////////////////////////////////
+///////////////////////////////////////////////////
+///////////////////// buffers /////////////////////
+///////////////////////////////////////////////////
 
-// -- setup buffers -- //
 // format
 /*
 const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // normal - bloom
 const int colortex2Format = RGB16F; // TAA - last frame color
 const int colortex3Format = R32F; // TAA - last frame depth
-const int colortex4Format = RGB16F; // deferred reflection color
+const int colortex4Format = RGB16F; // deferred color for transparent material reflection 
 const int colortex5Format = RGBA8; // light & material - depth of field mask
-// -- 
 */
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
@@ -20,19 +18,27 @@ const bool colortex3Clear = false;
 const bool colortex4Clear = true;
 const bool colortex5Clear = true;
 
-// -- setup shadow map -- //
+///////////////////////////////////////////////////
+//////////////////// constants ////////////////////
+///////////////////////////////////////////////////
 
+// sun & moon
+const float sunPathRotation = 0.0;
+
+// shadow
 const bool shadowHardwareFiltering = true;
 const int shadowMapResolution = 1024; // 1024 1536 2048
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
+
+// depth of field
+const float centerDepthHalflife = 2.0;
 
 ////////////////////////////////////////////////////
 //////////////////// parameters ////////////////////
 ////////////////////////////////////////////////////
 
 // sky
-const float sunPathRotation = 0.0;
 #define SKY_TYPE 1 // 0=vanilla 1=custom
 
 // light
@@ -49,7 +55,7 @@ const float sunPathRotation = 0.0;
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic)
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
-// Screen Space Reflection
+// reflection
 #define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
 #define REFLECTION_BLUR_TYPE 0 // 0=LOD 1=VNDF
 #define REFLECTION_RESOLUTION 1 // from 0=low to 1=high 0.5
@@ -144,6 +150,7 @@ uniform float viewWidth;
 uniform float gamma;
 uniform float frameTimeCounter;
 uniform float ambientLight;
+uniform float centerDepthSmooth;
 
 uniform int blockEntityId;
 uniform int frameCounter; // in [0;720719]
@@ -159,9 +166,9 @@ uniform int isEyeInWater;
 
 uniform float framemod8;
 
-///////////////////////////////////////////////////
-//////////////////// constants ////////////////////
-///////////////////////////////////////////////////
+////////////////////////////////////////////////////
+///////////////// custom constants /////////////////
+////////////////////////////////////////////////////
 
 const vec3 eastDirection = vec3(1.0, 0.0, 0.0);
 const vec3 westDirection = vec3(-1.0, 0.0, 0.0);

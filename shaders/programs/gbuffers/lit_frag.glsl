@@ -18,6 +18,9 @@
 uniform sampler2D gtexture;
 
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
+    // mipmap (don't seems to work)
+    // const bool colortex4MipmapEnabled = true;
+
     uniform sampler2D colortex4; // reflection (color)
     uniform sampler2D colortex5; // reflection (emissivness)
     uniform sampler2D depthtex1; // excludes transparent

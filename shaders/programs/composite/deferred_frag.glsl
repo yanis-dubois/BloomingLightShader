@@ -1,5 +1,8 @@
 #extension GL_ARB_explicit_attrib_location : enable
 
+// mipmap
+const bool colortex0MipmapEnabled = true;
+
 // textures
 uniform sampler2D colortex0; // color
 uniform sampler2D colortex1; // normal

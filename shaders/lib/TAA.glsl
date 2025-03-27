@@ -2,10 +2,13 @@
 vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D taaColorTexture, 
             out vec3 taaColorData) {
 
-    if (frameTimeCounter > 0.0) {
+    if (frameCounter > 0) {
         // get last uv position of actual fragment
         vec3 playerSpacePosition = screenToPlayer(uv, depth);
-        vec3 previousPlayerSpacePosition = playerSpacePosition + cameraPosition - previousCameraPosition;
+
+        vec3 cameraOffset = cameraPosition - previousCameraPosition;
+
+        vec3 previousPlayerSpacePosition = playerSpacePosition + cameraOffset;
         vec3 previousScreenSpacePosition = previousPlayerToScreen(previousPlayerSpacePosition);
         vec2 prevUV = previousScreenSpacePosition.xy;
 
@@ -18,22 +21,24 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
             blendFactor *= map(exp(- 2 * length(pixelVelocity)), 0.0, 1.0, 0.7, 1.0);
 
             // neighborhood clipping
+            ivec2 UV = ivec2(uv * vec2(viewWidth, viewHeight));
+            UV = clamp(UV, ivec2(2), ivec2(viewWidth, viewHeight) - 2);
             vec3 minColor = vec3(1.0), maxColor = vec3(0.0);
             for (int i=-1; i<=1; i+=1) {
                 for (int j=-1; j<=1; j+=1) {
                     if (i==0 && j==0) continue;
-                    vec2 offset = vec2(i, j) / vec2(viewWidth, viewHeight);
-                    vec3 neighborColor = SRGBtoLinear(texture2D(colorTexture, uv + offset).rgb);
+                    ivec2 offsetUV = UV + ivec2(i,  j);
+                    vec3 neighborColor = SRGBtoLinear(texelFetch(colorTexture, offsetUV, 0).rgb);
 
                     minColor = min(minColor, neighborColor);
                     maxColor = max(maxColor, neighborColor);
-                } 
+                }
             }
             previousColor = clamp(previousColor, minColor, maxColor);
 
             // blend
             color = mix(color, previousColor, blendFactor);
-        }   
+        }
     }
 
     taaColorData = linearToSRGB(color);

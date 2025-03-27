@@ -79,6 +79,7 @@ void main() {
         #if DOF_TYPE == 1
             // focal plane distance
             float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
+            focusDepth = centerDepthSmooth;
             vec3 viewSpaceFocusPosition = screenToView(vec2(0.5), focusDepth);
             float focusDistance = - viewSpaceFocusPosition.z;
             focusDistance = min(focusDistance, far);

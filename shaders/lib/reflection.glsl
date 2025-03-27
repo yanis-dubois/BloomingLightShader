@@ -167,8 +167,8 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // sampling data
         float roughness = pow(1.0 - smoothness, 2.0);
         roughness *= roughness; 
-        float zeta1 = pseudoRandom(uv + 0.913 * float(frameTimeCounter));
-        float zeta2 = pseudoRandom(uv + 1.0 + 0.4351 * float(frameTimeCounter));
+        float zeta1 = pseudoRandom(uv + 0.913 * float(frameTimeCounter) / 3600);
+        float zeta2 = pseudoRandom(uv + 0.32 + 0.913 * float(frameTimeCounter) / 3600);
 
         // tbn - tangent to view 
         mat3 TBN = generateTBN(viewSpaceNormal); 
@@ -350,7 +350,7 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
         // get reflection
         if (isValid) {
-            reflection = SRGBtoLinear(texture2D(colorTexture, screenSpaceFinalPosition).rgb);
+            reflection = SRGBtoLinear(texture2DLod(colorTexture, screenSpaceFinalPosition, 0).rgb);
             float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
 
             // underwater reflection
@@ -400,7 +400,6 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // );
         // reflection = col[frustumPlaneIndex];
 
-        // return mix(color, reflection, 1);
         return mix(color, reflection, fresnel);
     #endif
 }

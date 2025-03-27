@@ -18,8 +18,8 @@
 // textures
 uniform sampler2D colortex0; // color
 uniform sampler2D colortex1; // bloom
-uniform sampler2D depthtex1; // depth opaque
 #if TAA_TYPE > 0
+    uniform sampler2D depthtex1; // depth opaque
     uniform sampler2D colortex2; // TAA - last frame color
 #endif
 #if TAA_TYPE == 1
