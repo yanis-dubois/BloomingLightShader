@@ -40,40 +40,37 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
     return density;
 }
 
-float getFogAmount(float normalizedLinearDepth, float fogDensity) {
-    // return smoothstep(0, 1.0, normalizedLinearDepth);
-    // return 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity)) * (1.0 - normalizedLinearDepth);
-    return 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
-}
-
-void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color, inout float emissivness) {
-
+float getFogFactor(vec3 worldSpacePosition) {
     // normalized linear depth
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     float normalizedLinearDepth = distanceFromCamera / far;
 
-    // vanilla fog (not applied when camera is under water)
-    #if FOG_TYPE == 1
-        // linear function 
-        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float vanillaFogBlend = clamp((distanceFromCameraXZ - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
-        color = mix(color, fogColor, vanillaFogBlend);
-        emissivness = mix(emissivness, 0.0, vanillaFogBlend);
+    // linear vanilla fog (tweaked when camera is under water)
+    float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+    float fogFactor = map(distanceFromCameraXZ, fogEnd - 16.0, fogEnd, 0.0, 1.0);
 
     // custom fog
-    #elif FOG_TYPE == 2
-        // exponential function
+    #if FOG_TYPE == 2
         float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater == 1);
-        float exponentialFog = getFogAmount(normalizedLinearDepth, fogDensity);
-        color = mix(color, fogColor, exponentialFog);
-        emissivness = mix(emissivness, 0.0, exponentialFog);
-
-        // linear function (for the end)
-        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float linearFog = map(distanceFromCameraXZ, far-16.0, far, 0.0, 1.0);
-        color = mix(color, fogColor, linearFog);
-        emissivness = mix(emissivness, 0.0, linearFog);
+        // exponential function
+        // float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity)) * (1.0 - normalizedLinearDepth);
+        // exponential function x linear
+        float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
+        fogFactor = max(fogFactor, exponentialFog);
     #endif
+
+    return fogFactor;
+}
+
+void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color, inout float emissivness) {
+    float fogFactor = getFogFactor(worldSpacePosition);
+    color = mix(color, fogColor, fogFactor);
+    emissivness = mix(emissivness, 0.0, fogFactor);
+}
+
+void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color) {
+    float fogFactor = getFogFactor(worldSpacePosition);
+    color = mix(color, fogColor, fogFactor);
 }
 
 void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
@@ -84,4 +81,8 @@ void foggify(vec3 worldSpacePosition, inout vec3 color, inout float emissivness)
     foggify(worldSpacePosition, fogColor, color, emissivness);
 }
 
-
+void foggify(vec3 worldSpacePosition, inout vec3 color) {
+    // unused emissivness
+    float _;
+    foggify(worldSpacePosition, color, _);
+}

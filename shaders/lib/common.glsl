@@ -5,12 +5,14 @@
 // format
 /*
 const int colortex0Format = RGBA16F; // color
-const int colortex1Format = RGB16F; // normal - bloom
+const int colortex1Format = RGB16F; // deferred = normal - composite = bloom
 const int colortex2Format = RGB16F; // TAA - last frame color
 const int colortex3Format = R32F; // TAA - last frame depth
-const int colortex4Format = RGB16F; // deferred color for transparent material reflection 
+const int colortex4Format = RGBA16F; // deferred = opaque reflection - transparent gbuffer = opaque color - composite = transparent reflection
 const int colortex5Format = RGBA8; // light & material - depth of field mask
 */
+
+// flush buffer from a rendering to another
 const bool colortex0Clear = true;
 const bool colortex1Clear = true;
 const bool colortex2Clear = false;
@@ -57,10 +59,13 @@ const float centerDepthHalflife = 2.0;
 
 // reflection
 #define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
-#define REFLECTION_BLUR_TYPE 0 // 0=LOD 1=VNDF
-#define REFLECTION_RESOLUTION 1 // from 0=low to 1=high 0.5
-#define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much 16
+#define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
+#define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much
 #define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
+#define REFLECTION_BLUR_RANGE 0.0025 // extent of the kernel
+#define REFLECTION_BLUR_RESOLUTION 0.25 // in [0;1], proportion of pixel to be sampled
+#define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
+#define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 
 // animation
 #define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal

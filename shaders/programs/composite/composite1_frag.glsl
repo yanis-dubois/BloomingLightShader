@@ -2,7 +2,6 @@
 
 // textures
 uniform sampler2D colortex0; // color
-uniform sampler2D colortex1; // normal
 uniform sampler2D colortex5; // light & material (ambientSkyLightIntensity, emissivness, smoothness, reflectance)
 uniform sampler2D depthtex0; // all depth
 uniform sampler2D depthtex1; // only opaque depth

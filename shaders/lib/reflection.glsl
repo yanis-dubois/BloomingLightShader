@@ -148,11 +148,11 @@ bool SSR_secondPass(sampler2D depthTexture, vec2 texelSpaceStartPosition, vec2 t
     return false;
 }
 
-vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
 
     // rough material have no reflection
     if (smoothness < 0.5) {
-        return color;
+        return vec4(0.0);
     }
 
     // ------------------ step 1 : preparation ------------------ //
@@ -161,6 +161,15 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     vec3 viewSpacePosition = screenToView(uv, depth);
     vec3 viewDirection = normalize(viewSpacePosition);
     vec3 viewSpaceNormal = eyeToView(normal);
+
+    // fresnel index
+    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
+    float fresnel = schlick(viewDirectionDotNormal, reflectance);
+    #ifdef TRANSPARENT
+        fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
+    #endif
+    if (fresnel <= 0.001)
+        return vec4(0.0);
 
     // sample VNDF
     if (smoothness < 0.9) { // TODO: revoir ce threshold ?
@@ -184,15 +193,6 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // reflected direction points : >0 = along the camera's line of sight / <0 = towards camera
     float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0.0, 0.0, -1.0));
 
-    // fresnel index
-    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
-    float fresnel = schlick(viewDirectionDotNormal, reflectance);
-    #ifdef TRANSPARENT
-        fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
-    #endif
-    if (fresnel <= 0.001)
-        return color;
-
     // background color
     float backgroundEmissivness; // useless here
     vec3 outdoorBackground = isEyeInWater==0 
@@ -207,7 +207,7 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // only fresnel mod
     #if REFLECTION_TYPE == 1
-        return mix(color, reflection, fresnel);
+        return vec4(reflection, fresnel);
     #else
 
         // frustum planes
@@ -255,6 +255,8 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
             // ray marching 1 : find intersection
             for (int i=0; i<stepsNumber; ++i) {
+                lastPosition = currentPosition;
+
                 texelSpaceCurrentPosition += stepLength;
                 screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
                 if (i == stepsNumber)
@@ -304,89 +306,125 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                         break;
                     }  
                 }
-
-                lastPosition = currentPosition;
             }
-
-            // ------------------ step 3 : adjustments and special cases ------------------ //
 
             // current position for 2nd pass hitted : end position for other
-            vec2 screenSpaceFinalPosition = hitSecondPass 
-                ? screenSpaceCurrentPosition 
-                : screenSpaceEndPosition - texelToScreen(stepLength) * pseudoRandom(seed);
+            vec2 texelSpaceFinalPosition = hitSecondPass 
+                ? texelSpaceCurrentPosition 
+                : texelSpaceEndPosition - stepLength * pseudoRandom(seed);
+            vec2 screenSpaceFinalPosition = texelToScreen(texelSpaceFinalPosition);
         #endif
 
-        // evalutate if reflection point is valid or not
-        bool isValid = true;
+        // ------------------ step 3 : adjustments and special cases ------------------ //
 
-        float finalPositionDepth = texture2D(depthTexture, screenSpaceFinalPosition.xy).r;
-        vec3 playerSpaceHitPosition = screenToPlayer(
-            screenSpaceFinalPosition.xy, 
-            finalPositionDepth
-        );
+        // blur that up !
+        #ifdef REFLECTIVE
+            int nb_step = 4;
+        #else
+            int nb_step = 4;
+        #endif
+        vec3 blurredReflection = vec3(0.0);
+        int cpt = 0;
+        for (int i=0; i<=nb_step; ++i) {
+            vec3 sampledReflection = vec3(0.0);
 
-        // avoid handheld object reflection
-        if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.5) {
-            isValid = false;
-        }
+            #ifdef REFLECTIVE
+                texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
+            #else
+                //texelSpaceCurrentPosition = texelSpaceFinalPosition;
+                texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
+            #endif
+            screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
 
-        if (hitSecondPass) {
-            // restrict length of reflected ray that point towards the camera
-            if (reflectedDirectionDotZ < 0.0) {
-                if (distance(playerSpaceHitPosition, viewToPlayer(viewSpaceStartPosition)) > 2) {
-                    isValid = false;
-                }
-            }
-        }
-        else {
-            // valid only if hitted the far frustum plane
-            if (frustumPlaneIndex != 5) {
+            // evalutate if reflection point is valid or not
+            bool isValid = true;
+
+            float finalPositionDepth = texture2D(depthTexture, screenSpaceCurrentPosition.xy).r;
+            vec3 playerSpaceHitPosition = screenToPlayer(
+                screenSpaceCurrentPosition.xy, 
+                finalPositionDepth
+            );
+
+            // avoid handheld object reflection
+            if (distance(playerSpaceHitPosition, vec3(0.0)) < 0.25) {
                 isValid = false;
-            }
-            if (finalPositionDepth < depth) {
-                isValid = false;
-            }
-        }
-
-        // get reflection
-        if (isValid) {
-            reflection = SRGBtoLinear(texture2DLod(colorTexture, screenSpaceFinalPosition, 0).rgb);
-            float emissivness = texture2D(lightAndMaterialTexture, screenSpaceFinalPosition).y;
-
-            // underwater reflection
-            if (isEyeInWater==1) {
-                vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
-                // underwater sky box
-                if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
-                    reflection = waterFogColor;
-                    emissivness = 0.0;
-                }
-                // attenuate reflection
-                else {
-                    reflection = mix(reflection, waterFogColor * ambientSkyLightIntensity, 0.5);
-                }
+                blurredReflection += backgroundColor;
+                cpt ++;
+                break;
             }
 
-            // sky box tweak
-            if (finalPositionDepth == 1.0) {
-                if (emissivness == 0.0) {
-                    reflection = backgroundColor;
+            if (hitSecondPass) {
+                // restrict length of reflected ray that point towards the camera
+                if (reflectedDirectionDotZ < 0.0) {
+                    vec3 playerSpaceStartPosition = viewToPlayer(viewSpaceStartPosition);
+
+                    if (distance(playerSpaceHitPosition, playerSpaceStartPosition) > 2.0) {
+                        isValid = false;
+                    }
+
+                    // auto hit prblm
+                    if (distance(vec3(0.0), playerSpaceStartPosition) < 1.0) {
+                        isValid = false;
+                    }
                 }
             }
             else {
-                vec3 worldSpacePosition = playerToWorld(playerSpaceHitPosition);
-                float _;
-                foggify(worldSpacePosition, backgroundColor, reflection, _);
+                // valid only if hitted the far frustum plane
+                if (frustumPlaneIndex != 5) {
+                    isValid = false;
+                }
+                if (finalPositionDepth < depth) {
+                    isValid = false;
+                }
             }
 
-            // enhance reflection of emissive objects
-            reflection += reflection * emissivness * 2.0;
+            // get reflection
+            if (isValid) {
+                sampledReflection = SRGBtoLinear(texture2D(colorTexture, screenSpaceCurrentPosition).rgb);
+                float emissivness = texture2D(lightAndMaterialTexture, screenSpaceCurrentPosition).y;
+
+                // underwater reflection
+                if (isEyeInWater==1) {
+                    vec3 waterFogColor = SRGBtoLinear(getWaterFogColor());
+                    // underwater sky box
+                    if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
+                        sampledReflection = waterFogColor;
+                        emissivness = 0.0;
+                    }
+                    // attenuate reflection
+                    else {
+                        sampledReflection = mix(sampledReflection, waterFogColor * ambientSkyLightIntensity, 0.5);
+                    }
+                }
+
+                // sky box tweak
+                if (finalPositionDepth == 1.0) {
+                    if (emissivness == 0.0) {
+                        sampledReflection = backgroundColor;
+                    }
+                }
+                else {
+                    vec3 worldSpacePosition = playerToWorld(playerSpaceHitPosition);
+                    foggify(worldSpacePosition, backgroundColor, sampledReflection);
+                }
+
+                // enhance reflection of emissive objects
+                sampledReflection += sampledReflection * emissivness * 2.0;
+                sampledReflection = clamp(sampledReflection, 0.0, 1.0);
+            }
+            else {
+                sampledReflection = backgroundColor;
+            }
+
+            blurredReflection += sampledReflection;
+            cpt ++;
         }
+        reflection = blurredReflection / float(cpt);
+        reflection = clamp(reflection, 0.0, 1.0);
 
         // avoid abrupt transition between valid & non-valid reflection
-        float fadeFactor = map(2.0 * distanceInf(vec2(0.5), screenSpaceFinalPosition), 0.8, 1.0, 0.0, 1.0);
+        float fadeFactor = map(2.0 * distanceInf(vec2(0.5), hitSecondPass ? screenSpaceFinalPosition : screenSpaceEndPosition), 0.8, 1.0, 0.0, 1.0);
         fadeFactor = pow(fadeFactor, 3.0);
-        if (!isValid) fadeFactor = 1.0;
         reflection = mix(reflection, backgroundColor, fadeFactor);
 
         // debug
@@ -400,6 +438,6 @@ vec3 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // );
         // reflection = col[frustumPlaneIndex];
 
-        return mix(color, reflection, fresnel);
+        return vec4(reflection, fresnel);
     #endif
 }
