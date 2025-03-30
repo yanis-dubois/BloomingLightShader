@@ -47,7 +47,7 @@ float getFogFactor(vec3 worldSpacePosition) {
 
     // linear vanilla fog (tweaked when camera is under water)
     float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-    float fogFactor = map(distanceFromCameraXZ, fogEnd - 16.0, fogEnd, 0.0, 1.0);
+    float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
 
     // custom fog
     #if FOG_TYPE == 2

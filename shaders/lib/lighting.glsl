@@ -35,12 +35,12 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // -- light factors
     float ambientSkyLightFactor = 0.6;
     float ambientLightFactor = 0.007;
-    float faceTweak = 1.0;
+    float faceTweak = 1.2;
     float dayNightBlend = getDayNightBlend();
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    faceTweak = mix(faceTweak, 0.6, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
+    faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
     faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
-    faceTweak = mix(faceTweak, 0.4, smoothstep(0.8, 0.9, dot(normal, downDirection)));
+    faceTweak = mix(faceTweak, 0.3, smoothstep(0.8, 0.9, dot(normal, downDirection)));
     float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
 
     // -- direct sky light
@@ -66,8 +66,8 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     directSkyLightIntensity *= mix(1.0, 0.2, rainStrength);
     // reduce contribution during day-night transition
     directSkyLightIntensity *= dayNightBlend;
-    // face tweak ?
-    directSkyLightIntensity *= map(faceTweak, 0.4, 0.8, 0.2, 1.0);
+    // face tweak
+    directSkyLightIntensity *= faceTweak;
     // split toning
     #if SPLIT_TONING > 0
         vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
