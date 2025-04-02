@@ -28,11 +28,28 @@ void main() {
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
-    if (SHADOW_WATER_ANIMATION == 1 && isLiquid(id)) {
-        vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
-        float noise = doShadowWaterAnimation(frameTimeCounter, worldSpacePosition);
-        transparency += noise;
-    }
+    #if WATER_CAUSTIC_TYPE > 0
+        if (SHADOW_WATER_ANIMATION == 1 && id==20000) {
+            #if WATER_CAUSTIC_TYPE == 1
+                float causticFactor = getLightness(albedo);
+                causticFactor = smoothstep(0.0, 0.6, causticFactor);
+                causticFactor = pow(causticFactor, 4.0);
+                causticFactor = smoothstep(0.0, 0.4, causticFactor);
+                causticFactor = pow(causticFactor, 1.5);
+            #else
+                vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
+                vec3 pos = floor((worldSpacePosition + 0.001) * 16.0) / 16.0 + 1.0/32.0;
+                float causticFactor = doShadowWaterAnimation(frameTimeCounter, pos);
+            #endif
+
+            vec3 caustic = additionalColor.rgb * causticFactor;
+            caustic = smoothstep(0.0, 0.9, caustic);
+            caustic = clamp(caustic * 1.5, 0.0, 1.0);
+
+            transparency -= 0.33 * causticFactor;
+            albedo = caustic;
+        }
+    #endif
 
     shadowColor0 = vec4(albedo, transparency);
 }

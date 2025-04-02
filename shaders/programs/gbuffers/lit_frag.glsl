@@ -55,7 +55,7 @@ void main() {
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
-   // avoid seeing water top surface when underwater
+    // avoid seeing water top surface when underwater
     if (isEyeInWater == 1 && id == 20000 && normal.y > 0.1) {
         discard;
     }
@@ -138,7 +138,7 @@ void main() {
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

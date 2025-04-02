@@ -1,4 +1,4 @@
-vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, float smoothness, float reflectance, float subsurface,
+vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, float smoothness, float reflectance, float subsurface,
               float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
 
     vec3 skyLightColor = getSkyLightColor();
@@ -12,13 +12,21 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
     // -- shadow -- //
+    // using voxelization to snap shadows on textures
+    #if SHADOW_SNAP == 1
+        unanimatedWorldPosition = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/32.0;
+    #endif
     // offset position in normal direction (avoid self shadowing)
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
-    float noise = pseudoRandom(uv + 0.14312 * frameTimeCounter);
-    noise = map(noise, 0.0, 1.0, 0.5, 1.1);
+    #if (SHADOW_TYPE == 1 || SHADOW_TYPE == 2) && SHADOW_RANGE > 0 && SHADOW_SAMPLES > 0
+        float noise = pseudoRandom(uv + 0.14312 * frameTimeCounter);
+        noise = map(noise, 0.0, 1.0, 0.5, 1.1);
+    #else
+        float noise = 1.0;
+    #endif
     // apply offset
-    vec3 offsetWorldSpacePosition = worldSpacePosition + noise * normal * offsetAmplitude;
+    vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
     // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
         offsetWorldSpacePosition.y += 0.2;
@@ -34,8 +42,8 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
 
     // -- light factors
     float ambientSkyLightFactor = 0.6;
-    float ambientLightFactor = 0.007;
-    float faceTweak = 1.2;
+    float ambientLightFactor = 0.0125;
+    float faceTweak = 1.0;
     float dayNightBlend = getDayNightBlend();
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
     faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
@@ -61,7 +69,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         }
     #endif
     // reduce contribution if no ambiant sky light (avoid cave leak)
-    directSkyLightIntensity *= map(smoothstep(0.0, 0.5, ambientSkyLightIntensity), 0.0, 1.0, 0.05, 1.0);
+    directSkyLightIntensity *= map(smoothstep(0.0, 0.33, ambientSkyLightIntensity), 0.0, 1.0, 0.1, 1.0);
     // reduce contribution as it rains
     directSkyLightIntensity *= mix(1.0, 0.2, rainStrength);
     // reduce contribution during day-night transition
@@ -90,12 +98,12 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
 
     // -- filter underwater light
-    if (isEyeInWater==1) {
-        vec3 waterColor = mix(getWaterFogColor(), vec3(0.5), 0.5);
-        directSkyLight = getLightness(directSkyLight) * waterColor;
-        ambientSkyLight = getLightness(ambientSkyLight) * waterColor;
-        blockLight = getLightness(blockLight) * waterColor;
-        ambientLight = getLightness(ambientLight) * waterColor * 1.5;
+    if (isEyeInWater == 1) {
+        vec3 waterColor = mix(getWaterFogColor(), vec3(1.0), 0.5);
+        directSkyLight = directSkyLight * waterColor;
+        ambientSkyLight = ambientSkyLight * waterColor;
+        blockLight = blockLight * waterColor;
+        ambientLight = ambientLight * waterColor;
     }
 
     // -- BRDF -- //

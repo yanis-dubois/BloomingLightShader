@@ -27,6 +27,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
     float attenuationFactor = smoothstep(-1.0, 1.0, LdotV);
+    attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.42);
 
     // decrease volumetric light that is added on sky
     // which is even truer the further up you look
@@ -70,7 +71,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
         }
         // air density depending at altitude
         else {
-            scatteringCoefficient = map(getFogDensity(rayWorldSpacePosition.y, false), minimumFogDensity, maximumFogDensity, 0.1, 1.0);
+            scatteringCoefficient = map(getFogDensity(rayWorldSpacePosition.y, false), minimumFogDensity, maximumFogDensity, 0.2, 1.2);
         }
 
         if (sunAngle > 0.5) {
@@ -87,7 +88,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
         vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
 
         // compute inscattered light
-        float normalizedRayDistance = min(rayDistance / far, 1.0);
+        float normalizedRayDistance = min(rayDistance / (endShadowDecrease-16.0), 1.0);
         float scattering = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
         vec3 inscatteredLight = shadowedLight * scatteringCoefficient * sunIntensity;
         inscatteredLight *= scattering;

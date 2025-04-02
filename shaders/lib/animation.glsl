@@ -35,11 +35,26 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
 
 // used during shadow rendering to simulate caustic
 float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
-    float amplitude = 0.33;
     float speed = time * 0.15;
-    vec3 seed = vec3(worldSpacePosition.xz * 0.5, speed) + speed;
-    
-    return amplitude * snoise_3D(seed);
+    vec3 seed = vec3(worldSpacePosition.xz * 0.66, speed) + speed;
+
+    float n1 = snoise_3D(seed);
+    float n2 = snoise_3D(seed * 1.5 + 0.12);
+    float n3 = snoise_3D(seed * 2.0 + 0.141);
+
+    n1 = 1.0 - abs(n1);
+    n1 = smoothstep(0.0, 0.9, n1);
+    n1 = pow(n1, 16.0);
+
+    n2 = n2 * 0.5 + 0.5;
+
+    n3 = n3 * 0.5 + 0.5;
+    n3 = pow(n3, 1.5);
+
+    n1 = mix(n2, n1, n3 * 0.75);
+    n1 = pow(n1, 3.0);
+
+    return n1;
 }
 
 vec3 doWaterAnimation(float time, vec3 worldSpacePosition, vec3 midBlock) {

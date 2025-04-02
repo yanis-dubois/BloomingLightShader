@@ -68,7 +68,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
 
         // hard shadowing
-        #if float(SHADOW_RANGE) <= 0.01 || SHADOW_SAMPLES < 1
+        #if SHADOW_SAMPLES < 1
+            return getShadow(shadowClipPosition);
+        #elif SHADOW_RANGE < 0.01
             return getShadow(shadowClipPosition);
 
         // soft shadowing

@@ -8,8 +8,8 @@ const int colortex0Format = RGBA16F; // color
 const int colortex1Format = RGB16F; // deferred = normal - composite = bloom
 const int colortex2Format = RGB16F; // TAA - last frame color
 const int colortex3Format = R32F; // TAA - last frame depth
-const int colortex4Format = RGBA16F; // deferred = opaque reflection - transparent gbuffer = opaque color - composite = transparent reflection
-const int colortex5Format = RGBA8; // light & material - depth of field mask
+const int colortex4Format = RGBA16F; // opaque gbuffer = material - deferred = opaque reflection - transparent gbuffer = opaque color
+const int colortex5Format = RGBA8; // light - depth of field mask
 */
 
 // flush buffer from a rendering to another
@@ -53,8 +53,10 @@ const float centerDepthHalflife = 2.0;
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_RANGE 0.66 // width of the sample area (in uv)
-#define SHADOW_SAMPLES 4 // number of samples (for stochastic)
+#define SHADOW_SNAP 1 // 0=off 1=on
+#define SHADOW_SNAP_RESOLUTION 16 // 0=off 1=on
+#define SHADOW_RANGE 0.66 // width of the sample area (in uv) 0.66
+#define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 // reflection
@@ -98,8 +100,11 @@ const float centerDepthHalflife = 2.0;
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
 #define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
 
-// TAA
+// temporal anti aliasing
 #define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
+
+// water caustics
+#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on

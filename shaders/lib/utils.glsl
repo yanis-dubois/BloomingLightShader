@@ -124,6 +124,10 @@ float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
     float mapped = (value-fromMin) / (fromMax-fromMin); // from [fromMin;fromMax] to [0;1]
     return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]
 }
+vec3 map(vec3 value, float fromMin, float fromMax, float toMin, float toMax) {
+    vec3 mapped = (value-fromMin) / (fromMax-fromMin); // from [fromMin;fromMax] to [0;1]
+    return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]
+}
 
 // -- distance -- //
 float distance1(vec2 p1, vec2 p2) {
