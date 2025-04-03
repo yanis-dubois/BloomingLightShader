@@ -16,40 +16,64 @@ in vec2 textureCoordinate; // immuable block & item
 flat in int id;
 
 // results
-/* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 shadowColor0;
+/* RENDERTARGETS: 0,1 */
+layout(location = 0) out vec4 shadowColor;
+layout(location = 1) out vec4 lightShaft;
 
 void main() {
-    /* texture value */
+    // retrieve data
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
+    vec3 albedo = textureColor.rgb;
     float transparency = textureColor.a;
-    vec3 albedo = textureColor.rgb * additionalColor.rgb;
+    vec3 tint = additionalColor.rgb;
+    vec3 color = albedo * tint;
+
+    // special case
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
     if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
     if (transparency < alphaTestRef) discard;
 
+    #if (VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0) || WATER_CAUSTIC_TYPE > 0
+        vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
+    #endif
+
+    // underwater light shaft animation
+    float lightShaftIntensity = transparency;
+    #if VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0
+        #if UNDERWATER_LIGHTSHAFT_TYPE == 1
+            float noise = doWaterLightShaftAnimation(0.0, worldSpacePosition);
+        #else
+            float noise = doWaterLightShaftAnimation(frameTimeCounter, worldSpacePosition);
+        #endif
+
+        lightShaftIntensity += noise;
+    #endif
+
     #if WATER_CAUSTIC_TYPE > 0
-        if (SHADOW_WATER_ANIMATION == 1 && id==20000) {
+        if (id==20000) {
+            // calculate the caustic factor
             #if WATER_CAUSTIC_TYPE == 1
                 float causticFactor = getLightness(albedo);
-                causticFactor = smoothstep(0.0, 0.6, causticFactor);
                 causticFactor = pow(causticFactor, 4.0);
-                causticFactor = smoothstep(0.0, 0.4, causticFactor);
+                causticFactor = smoothstep(0.0, 0.8, causticFactor);
                 causticFactor = pow(causticFactor, 1.5);
             #else
-                vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
                 vec3 pos = floor((worldSpacePosition + 0.001) * 16.0) / 16.0 + 1.0/32.0;
-                float causticFactor = doShadowWaterAnimation(frameTimeCounter, pos);
+                float causticFactor = doWaterCausticAnimation(frameTimeCounter, pos);
             #endif
 
-            vec3 caustic = additionalColor.rgb * causticFactor;
-            caustic = smoothstep(0.0, 0.9, caustic);
+            // apply a gradient based on the tint
+            vec3 caustic = causticFactor * mix(tint, mix(saturate(tint, 2.0), vec3(1.0), 0.5 * causticFactor), causticFactor);
+            // post treatment on color
             caustic = clamp(caustic * 1.5, 0.0, 1.0);
+            caustic = smoothstep(0.0, 0.9, caustic);
 
-            transparency -= 0.33 * causticFactor;
-            albedo = caustic;
+            // apply the caustic
+            color = caustic;
         }
     #endif
 
-    shadowColor0 = vec4(albedo, transparency);
+    // write buffers
+    shadowColor = vec4(color, transparency);
+    lightShaft = vec4(tint, lightShaftIntensity);
 }

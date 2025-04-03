@@ -66,7 +66,7 @@ float getCustomFogFactor(float t, float density) {
     return T.y;
 }
 
-float getFogFactor(vec3 worldSpacePosition) {
+float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
     // linear vanilla fog (tweaked when camera is under water)
     float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
     float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
@@ -77,13 +77,13 @@ float getFogFactor(vec3 worldSpacePosition) {
 
     // custom fog
     #if FOG_TYPE == 2
-        float fogDensity = getFogDensity(worldSpacePosition.y, isEyeInWater == 1);
+        float fogDensity = getFogDensity(worldSpacePosition.y, isInWater);
         // exponential function
         // float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity)) * (1.0 - normalizedLinearDepth);
         // exponential function x linear
         // float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
         fogDensity = 1.0 - map(fogDensity, 0.5, 3.0, 0.3, 0.8);
-        if (isEyeInWater == 1) fogDensity = min(fogDensity, fogEnd/(1.5*far));
+        // if (isInWater) fogDensity = min(fogDensity, 0.5 * (fogEnd/far));
         fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
         // fogFactor = max(fogFactor, exponentialFog);
     #endif
@@ -92,13 +92,13 @@ float getFogFactor(vec3 worldSpacePosition) {
 }
 
 void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color, inout float emissivness) {
-    float fogFactor = getFogFactor(worldSpacePosition);
+    float fogFactor = getFogFactor(worldSpacePosition, isEyeInWater==1);
     color = mix(color, fogColor, fogFactor);
     emissivness = mix(emissivness, 0.0, fogFactor);
 }
 
 void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color) {
-    float fogFactor = getFogFactor(worldSpacePosition);
+    float fogFactor = getFogFactor(worldSpacePosition, isEyeInWater==1);
     color = mix(color, fogColor, fogFactor);
 }
 

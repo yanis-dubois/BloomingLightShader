@@ -64,23 +64,20 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
             || (asMediumChange && isEyeInWater==1 && rayDistance<transparentFragmentDistance) 
             || (asMediumChange && isEyeInWater!=1 && rayDistance>transparentFragmentDistance);
 
-        // density 
-        // water density 
+        // density
+        scatteringCoefficient = getFogFactor(rayWorldSpacePosition, isInWater) + 0.2;
+        // increase it when underwater
         if (isInWater && isEyeInWater==1) {
-            scatteringCoefficient = 10.0;
+            scatteringCoefficient *= 10.0;
         }
-        // air density depending at altitude
-        else {
-            scatteringCoefficient = map(getFogDensity(rayWorldSpacePosition.y, false), minimumFogDensity, maximumFogDensity, 0.2, 1.2);
-        }
-
+        // 
         if (sunAngle > 0.5) {
             scatteringCoefficient *= isInWater ? 0.5 : 0.1;
         }
 
         // get shadow
         vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
-        vec4 shadow = getShadow(shadowClipPos);
+        vec4 shadow = getShadow(shadowClipPos, true);
         if (0.0 < shadow.a && shadow.a < 1.0) {
             shadowColor *= shadow.rgb;
             cpt++;

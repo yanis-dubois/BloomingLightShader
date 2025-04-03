@@ -33,8 +33,17 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
     return amplitude * noise;
 }
 
+// used during shadow rendering for underwater light shaft animation
+float doWaterLightShaftAnimation(float time, vec3 worldSpacePosition) {
+    float amplitude = 0.33;
+    float speed = time * 0.15;
+    vec3 seed = vec3(worldSpacePosition.xz * 0.5, speed) + speed;
+
+    return amplitude * snoise_3D(seed);
+}
+
 // used during shadow rendering to simulate caustic
-float doShadowWaterAnimation(float time, vec3 worldSpacePosition) {
+float doWaterCausticAnimation(float time, vec3 worldSpacePosition) {
     float speed = time * 0.15;
     vec3 seed = vec3(worldSpacePosition.xz * 0.66, speed) + speed;
 

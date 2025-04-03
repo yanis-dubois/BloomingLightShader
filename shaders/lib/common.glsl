@@ -10,6 +10,8 @@ const int colortex2Format = RGB16F; // TAA - last frame color
 const int colortex3Format = R32F; // TAA - last frame depth
 const int colortex4Format = RGBA16F; // opaque gbuffer = material - deferred = opaque reflection - transparent gbuffer = opaque color
 const int colortex5Format = RGBA8; // light - depth of field mask
+const int shadowcolor0Format = RGBA8; // shadow color
+const int shadowcolor1Format = RGBA8; // light shaft color
 */
 
 // flush buffer from a rendering to another
@@ -71,7 +73,6 @@ const float centerDepthHalflife = 2.0;
 
 // animation
 #define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
-#define SHADOW_WATER_ANIMATION 1 // 0=off 1=on
 #define LIGHT_EMISSION_ANIMATION 0 // 0=off 1=on
 
 // subsurface scattering
@@ -83,6 +84,7 @@ const float centerDepthHalflife = 2.0;
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
 #define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
 #define VOLUMETRIC_LIGHT_INTENSITY 1
+#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=on 2=animated
 
 // bloom
 #define BLOOM_TYPE 2 // 0=off 1=old_school 2=ULTRA
@@ -104,7 +106,7 @@ const float centerDepthHalflife = 2.0;
 #define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
 
 // water caustics
-#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
+#define WATER_CAUSTIC_TYPE 2 // 0=off 1=vanilla+ 2=realistic
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on

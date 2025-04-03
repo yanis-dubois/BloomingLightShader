@@ -2,6 +2,7 @@
 uniform sampler2DShadow shadowtex0; // all shadow
 uniform sampler2DShadow shadowtex1; // only opaque shadow
 uniform sampler2D shadowcolor0; // shadow color
+uniform sampler2D shadowcolor1; // light shaft color
 
 const float bias = 0.0; // 0.002
 
@@ -30,7 +31,7 @@ vec4 distortAndBiasShadowClipPosition(vec4 shadowClipPosition) {
 }
 
 // say if a pixel is in shadow and apply a shadow color to it if needed
-vec4 sampleShadow(vec3 shadowScreenPosition) {
+vec4 sampleShadow(vec3 shadowScreenPosition, bool isLightShaft) {
     shadowScreenPosition.xy = clamp(shadowScreenPosition.xy, 0.0, 1.0);
     float shadow0 = shadow2D(shadowtex0, shadowScreenPosition.xyz).r;
 
@@ -40,7 +41,7 @@ vec4 sampleShadow(vec3 shadowScreenPosition) {
         if (shadow1 < 1.0) {
             shadowColor = vec4(vec3(shadow0), 1.0);
         } else {
-            shadowColor = texture2D(shadowcolor0, shadowScreenPosition.xy);
+            shadowColor = texture2D(isLightShaft ? shadowcolor1 : shadowcolor0, shadowScreenPosition.xy);
         }
     }
 
@@ -48,11 +49,11 @@ vec4 sampleShadow(vec3 shadowScreenPosition) {
 }
 
 // get shadow from shadow clip position
-vec4 getShadow(vec4 shadowClipPosition) {
+vec4 getShadow(vec4 shadowClipPosition, bool isLightShaft) {
     shadowClipPosition = distortAndBiasShadowClipPosition(shadowClipPosition);
     vec3 shadowScreenPosition = shadowClipToShadowScreen(shadowClipPosition);
 
-    return sampleShadow(shadowScreenPosition);
+    return sampleShadow(shadowScreenPosition, isLightShaft);
 }
 
 // blur shadow by calling getShadow around actual pixel and average the results
@@ -69,9 +70,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
         // hard shadowing
         #if SHADOW_SAMPLES < 1
-            return getShadow(shadowClipPosition);
+            return getShadow(shadowClipPosition, false);
         #elif SHADOW_RANGE < 0.01
-            return getShadow(shadowClipPosition);
+            return getShadow(shadowClipPosition, false);
 
         // soft shadowing
         #else
@@ -108,7 +109,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                     // divide by the resolution so offset is in terms of pixels
                     offset = offset * range / shadowMapResolution;
                     vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
-                    shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
+                    shadowAccum += weight * getShadow(offsetShadowClipPosition, false); // take shadow sample
                     count += weight;
                 }
 
@@ -143,7 +144,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
                         offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
                         vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
-                        shadowAccum += weight * getShadow(offsetShadowClipPosition); // take shadow sample
+                        shadowAccum += weight * getShadow(offsetShadowClipPosition, false); // take shadow sample
                         count += weight;
                     }
                 }

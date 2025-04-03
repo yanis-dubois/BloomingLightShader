@@ -50,7 +50,7 @@ void main() {
 
         // apply fog on reflection visibility
         vec3 worldSpacePosition = screenToWorld(uv, depth);
-        reflection.a = min(reflection.a, 1.0 - getFogFactor(worldSpacePosition));
+        reflection.a = min(reflection.a, 1.0 - getFogFactor(worldSpacePosition, isEyeInWater==1));
 
         // apply reflection
         color = mix(color, reflection.rgb, reflection.a);
