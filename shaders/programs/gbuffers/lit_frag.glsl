@@ -97,13 +97,13 @@ void main() {
             vec3 newTangent = normalize(tangentDerivative - actualPosition);
             vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
 
-            vec3 newNormal = normalize(- cross(newTangent, newBitangent));
+            vec3 newNormal = - normalize(cross(newTangent, newBitangent));
             if (dot(newNormal, normal) < 0.0) newNormal *= -1.0;
 
             vec3 viewDirection = normalize(cameraPosition - actualPosition);
-            if (dot(viewDirection, newNormal) < 0.0) newNormal = normal;
-
-            normal = newNormal;
+            if (dot(viewDirection, newNormal) > 0.1) {
+                normal = newNormal;
+            }
         }
     #endif 
 

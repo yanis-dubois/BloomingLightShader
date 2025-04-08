@@ -1,10 +1,41 @@
+#include "/ext/glsl-noise/simplex/2d.glsl"
 #include "/ext/glsl-noise/simplex/3d.glsl"
 #include "/ext/glsl-noise/simplex/4d.glsl"
 
-float getNoise(vec3 seed, float amplitude) {
+vec2 getWind(out float theta) {
+    theta = 0.25 * PI;
+    vec2 wind = normalize(vec2(cos(theta), sin(theta)));
+    float amplitude = mix(1.0, 1.4, 0.5 * (rainStrength + thunderStrength));
+
+    return amplitude * wind;
+}
+
+vec2 getWind() {
+    float _;
+    return getWind(_);
+}
+
+float getVerticalNoise(vec3 seed, float amplitude) {
     float noise = snoise_3D(seed);
-    // squared noise for calm moment
-    noise *= noise;
+
+    // base
+    float noiseSign = sign(noise);
+    noise = pow(abs(noise), 2.2);
+    noise *= noiseSign;
+
+    return amplitude * noise;
+}
+
+float getHorizontalNoise(vec3 seed, float amplitude) {
+    float noise = snoise_3D(seed);
+
+    // spike
+    float noise_2 = smoothstep(0.0, 0.8, noise);
+    noise_2 = pow(abs(noise), 2.5);
+    noise_2 = smoothstep(0.0, 0.7, noise_2);
+
+    noise = (noise + 1.5 * noise_2) * 0.5;
+    noise = min(noise, 1.5);
 
     return amplitude * noise;
 }
@@ -35,17 +66,19 @@ float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
 
 // used during shadow rendering for underwater light shaft animation
 float doWaterLightShaftAnimation(float time, vec3 worldSpacePosition) {
+    vec2 wind = getWind();
     float amplitude = 0.33;
-    float speed = time * 0.15;
-    vec3 seed = vec3(worldSpacePosition.xz * 0.5, speed) + speed;
+    time *= 0.15;
+    vec3 seed = vec3(worldSpacePosition.xz * 0.5 - time * wind, 2.0 * time);
 
     return amplitude * snoise_3D(seed);
 }
 
 // used during shadow rendering to simulate caustic
 float doWaterCausticAnimation(float time, vec3 worldSpacePosition) {
-    float speed = time * 0.15;
-    vec3 seed = vec3(worldSpacePosition.xz * 0.66, speed) + speed;
+    vec2 wind = getWind();
+    time *= 0.15;
+    vec3 seed = vec3(worldSpacePosition.xz * 0.66 - time * wind, 2.0 * time);
 
     float n1 = snoise_3D(seed);
     float n2 = snoise_3D(seed * 1.5 + 0.12);
@@ -67,39 +100,70 @@ float doWaterCausticAnimation(float time, vec3 worldSpacePosition) {
 }
 
 vec3 doWaterAnimation(float time, vec3 worldSpacePosition, vec3 midBlock) {
+    vec2 wind = getWind();
     float amplitude = 1.0 / 32.0;
-    float speed = time * 0.25;
-    vec3 seed = vec3(worldSpacePosition.xz/20.0, 0.0) + speed;
+    time *= 0.25;
+
+    vec3 seed = vec3(worldSpacePosition.xz/10.0 - time * wind, time);
     
     worldSpacePosition.y += amplitude * snoise_3D(seed);
     return worldSpacePosition;
 }
 
 vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition) {
-    float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 8.0;
-    float speed = time * 0.2;
-    vec3 seed = vec3(worldSpacePosition.xz/20.0, worldSpacePosition.y/50.0) + speed;
+    float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 6.0;
+    time *= 0.2;
 
-    worldSpacePosition.x += getNoise(seed, amplitude);
-    worldSpacePosition.y += getNoise(seed+1.0, amplitude);
-    worldSpacePosition.z += getNoise(seed+2.0, amplitude);
+    float theta;
+    vec2 wind = getWind(theta);
+    // rotation matrix
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+    // horizontale coord
+    vec2 coord = worldSpacePosition.xz;
+    coord = rotation * coord;
+
+    vec3 horizontalSeed = vec3(
+        coord.x/20.0 - time, 
+        coord.y/180.0, 
+        worldSpacePosition.y/50.0 + 0.1 * time
+    );
+    vec3 verticalSeed = vec3(worldSpacePosition.xz/15.0 - time * normalize(wind), worldSpacePosition.y/50.0 + 0.1 * time);
+
+    worldSpacePosition.xz += wind * vec2(getHorizontalNoise(horizontalSeed, amplitude));
+    worldSpacePosition.y += getVerticalNoise(verticalSeed, amplitude);
     return worldSpacePosition;
 }
 
 // type : 0=not_rooted; 1=ground_rooted; 2=ceiling_rooted; 3=tall_ground_rooted_lower; 4=tall_ground_rooted_upper
 vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id) {
-    float amplitude = 1.0 / 4.0;
-    float speed = time * 0.2;
-    vec3 seed = vec3(worldSpacePosition.xz/20.0, worldSpacePosition.y/50.0) + speed;
+    float amplitude = 1.0 / 3.0;
+    time *= 0.2;
 
-    // attuenuate amplitude if rooted
+    float theta;
+    vec2 wind = getWind(theta);
+    // rotation matrix
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+    // horizontale coord
+    vec2 coord = worldSpacePosition.xz;
+    coord = rotation * coord;
+
+    vec3 seed = vec3(
+        coord.x/20.0 - time, 
+        coord.y/180.0, 
+        worldSpacePosition.y/50.0 + 0.1 * time
+    );
+
+    // attuenuate amplitude at the root if rooted
     if (isRooted(id)) {
         vec3 rootOrigin = midBlockToRoot(id, midBlock);
         amplitude *= rootOrigin.y;
     }
-    
-    worldSpacePosition.x += getNoise(seed, amplitude);
-    worldSpacePosition.z += getNoise(seed+2.0, amplitude);
+
+    worldSpacePosition.xz += wind * vec2(getHorizontalNoise(seed, amplitude));
     return worldSpacePosition;
 }
 

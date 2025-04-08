@@ -154,6 +154,7 @@ uniform float sunAngle; // 0 is sunrise, 0.25 is noon, 0.5 is sunset, 0.75 is mi
 uniform float fogStart;
 uniform float fogEnd;
 uniform float rainStrength;
+uniform float thunderStrength;
 uniform float alphaTestRef;
 uniform float near;
 uniform float far;
