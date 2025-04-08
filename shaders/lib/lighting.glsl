@@ -12,10 +12,6 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
     // -- shadow -- //
-    // using voxelization to snap shadows on textures
-    #if SHADOW_SNAP == 1
-        unanimatedWorldPosition = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/32.0;
-    #endif
     // offset position in normal direction (avoid self shadowing)
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
@@ -27,6 +23,10 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     #endif
     // apply offset
     vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
+    // using voxelization to snap shadows on textures
+    #if SHADOW_PIXALATED == 1
+        offsetWorldSpacePosition = floor((offsetWorldSpacePosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/32.0;
+    #endif
     // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
         offsetWorldSpacePosition.y += 0.2;

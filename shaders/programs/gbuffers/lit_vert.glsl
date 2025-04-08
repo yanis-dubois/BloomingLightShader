@@ -58,8 +58,12 @@ void main() {
         gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
     #endif
 
-    // update position if animated
+    // remapped midBlock coordinates
     midBlock = at_midBlock;
+    midBlock /= 64.0; // from [32;-32] to [0.5;-0.5] 
+    midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
+
+    // update position if animated
     #if VERTEX_ANIMATION > 0
         if (isAnimated(id)) {
             float ambientSkyLightIntensity = lightMapCoordinate.y;

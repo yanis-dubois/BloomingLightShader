@@ -174,9 +174,6 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
 }
 
 vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
-    midBlock /= 64.0; // from [32;-32] to [0.5;-0.5] 
-    midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
-
     if (isLiquid(id))
         return doWaterAnimation(time, worldSpacePosition, midBlock);
     if (isFoliage(id))

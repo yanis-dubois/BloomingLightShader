@@ -55,7 +55,7 @@ const float centerDepthHalflife = 2.0;
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_SNAP 1 // 0=off 1=on
+#define SHADOW_PIXALATED 1 // 0=off 1=on
 #define SHADOW_SNAP_RESOLUTION 16 // 0=off 1=on
 #define SHADOW_RANGE 0.66 // width of the sample area (in uv) 0.66
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
