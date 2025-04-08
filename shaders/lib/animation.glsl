@@ -110,8 +110,11 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition, vec3 midBlock) {
     return worldSpacePosition;
 }
 
-vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition) {
+vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientSkyLightIntensity) {
     float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 6.0;
+    // attenuate wind in caves
+    amplitude *= ambientSkyLightIntensity;
+    if (amplitude <= 0.01) return worldSpacePosition;
     time *= 0.2;
 
     float theta;
@@ -137,8 +140,11 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition) {
 }
 
 // type : 0=not_rooted; 1=ground_rooted; 2=ceiling_rooted; 3=tall_ground_rooted_lower; 4=tall_ground_rooted_upper
-vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id) {
+vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
     float amplitude = 1.0 / 3.0;
+    // attenuate wind in caves
+    amplitude *= ambientSkyLightIntensity;
+    if (amplitude <= 0.01) return worldSpacePosition;
     time *= 0.2;
 
     float theta;
@@ -167,16 +173,16 @@ vec3 doGrassAnimation(float time, vec3 worldSpacePosition, vec3 midBlock, int id
     return worldSpacePosition;
 }
 
-vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock) {
+vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
     midBlock /= 64.0; // from [32;-32] to [0.5;-0.5] 
     midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
 
     if (isLiquid(id))
         return doWaterAnimation(time, worldSpacePosition, midBlock);
     if (isFoliage(id))
-        return doLeafAnimation(id, time, worldSpacePosition);
+        return doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
     if (isUnderGrowth(id))
-        return doGrassAnimation(time, worldSpacePosition, midBlock, id);
+        return doGrassAnimation(id, time, worldSpacePosition, midBlock, ambientSkyLightIntensity);
     
     return worldSpacePosition;
 }

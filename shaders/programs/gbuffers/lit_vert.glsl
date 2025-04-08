@@ -62,7 +62,9 @@ void main() {
     midBlock = at_midBlock;
     #if VERTEX_ANIMATION > 0
         if (isAnimated(id)) {
-            worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock);
+            float ambientSkyLightIntensity = lightMapCoordinate.y;
+
+            worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock, ambientSkyLightIntensity);
             vec3 viewSpacePosition = worldToView(worldSpacePosition);
             gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
         }

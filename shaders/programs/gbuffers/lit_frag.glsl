@@ -69,6 +69,16 @@ void main() {
         transparency = min(transparency, 0.2);
     #endif
 
+    // light data
+    float distanceFromEye = distance(eyePosition, worldSpacePosition);
+    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
+    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
+    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
+    float ambientSkyLightIntensity = lightMapCoordinate.y;
+    // gamma correct light
+    blockLightIntensity = SRGBtoLinear(blockLightIntensity);
+    ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
+
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
     getMaterialData(gtexture, id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
@@ -90,9 +100,9 @@ void main() {
             vec3 tangent = TBN[0] / 16.0;
             vec3 bitangent = TBN[1] / 16.0;
 
-            vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock);
-            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent, midBlock);
-            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent, midBlock);
+            vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
+            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent, midBlock, ambientSkyLightIntensity);
+            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent, midBlock, ambientSkyLightIntensity);
 
             vec3 newTangent = normalize(tangentDerivative - actualPosition);
             vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
@@ -106,16 +116,6 @@ void main() {
             }
         }
     #endif 
-
-    // light
-    float distanceFromEye = distance(eyePosition, worldSpacePosition);
-    float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
-    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
-    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
-    float ambientSkyLightIntensity = lightMapCoordinate.y;
-    // gamma correct light
-    blockLightIntensity = SRGBtoLinear(blockLightIntensity);
-    ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
 
     // glowing particles
     #ifdef PARTICLE
