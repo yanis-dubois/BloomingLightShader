@@ -1,5 +1,5 @@
 vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, float smoothness, float reflectance, float subsurface,
-              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent) {
+              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent, vec3 tangent, vec3 bitangent) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -12,6 +12,10 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
     // -- shadow -- //
+    // using voxelization to snap shadows on textures
+    #if SHADOW_PIXALATED > 0
+        unanimatedWorldPosition = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
+    #endif
     // offset position in normal direction (avoid self shadowing)
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
@@ -23,17 +27,17 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     #endif
     // apply offset
     vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
-    // using voxelization to snap shadows on textures
-    #if SHADOW_PIXALATED == 1
-        offsetWorldSpacePosition = floor((offsetWorldSpacePosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
-    #endif
     // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
         offsetWorldSpacePosition.y += 0.2;
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
-        shadow = getSoftShadow(uv, offsetWorldSpacePosition);
+        #if SHADOW_PIXALATED > 0
+            shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent);
+        #else
+            shadow = getSoftShadow(uv, offsetWorldSpacePosition);
+        #endif
     // fade into the distance
     float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
     shadow *= shadow_fade;

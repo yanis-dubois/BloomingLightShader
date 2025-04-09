@@ -25,8 +25,8 @@ uniform sampler2D gtexture;
 #endif
 
 // attributes
+in mat3 TBN;
 in vec4 additionalColor; // albedo of : foliage, water, particules
-in vec3 Vnormal;
 in vec3 unanimatedWorldPosition;
 in vec3 midBlock;
 in vec3 worldSpacePosition;
@@ -48,7 +48,10 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.rgb * additionalColor.rgb;
     float transparency = textureColor.a;
-    vec3 normal = Vnormal;
+
+    vec3 tangent = TBN[0];
+    vec3 bitangent = TBN[1];
+    vec3 normal = TBN[2];
 
     // tweak transparency
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
@@ -96,13 +99,9 @@ void main() {
     // animated normal
     #if VERTEX_ANIMATION == 2
         if (isAnimated(id) && smoothness > 0.5) {
-            mat3 TBN = generateTBN(normal);
-            vec3 tangent = TBN[0] / 16.0;
-            vec3 bitangent = TBN[1] / 16.0;
-
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
-            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent, midBlock, ambientSkyLightIntensity);
-            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent, midBlock, ambientSkyLightIntensity);
+            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
+            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
 
             vec3 newTangent = normalize(tangentDerivative - actualPosition);
             vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
@@ -138,7 +137,7 @@ void main() {
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent, tangent, bitangent);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

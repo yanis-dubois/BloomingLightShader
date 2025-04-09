@@ -154,3 +154,54 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         #endif
     #endif
 }
+
+// pixelated version of soft shadow
+vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangent) {
+
+    // no shadows
+    #if SHADOW_PIXALATED == 0
+        return vec4(0.0);
+
+    // hard shadows
+    #elif SHADOW_PIXALATED == 1
+        vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
+        vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+        return getShadow(shadowClipPosition, false);
+
+    // soft shadows
+    #else
+        // distant shadows are smoother
+        float distanceToPlayer = distance(vec3(0.0), worldToPlayer(worldSpacePosition));
+        float blend = map(distanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
+        blend = 1.0 + 10.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
+
+        float range = 1.0; // how far away from the original position we take our samples from
+        range *= blend;
+        vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
+        float count = 0.0;
+
+        bool checker = false;
+        for (float x=-range; x<=range; x+=range) {
+            for (float y=-range; y<=range; y+=range) {
+                if (checker) {
+                    checker = false;
+                    continue;
+                }
+                checker = true;
+                
+                vec2 offset = vec2(x, y);
+
+                float weight = 1.0;
+
+                // space conversion
+                vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / 16.0 * tangent + offset.y / 16.0 * bitangent;
+                vec3 playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
+                vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+                shadowAccum += weight * getShadow(shadowClipPosition, false); // take shadow sample
+                count += weight;
+            }
+        }
+
+        return shadowAccum / count;
+    #endif
+}

@@ -15,8 +15,8 @@ in vec3 mc_Entity;
 in vec3 at_midBlock;
 
 // results
+out mat3 TBN;
 out vec4 additionalColor;
-out vec3 Vnormal;
 out vec3 worldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
@@ -31,9 +31,15 @@ void main() {
     additionalColor = gl_Color;
 
     /* geometry infos */
-    Vnormal = normalize(gl_NormalMatrix * gl_Normal);
-    // from view to world space
-    Vnormal = mat3(gbufferModelViewInverse) * Vnormal;
+    // normal
+    vec3 normal = normalize(gl_NormalMatrix * gl_Normal);
+    normal = mat3(gbufferModelViewInverse) * normal; // from view to world space
+    // tangent
+    vec3 tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
+    tangent = mat3(gbufferModelViewInverse) * tangent; // from view to world space
+    // bitangent
+    vec3 bitangent = cross(tangent, normal) * at_tangent.w;
+    TBN = mat3(tangent, bitangent, normal);
 
     id = int(mc_Entity.x);
     #ifdef TERRAIN

@@ -31,7 +31,7 @@ const float sunPathRotation = 0.0;
 
 // shadow
 const bool shadowHardwareFiltering = true;
-const int shadowMapResolution = 1024; // 1024 1536 2048
+const int shadowMapResolution = 2048; // 1024 1536 2048
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
@@ -54,8 +54,8 @@ const float centerDepthHalflife = 2.0;
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_PIXALATED 1 // 0=off 1=on
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 
+#define SHADOW_PIXALATED 2 // 0=off 1=hard_pixelated 2=smooth_pixelated
 #define SHADOW_SNAP_RESOLUTION 16 // 0=off 1=on
 #define SHADOW_RANGE 0.66 // width of the sample area (in uv) 0.66
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
