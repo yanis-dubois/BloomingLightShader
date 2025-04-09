@@ -17,7 +17,7 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
         float blurSize = pow(2.0, float(lod)) / n;
 
         // get noise
-        float noise = pseudoRandom(uv+0.1*lod + frameTimeCounter);
+        float noise = pseudoRandom(uv + 0.1*lod + frameTimeCounter / 3600.0);
         float theta = noise * 2.0*PI;
         float cosTheta = cos(theta);
         float sinTheta = sin(theta);
@@ -31,7 +31,7 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
             offset = offset * blurSize / vec2(viewWidth, viewWidth);
             offset = rotation * offset;
 
-            float weight = 1.0;// * gaussian(float(x)/n, std);
+            float weight = 1.0;
 
             bloom += weight * SRGBtoLinear(texture2DLod(texture, uv + offset, lod).rgb);
             totalWeight += weight;

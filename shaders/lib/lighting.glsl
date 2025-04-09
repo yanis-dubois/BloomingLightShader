@@ -16,7 +16,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
     #if (SHADOW_TYPE == 1 || SHADOW_TYPE == 2) && SHADOW_RANGE > 0 && SHADOW_SAMPLES > 0
-        float noise = pseudoRandom(uv + 0.14312 * frameTimeCounter);
+        float noise = pseudoRandom(uv + frameTimeCounter / 3600.0);
         noise = map(noise, 0.0, 1.0, 0.5, 1.1);
     #else
         float noise = 1.0;
@@ -25,7 +25,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
     // using voxelization to snap shadows on textures
     #if SHADOW_PIXALATED == 1
-        offsetWorldSpacePosition = floor((offsetWorldSpacePosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/32.0;
+        offsetWorldSpacePosition = floor((offsetWorldSpacePosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
     #endif
     // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)

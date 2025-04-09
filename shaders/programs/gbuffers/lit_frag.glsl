@@ -61,7 +61,7 @@ void main() {
     }
 
     // apply red flash when mob are hitted
-    albedo = mix(albedo, entityColor.rgb, entityColor.a); 
+    albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
     // weather smooth transition
     #ifdef WEATHER

@@ -66,7 +66,7 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
 
             float blendFactor = 0.9;
             // depth reject
-            blendFactor *= 1.0 - smoothstep(0.0, 0.1*noise + 1.0, dist);
+            blendFactor *= 1.0 - smoothstep(0.0, 0.1 * noise + 1.0, dist);
             // pixel velocity reject
             vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
             blendFactor *= map(exp(- length(pixelVelocity)), 0.0, 1.0, 0.75, 1.0);

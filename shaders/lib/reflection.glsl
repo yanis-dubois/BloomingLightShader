@@ -176,8 +176,8 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // sampling data
         float roughness = pow(1.0 - smoothness, 2.0);
         roughness *= roughness; 
-        float zeta1 = pseudoRandom(uv + 0.913 * float(frameTimeCounter) / 3600);
-        float zeta2 = pseudoRandom(uv + 0.32 + 0.913 * float(frameTimeCounter) / 3600);
+        float zeta1 = pseudoRandom(uv + 0.913 * frameTimeCounter / 3600.0);
+        float zeta2 = pseudoRandom(uv + 0.32 + 0.913 * frameTimeCounter / 3600.0);
 
         // tbn - tangent to view 
         mat3 TBN = generateTBN(viewSpaceNormal); 
@@ -239,7 +239,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         float lastPosition = 0.0, currentPosition = 0.0;
 
         // initialize some variable
-        vec2 seed = uv + 0.1 * frameTimeCounter;
+        vec2 seed = uv + frameTimeCounter / 3600.0;
         vec2 texelSpaceCurrentPosition = texelSpaceStartPosition;
         texelSpaceCurrentPosition += stepLength * pseudoRandom(seed);
         vec2 screenSpaceCurrentPosition = screenSpaceStartPosition;
