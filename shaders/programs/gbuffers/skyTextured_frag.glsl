@@ -3,6 +3,9 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
+#include "/lib/light_color.glsl"
+#include "/lib/sky.glsl"
+#include "/lib/fog.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
@@ -52,9 +55,11 @@ void main() {
         float emissivness = getLightness(albedo);
     #endif
 
-    // adapt emissivness with moon phase
-    //if (VdotS < 0.0)
-    //    emissivness *= getMoonPhase();
+    // apply blindness effect
+    vec3 blindedColor = albedo;
+	vec3 worldSpacePosition = screenToWorld(texelToScreen(gl_FragCoord.xy), 1.0);
+    doBlindness(worldSpacePosition, blindedColor, emissivness);
+    albedo = mix(albedo, linearToSRGB(blindedColor), blindness);
 
     /* buffers */
     colorData = vec4(albedo, transparency);

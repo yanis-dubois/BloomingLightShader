@@ -79,7 +79,8 @@ vec3 getBlockLightColor(float blockLightIntensity, float emissivness) {
         blockLightColorBright = SRGBtoLinear(blockLightColorBright);
         blockLightColorLow = SRGBtoLinear(blockLightColorLow);
 
-        blockLightColorBright *= max(max((1-emissivness) * 1.5, 1) * exp(- 10 * (blockLightIntensity-1)*(blockLightIntensity-1)), emissivness);
+        float brightFactor = max(max((1.0 - emissivness) * 1.5, 1.0) * exp(- 10.0 * (blockLightIntensity - 1.0) * (blockLightIntensity - 1.0)), emissivness);
+        blockLightColorBright *= min(brightFactor, 1.0);
         blockLightColorLow *= blockLightIntensity;
 
         return blockLightColorBright + blockLightColorLow;

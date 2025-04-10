@@ -142,11 +142,16 @@ void main() {
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        reflection.a = mix(reflection.a, 0.0, blindness); // blindness
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
     #endif
 
     // -- fog -- //
     foggify(worldSpacePosition, color.rgb, emissivness);
+    // blindness
+    vec3 blindedColor = color.rgb;
+    doBlindness(worldSpacePosition, blindedColor, emissivness);
+    color.rgb = mix(color.rgb, blindedColor, blindness);
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);

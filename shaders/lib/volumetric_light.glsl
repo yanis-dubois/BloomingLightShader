@@ -113,5 +113,5 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     }
 
     // write values
-    color += accumulatedLight / pow(far, 0.75);
+    color = mix(color + accumulatedLight / pow(far, 0.75), color, blindness);
 }

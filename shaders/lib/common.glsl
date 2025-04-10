@@ -164,6 +164,8 @@ uniform float gamma;
 uniform float frameTimeCounter;
 uniform float ambientLight;
 uniform float centerDepthSmooth;
+uniform float nightVision;
+uniform float blindness;
 
 uniform int blockEntityId;
 uniform int frameCounter; // in [0;720719]

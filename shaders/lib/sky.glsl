@@ -19,6 +19,8 @@ const vec3 sunsetTopColor = vec3(0.28, 0.32, 0.55);
 const vec3 sunsetHighColor = vec3(0.15, 0.2, 0.5);
 // glare
 const vec3 glareColor = vec3(0.75);
+// blindness 
+const vec3 blindnessColor = vec3(0.0);
 
 // vanilla 
 vec3 getVanillaSkyColor(vec3 eyeSpacePosition) {
@@ -129,6 +131,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
     float noise = 0.01 * pseudoRandom(polarWorldSpaceViewDirection.yz);
     skyColor += noise;
+
+    skyColor = mix(skyColor, linearToSRGB(blindnessColor), blindness);
 
     return skyColor;
 }

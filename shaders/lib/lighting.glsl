@@ -113,6 +113,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // -- BRDF -- //
     // -- diffuse
     vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
+    light = mix(light, pow(light, vec3(0.33)), nightVision);
     vec3 color = albedo * light;
     // -- specular
     if (0.1 < smoothness) {

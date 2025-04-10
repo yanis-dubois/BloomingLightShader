@@ -6,6 +6,7 @@
 #include "/lib/space_conversion.glsl"
 #include "/lib/light_color.glsl"
 #include "/lib/sky.glsl"
+#include "/lib/fog.glsl"
 
 // attribute
 in vec4 starData;
@@ -39,6 +40,12 @@ void main() {
 			albedo = getVanillaSkyColor(eyeSpacePosition);
 		}
 	#endif
+
+	// apply blindness effect
+    vec3 blindedColor = albedo;
+	vec3 worldSpacePosition = screenToWorld(texelToScreen(gl_FragCoord.xy), 1.0);
+    doBlindness(worldSpacePosition, blindedColor, emissivness);
+    albedo = mix(albedo, linearToSRGB(blindedColor), blindness);
 
 	// buffers
     colorData = vec4(albedo, transparency);

@@ -43,6 +43,10 @@
 
         // apply reflection
         vec4 reflection = doReflection(colortex0, colortex5, depthtex0, uv, depth, color, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        // blindness
+        vec3 worldSpacePosition = screenToWorld(uv, depth);
+        float blindnessFactor = getBlindnessFactor(worldSpacePosition);
+        reflection.a = mix(reflection.a, 0.0, blindness * blindnessFactor);
 
         // gamma correct
         reflection.rgb = linearToSRGB(reflection.rgb);

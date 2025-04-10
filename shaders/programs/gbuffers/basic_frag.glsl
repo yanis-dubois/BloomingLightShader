@@ -3,12 +3,17 @@
 // includes
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
+#include "/lib/space_conversion.glsl"
+#include "/lib/light_color.glsl"
+#include "/lib/sky.glsl"
+#include "/lib/fog.glsl"
 
 // uniforms
 uniform sampler2D gtexture;
 
 // attributes
 in vec4 additionalColor; // foliage, water, particules
+in vec3 worldSpacePosition;
 in vec2 textureCoordinate; // immuable block & item
 
 // results
@@ -21,17 +26,26 @@ void main() {
     vec3 albedo = textureColor.xyz * additionalColor.xyz;
     float transparency = textureColor.a;
     if (transparency < alphaTestRef) discard;
+    float emissivness = 0.0;
 
     #ifdef BEACON_BEAM
         transparency = 0.5;
         albedo *= 1.5;
-        lightAndMaterialData = vec4(0.0, 1.0, 0.0, 1.0);
     #endif
 
     #ifdef GLOWING
         albedo *= 2.0;
-        lightAndMaterialData = vec4(0.0, 1.0, 0.0, 1.0);
     #endif
 
+    albedo = clamp(albedo, 0.0, 1.0);
+
+    // apply blindness effect
+    vec3 blindedColor = albedo;
+    doBlindness(worldSpacePosition, blindedColor, emissivness);
+    albedo = mix(albedo, linearToSRGB(blindedColor), blindness);
+
     colorData = vec4(albedo, transparency);
+    #if defined BEACON_BEAM || defined GLOWING
+        lightAndMaterialData = vec4(0.0, emissivness, 0.0, 1.0);
+    #endif
 }

@@ -67,25 +67,25 @@ float getCustomFogFactor(float t, float density) {
 }
 
 float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
-    // linear vanilla fog (tweaked when camera is under water)
-    float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-    float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
 
-    // normalized linear depth
-    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-    float normalizedLinearDepth = distanceFromCamera / far;
+    // no fog
+    #if FOG_TYPE == 0
+        float fogFactor = 0.0;
+
+    // linear vanilla fog (tweaked when camera is under water)
+    #elif FOG_TYPE == 1
+        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+        float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
 
     // custom fog
-    #if FOG_TYPE == 2
+    #else
+        // normalized linear depth
+        float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
+        float normalizedLinearDepth = distanceFromCamera / far;
+
         float fogDensity = getFogDensity(worldSpacePosition.y, isInWater);
-        // exponential function
-        // float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity)) * (1.0 - normalizedLinearDepth);
-        // exponential function x linear
-        // float exponentialFog = 1.0 - pow(2.0, - (normalizedLinearDepth * fogDensity) * (normalizedLinearDepth * fogDensity));
         fogDensity = 1.0 - map(fogDensity, 0.5, 3.0, 0.3, 0.8);
-        // if (isInWater) fogDensity = min(fogDensity, 0.5 * (fogEnd/far));
-        fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
-        // fogFactor = max(fogFactor, exponentialFog);
+        float fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
     #endif
 
     return clamp(fogFactor, 0.0, 1.0);
@@ -114,4 +114,35 @@ void foggify(vec3 worldSpacePosition, inout vec3 color) {
     // unused emissivness
     float _;
     foggify(worldSpacePosition, color, _);
+}
+
+float getBlindnessFactor(vec3 worldSpacePosition) {
+    const float blindnessDistance = 8.0;
+
+    // no fog
+    #if FOG_TYPE == 0
+        float fogFactor = 0.0;
+
+    // linear vanilla fog (tweaked when camera is under water)
+    #elif FOG_TYPE == 1
+        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+        float fogFactor = map(distanceFromCameraXZ, 0.0, blindnessDistance, 0.0, 1.0);
+
+    // custom fog
+    #else
+        // normalized linear depth
+        float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
+        float normalizedLinearDepth = clamp(distanceFromCamera / blindnessDistance, 0.0, 1.0);
+
+        float fogDensity = 0.5;
+        float fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
+    #endif
+
+    return clamp(fogFactor, 0.0, 1.0);
+}
+
+void doBlindness(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
+    float fogFactor = getBlindnessFactor(worldSpacePosition);
+    color = mix(color, blindnessColor, fogFactor);
+    emissivness = mix(emissivness, 0.0, fogFactor);
 }
