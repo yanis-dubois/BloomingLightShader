@@ -115,7 +115,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
                 intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
                 intensity = min(max(intensity, 0.0), (1 - rainStrength));
                 skyColor = mix(skyColor, vec3(1.0), intensity);
-                emissivness = 1.0;
+                emissivness = intensity;
             }
         }
     }

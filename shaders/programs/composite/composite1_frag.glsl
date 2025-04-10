@@ -59,8 +59,22 @@ void main() {
 
     // -- bloom buffer -- //
     #if BLOOM_TYPE > 0
-        float lightness = getLightness(color);
-        vec3 bloom = color * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+        // no jitter when TAA is off
+        #if TAA_TYPE == 0
+            vec3 bloom = color;
+            float lightness = getLightness(bloom);
+            bloom = bloom * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+
+        // apply jitter to avoid bloom glittering
+        #else
+            const float bloomJitteringAmplitude = 50.0;
+            vec2 offset = sampleDiskArea(uv + frameTimeCounter / 3600.0);
+            // vec3 bloom = texture2D(colortex0, uv + texelToScreen(offset)).rgb;
+            vec3 bloom = texture2D(colortex0, uv + BLOOM_RANGE * offset).rgb;
+            float lightness = getLightness(bloom);
+            bloom = bloom * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+            bloom = saturate(bloom, 1.66);
+        #endif
 
         bloomData = linearToSRGB(bloom);
     #else
