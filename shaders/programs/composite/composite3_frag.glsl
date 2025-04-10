@@ -40,13 +40,16 @@ void main() {
         color = DOF;
     #endif
 
-    // -- bloom : 2nd pass -- //
+    // -- bloom : 2nd pass + apply it -- //
     #if BLOOM_TYPE == 1
         vec3 bloom = doBlur(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
         bloomData = linearToSRGB(bloom);
     #elif BLOOM_TYPE == 2
         vec3 bloom = doBloom(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
         bloomData = linearToSRGB(bloom);
+
+        bloom = pow(bloom, 1.0 / vec3(1.75));
+        color += bloom * BLOOM_FACTOR;
     #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);

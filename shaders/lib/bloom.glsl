@@ -12,7 +12,7 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
 
     const int n = 2;
     const int lodMin = 3;
-    const int lodMax = 7;
+    const int lodMax = 6;
     for (int lod=lodMin; lod<=lodMax; ++lod) {
         float blurSize = pow(2.0, float(lod)) / n;
 
@@ -36,8 +36,8 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
             bloom += weight * SRGBtoLinear(texture2DLod(texture, uv + offset, lod).rgb);
             totalWeight += weight;
         }
-        float lodFactor = (1.0 - 0.1*lod);
-        lodFactor = exp(-lod * 0.33);
+        // float lodFactor = (1.0 - 0.2*(lod - lodMin));
+        float lodFactor = exp(-lod * 0.33);
         totalBloom += lodFactor * bloom / totalWeight;
     }
 

@@ -60,8 +60,8 @@ void main() {
     // -- bloom buffer -- //
     #if BLOOM_TYPE > 0
         float lightness = getLightness(color);
-
         vec3 bloom = color * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+
         bloomData = linearToSRGB(bloom);
     #else
         bloomData = vec3(0.0);
@@ -77,8 +77,7 @@ void main() {
         // blur amount
         #if DOF_TYPE == 1
             // focal plane distance
-            float focusDepth = texture2D(depthtex1, vec2(0.5)).r;
-            focusDepth = centerDepthSmooth;
+            float focusDepth = centerDepthSmooth > 0.99999 ? 1.0 : centerDepthSmooth;
             vec3 viewSpaceFocusPosition = screenToView(vec2(0.5), focusDepth);
             float focusDistance = - viewSpaceFocusPosition.z;
             focusDistance = min(focusDistance, far);
