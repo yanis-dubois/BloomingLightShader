@@ -40,9 +40,7 @@ void main() {
     albedo = clamp(albedo, 0.0, 1.0);
 
     // apply blindness effect
-    vec3 blindedColor = albedo;
-    doBlindness(worldSpacePosition, blindedColor, emissivness);
-    albedo = mix(albedo, linearToSRGB(blindedColor), blindness);
+    doBlindness(worldSpacePosition, albedo, emissivness);
 
     colorData = vec4(albedo, transparency);
     #if defined BEACON_BEAM || defined GLOWING

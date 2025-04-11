@@ -19,7 +19,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // offset position in normal direction (avoid self shadowing)
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
-    #if (SHADOW_TYPE == 1 || SHADOW_TYPE == 2) && SHADOW_RANGE > 0 && SHADOW_SAMPLES > 0
+    #if SHADOW_TYPE > 0 && SHADOW_PIXALATED == 0
         float noise = pseudoRandom(uv + frameTimeCounter / 3600.0);
         noise = map(noise, 0.0, 1.0, 0.5, 1.1);
     #else
@@ -49,6 +49,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     float ambientLightFactor = 0.0125;
     float faceTweak = 1.0;
     float dayNightBlend = getDayNightBlend();
+    float darknessExponent = 10.0;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
     faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
     faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
@@ -85,20 +86,32 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
         skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity * (1 - shadow.a)));
     #endif
+    // apply darkness
+    directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
     // apply sky light color
     vec3 directSkyLight = directSkyLightIntensity * skyLightColor;
     // apply shadow
     directSkyLight = mix(directSkyLight, directSkyLight * shadow.rgb, shadow.a);
 
     // -- ambient sky light
+    // apply darkness
+    ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
+    // get light color
     vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
 
     // -- block light
+    // apply darkness
+    blockLightIntensity = mix(blockLightIntensity, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
+    emissivness = mix(emissivness, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
+    // get light color
     vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
-    vec3 blockLight = faceTweak * blockLightColor;
+    vec3 blockLight = faceTweak * blockLightIntensity * blockLightColor;
 
     // -- ambient light
     vec3 ambiantLightColor = light10000K;
+    // apply darkness
+    ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
+    // get light color
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
 
     // -- filter underwater light
@@ -113,7 +126,9 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     // -- BRDF -- //
     // -- diffuse
     vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
+    // apply night vision
     light = mix(light, pow(light, vec3(0.33)), nightVision);
+    // diffuse model
     vec3 color = albedo * light;
     // -- specular
     if (0.1 < smoothness) {

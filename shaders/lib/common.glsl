@@ -38,6 +38,10 @@ const float endShadowDecrease = 150;
 // depth of field
 const float centerDepthHalflife = 2.0;
 
+// effects
+const float blindnessRange = 8.0;
+const float darknessRange = 16.0;
+
 ////////////////////////////////////////////////////
 //////////////////// parameters ////////////////////
 ////////////////////////////////////////////////////
@@ -57,7 +61,7 @@ const float centerDepthHalflife = 2.0;
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 
 #define SHADOW_PIXALATED 2 // 0=off 1=hard_pixelated 2=smooth_pixelated
 #define SHADOW_SNAP_RESOLUTION 16 // 0=off 1=on
-#define SHADOW_RANGE 0.66 // width of the sample area (in uv) 0.66
+#define SHADOW_RANGE 0.66 // width of the sample area (in clip) 0.66
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
@@ -166,6 +170,8 @@ uniform float ambientLight;
 uniform float centerDepthSmooth;
 uniform float nightVision;
 uniform float blindness;
+uniform float darknessFactor;
+uniform float darknessLightFactor;
 
 uniform int blockEntityId;
 uniform int frameCounter; // in [0;720719]

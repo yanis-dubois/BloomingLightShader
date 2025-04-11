@@ -116,8 +116,7 @@ void foggify(vec3 worldSpacePosition, inout vec3 color) {
     foggify(worldSpacePosition, color, _);
 }
 
-float getBlindnessFactor(vec3 worldSpacePosition) {
-    const float blindnessDistance = 8.0;
+float getBlindnessFactor(vec3 worldSpacePosition, float blindnessDistance) {
 
     // no fog
     #if FOG_TYPE == 0
@@ -142,7 +141,13 @@ float getBlindnessFactor(vec3 worldSpacePosition) {
 }
 
 void doBlindness(vec3 worldSpacePosition, inout vec3 color, inout float emissivness) {
-    float fogFactor = getBlindnessFactor(worldSpacePosition);
-    color = mix(color, blindnessColor, fogFactor);
-    emissivness = mix(emissivness, 0.0, fogFactor);
+    // blindness
+    float blindnessFogFactor = getBlindnessFactor(worldSpacePosition, blindnessRange);
+    color = mix(color, blindnessColor, blindnessFogFactor * blindness);
+    emissivness = mix(emissivness, 0.0, blindnessFogFactor * blindness);
+
+    // darkness
+    float darknessFogFactor = getBlindnessFactor(worldSpacePosition, darknessRange);
+    color = mix(color, blindnessColor, darknessFogFactor * darknessFactor);
+    emissivness = mix(emissivness, 0.0, darknessFogFactor * darknessFactor);
 }

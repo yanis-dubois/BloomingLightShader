@@ -56,10 +56,8 @@ void main() {
     #endif
 
     // apply blindness effect
-    vec3 blindedColor = albedo;
 	vec3 worldSpacePosition = screenToWorld(texelToScreen(gl_FragCoord.xy), 1.0);
-    doBlindness(worldSpacePosition, blindedColor, emissivness);
-    albedo = mix(albedo, linearToSRGB(blindedColor), blindness);
+    doBlindness(worldSpacePosition, albedo, emissivness);
 
     /* buffers */
     colorData = vec4(albedo, transparency);

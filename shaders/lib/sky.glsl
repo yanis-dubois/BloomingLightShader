@@ -132,7 +132,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     float noise = 0.01 * pseudoRandom(polarWorldSpaceViewDirection.yz);
     skyColor += noise;
 
-    skyColor = mix(skyColor, linearToSRGB(blindnessColor), blindness);
+    // apply blindness & darkness
+    skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));
 
     return skyColor;
 }
