@@ -46,7 +46,8 @@ void main() {
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
-    vec3 albedo = textureColor.rgb * additionalColor.rgb;
+    vec3 tint = additionalColor.rgb;
+    vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
 
     vec3 tangent = TBN[0];
@@ -114,18 +115,32 @@ void main() {
                 normal = newNormal;
             }
         }
-    #endif 
+    #endif
 
     // glowing particles
     #ifdef PARTICLE
+        bool isObsidianTears = isEqual(tint, vec3(130.0, 8.0, 227.0) / 255.0, 2.0/255.0);
+        bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
+        bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
+        bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
+        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0 && 2.0*tint.g < tint.b;
+        bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
+        bool isSoulFire = isEqual(textureColor.rgb, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
+            || isEqual(textureColor.rgb, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)
+            || isEqual(textureColor.rgb, vec3(0.0, 142.0, 146.0) / 255.0, 2.0/255.0);
+        bool isCrimsonForest = isEqual(tint, vec3(229.0, 101.0, 127.0) / 255.0, 2.0/255.0);
+        bool isGreenGlint = isEqual(textureColor.rgb, vec3(6.0, 229.0, 151.0) / 255.0, 6.0/255.0)
+            || isEqual(textureColor.rgb, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
+            || isEqual(textureColor.rgb, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
+            || isEqual(textureColor.rgb, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
         // is glowing particle ?
-        bool isGray = (albedo.r - albedo.g)*(albedo.r - albedo.g) + (albedo.r - albedo.b)*(albedo.r - albedo.b) + (albedo.b - albedo.g)*(albedo.b - albedo.g) < 0.05;
-        bool isUnderwaterParticle = (albedo.r == albedo.g && albedo.r - 0.5 * albedo.b < 0.06);
-        bool isWaterParticle = (albedo.b > 1.15 * (albedo.r + albedo.g) && albedo.g > albedo.r * 1.25 && albedo.g < 0.425 && albedo.b > 0.75);
-        if (getLightness(textureColor.rgb) > 0.8 && !isGray && !isWaterParticle && !isUnderwaterParticle) {
+        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint) {
             ambient_occlusion = 1.0;
             emissivness = 1.0;
-            albedo *= 1.5;
+            // saturate some of them
+            if (isNetherPortal || isRedstone) {
+                albedo *= 1.5;
+            }
         }
     #endif
 

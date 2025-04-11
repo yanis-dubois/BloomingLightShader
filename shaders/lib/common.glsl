@@ -40,7 +40,7 @@ const float centerDepthHalflife = 2.0;
 
 // effects
 const float blindnessRange = 8.0;
-const float darknessRange = 16.0;
+const float darknessRange = 32.0;
 
 ////////////////////////////////////////////////////
 //////////////////// parameters ////////////////////

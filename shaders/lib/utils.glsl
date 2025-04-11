@@ -128,6 +128,12 @@ vec3 map(vec3 value, float fromMin, float fromMax, float toMin, float toMax) {
     vec3 mapped = (value-fromMin) / (fromMax-fromMin); // from [fromMin;fromMax] to [0;1]
     return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]
 }
+bool isEqual(float x, float y, float epsilon) {
+    return abs(x - y) <= epsilon;
+}
+bool isEqual(vec3 x, vec3 y, float epsilon) {
+    return isEqual(x.x, y.x, epsilon) && isEqual(x.y, y.y, epsilon) && isEqual(x.z, y.z, epsilon);
+}
 
 // -- distance -- //
 float distance1(vec2 p1, vec2 p2) {

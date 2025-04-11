@@ -105,7 +105,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
     emissivness = mix(emissivness, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
     // get light color
     vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
-    vec3 blockLight = faceTweak * blockLightIntensity * blockLightColor;
+    vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
 
     // -- ambient light
     vec3 ambiantLightColor = light10000K;
