@@ -158,7 +158,13 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // ------------------ step 1 : preparation ------------------ //
 
     // directions
-    vec3 viewSpacePosition = screenToView(uv, depth);
+    #if PIXELATED_REFLECTION > 0
+        vec3 worldSpacePosition = screenToWorld(uv, depth);
+        worldSpacePosition = voxelize(worldSpacePosition);
+        vec3 viewSpacePosition = worldToView(worldSpacePosition);
+    #else
+        vec3 viewSpacePosition = screenToView(uv, depth);
+    #endif
     vec3 viewDirection = normalize(viewSpacePosition);
     vec3 viewSpaceNormal = eyeToView(normal);
 

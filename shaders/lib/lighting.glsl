@@ -1,39 +1,43 @@
-vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, float smoothness, float reflectance, float subsurface,
-              float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion, bool isTransparent, vec3 tangent, vec3 bitangent) {
+vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion) {
 
     vec3 skyLightColor = getSkyLightColor();
 
     // directions and angles 
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normal);
-    vec3 worldSpaceViewDirection = normalize(cameraPosition - worldSpacePosition);
+    #if PIXELATED_SPECULAR > 0
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
+    #else
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - unanimatedWorldPosition);
+    #endif
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
     float normalizedLinearDepth = distanceFromCamera / far;
     float cosTheta = dot(worldSpaceViewDirection, normal);
 
     // -- shadow -- //
-    // using voxelization to snap shadows on textures
-    #if SHADOW_PIXALATED > 0
-        unanimatedWorldPosition = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
-    #endif
     // offset position in normal direction (avoid self shadowing)
     float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
     // add noise to offset to reduce shadow acne
-    #if SHADOW_TYPE > 0 && SHADOW_PIXALATED == 0
+    #if SHADOW_TYPE > 0 && PIXELATED_SHADOW == 0
         float noise = pseudoRandom(uv + frameTimeCounter / 3600.0);
         noise = map(noise, 0.0, 1.0, 0.5, 1.1);
     #else
         float noise = 1.0;
     #endif
     // apply offset
-    vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
+    #if PIXELATED_SHADOW > 0
+        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition) + noise * normal * offsetAmplitude;
+    #else
+        vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
+    #endif
     // lowers shadows a bit for subsurface on foliage
     if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
         offsetWorldSpacePosition.y += 0.2;
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
-        #if SHADOW_PIXALATED > 0
+        #if PIXELATED_SHADOW > 0
             shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent);
         #else
             shadow = getSoftShadow(uv, offsetWorldSpacePosition);
@@ -58,9 +62,9 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
 
     // -- direct sky light
     float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
-    if (isTransparent) {
+    #ifdef TRANSPARENT
         directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
-    }
+    #endif
     // tweak for south and north facing fragment
     directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
     // subsurface scattering
@@ -149,11 +153,9 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 worl
         color += directSkyLight * specular;
     }
     // -- fresnel
-    #if REFLECTION_TYPE > 0 && defined REFLECTIVE
-        if (isTransparent) {
-            float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
-            transparency = max(transparency, fresnel);
-        }
+    #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
+        float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+        transparency = max(transparency, fresnel);
     #endif
 
     return vec4(color, transparency);

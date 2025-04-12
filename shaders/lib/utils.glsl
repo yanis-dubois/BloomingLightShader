@@ -181,6 +181,10 @@ float getMoonPhase() {
     float moonPhaseBlend = moonPhase < 4 ? float(moonPhase) / 4.0 : (4.0 - (float(moonPhase)-4.0)) / 4.0; 
     return cos(moonPhaseBlend * PI) / 2.0 + 0.5; 
 }
+// voxelize position
+vec3 voxelize(vec3 worldSpacePosition) {
+    return floor((worldSpacePosition + 0.001) * TEXTURE_RESOLUTION) / TEXTURE_RESOLUTION + 1.0/(2.0*TEXTURE_RESOLUTION);
+}
 
 // -- data encoding & decoding -- //
 vec3 encodeNormal(vec3 normal) {

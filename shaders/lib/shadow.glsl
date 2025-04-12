@@ -159,11 +159,11 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangent) {
 
     // no shadows
-    #if SHADOW_PIXALATED == 0
+    #if SHADOW_TYPE == 0
         return vec4(0.0);
 
     // hard shadows
-    #elif SHADOW_PIXALATED == 1
+    #elif PIXELATED_SHADOW == 1
         vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
         vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
         return getShadow(shadowClipPosition, false);

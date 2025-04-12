@@ -86,20 +86,15 @@ void main() {
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
     getMaterialData(gtexture, id, normal, midBlock, textureColor.rgb, tint, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
-    // opaque or transparent pass
-    #ifdef TRANSPARENT
-        bool isTransparent = true;
-    #else
-        bool isTransparent = false;
-    #endif
 
     // normal
     #ifdef PARTICLE 
         normal = -normalize(playerLookVector);
     #endif
     // animated normal
-    #if VERTEX_ANIMATION == 2
+    #if ANIMATED_POSITION == 2
         if (isAnimated(id) && smoothness > 0.5) {
+            // vec3 uwp = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
             vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
             vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
@@ -117,21 +112,29 @@ void main() {
         }
     #endif
 
-    vec3 seed = texture2DLod(gtexture, textureCoordinate, 0).rgb;
-
     // light animation
-    if (LIGHT_EMISSION_ANIMATION == 1 && emissivness > 0.0) {
-        float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
-        emissivness -= noise;
-    }
+    #if ANIMATED_EMISSION > 0
+        if (emissivness > 0.0) {
+            float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
+            emissivness -= noise;
+        }
+    #endif
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion, isTransparent, tangent, bitangent);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, uv, depth, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        #if PIXELATED_REFLECTION > 0
+            vec3 screenSpacePosition = worldToScreen((unanimatedWorldPosition));
+        #else
+            vec3 screenSpacePosition = vec3(uv, depth);
+        #endif
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
+
+        if (id == 20000)
+            reflection.a = smoothstep(0.0, 1.0, reflection.a);
 
         // blindness
         float blindnessFogFactor = getBlindnessFactor(worldSpacePosition, blindnessRange);

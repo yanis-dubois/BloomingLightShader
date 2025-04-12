@@ -70,7 +70,7 @@ void main() {
     midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
 
     // update position if animated
-    #if VERTEX_ANIMATION > 0
+    #if ANIMATED_POSITION > 0
         if (isAnimated(id)) {
             float ambientSkyLightIntensity = lightMapCoordinate.y;
 

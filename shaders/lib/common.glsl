@@ -57,10 +57,14 @@ const float darknessRange = 32.0;
 // fog
 #define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
+// pixelated shadding
+#define TEXTURE_RESOLUTION 16 // 0=off 1=on
+#define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
+#define PIXELATED_SPECULAR 1 // 0=off 1=on
+#define PIXELATED_REFLECTION 1 // 0=off 1=on
+
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 
-#define SHADOW_PIXALATED 2 // 0=off 1=hard_pixelated 2=smooth_pixelated
-#define SHADOW_SNAP_RESOLUTION 16 // 0=off 1=on
 #define SHADOW_RANGE 0.66 // width of the sample area (in clip) 0.66
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
@@ -76,8 +80,8 @@ const float darknessRange = 32.0;
 #define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 
 // animation
-#define VERTEX_ANIMATION 2 // 0=off 1=only_vertex 2=vertex_and_normal
-#define LIGHT_EMISSION_ANIMATION 0 // 0=off 1=on
+#define ANIMATED_POSITION 2 // 0=off 1=only_vertex 2=vertex_and_normal
+#define ANIMATED_EMISSION 0 // 0=off 1=on
 
 // subsurface scattering
 #define SUBSURFACE_TYPE 1 // 0=off 1=on

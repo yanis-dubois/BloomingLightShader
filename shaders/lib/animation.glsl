@@ -5,7 +5,7 @@
 vec2 getWind(out float theta) {
     theta = 0.25 * PI;
     vec2 wind = normalize(vec2(cos(theta), sin(theta)));
-    float amplitude = mix(1.0, 1.4, 0.5 * (rainStrength + thunderStrength));
+    float amplitude = 1.0;
 
     return amplitude * wind;
 }
