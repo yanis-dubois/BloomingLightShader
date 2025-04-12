@@ -85,7 +85,7 @@ void main() {
 
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
-    getMaterialData(gtexture, id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
+    getMaterialData(gtexture, id, normal, midBlock, textureColor.rgb, tint, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
     // opaque or transparent pass
     #ifdef TRANSPARENT
         bool isTransparent = true;
@@ -117,32 +117,7 @@ void main() {
         }
     #endif
 
-    // glowing particles
-    #ifdef PARTICLE
-        bool isObsidianTears = isEqual(tint, vec3(130.0, 8.0, 227.0) / 255.0, 2.0/255.0);
-        bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
-        bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
-        bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
-        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0 && 2.0*tint.g < tint.b;
-        bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
-        bool isSoulFire = isEqual(textureColor.rgb, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
-            || isEqual(textureColor.rgb, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)
-            || isEqual(textureColor.rgb, vec3(0.0, 142.0, 146.0) / 255.0, 2.0/255.0);
-        bool isCrimsonForest = isEqual(tint, vec3(229.0, 101.0, 127.0) / 255.0, 2.0/255.0);
-        bool isGreenGlint = isEqual(textureColor.rgb, vec3(6.0, 229.0, 151.0) / 255.0, 6.0/255.0)
-            || isEqual(textureColor.rgb, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
-            || isEqual(textureColor.rgb, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
-            || isEqual(textureColor.rgb, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
-        // is glowing particle ?
-        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint) {
-            ambient_occlusion = 1.0;
-            emissivness = 1.0;
-            // saturate some of them
-            if (isNetherPortal || isRedstone) {
-                albedo *= 1.5;
-            }
-        }
-    #endif
+    vec3 seed = texture2DLod(gtexture, textureCoordinate, 0).rgb;
 
     // light animation
     if (LIGHT_EMISSION_ANIMATION == 1 && emissivness > 0.0) {

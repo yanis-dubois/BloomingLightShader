@@ -9,7 +9,7 @@ const vec3[7] endPortalColors = vec3[](
     vec3(0.15, 0.392, 0.306)  // dark green
 );
 
-void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
+void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec3 texture, vec3 tint, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
     smoothness = 0.0;
     reflectance = 1.0;
     emissivness = 0.0;
@@ -143,4 +143,35 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, ino
     //     smoothness = max(smoothness, mix(smoothness, 0.9 * porosityFactor, rainStrength));
     //     reflectance = max(reflectance, mix(reflectance, getReflectance(1.0, 1.33) * porosityFactor, rainStrength));
     // }
+
+    // glowing particles
+    #ifdef PARTICLE
+
+        // all types of glowing particles
+        bool isObsidianTears = isEqual(tint, vec3(130.0, 8.0, 227.0) / 255.0, 2.0/255.0);
+        bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
+        bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
+        bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
+        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0 && 2.0*tint.g < tint.b;
+        bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
+        bool isSoulFire = isEqual(texture, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(0.0, 142.0, 146.0) / 255.0, 2.0/255.0);
+        bool isCrimsonForest = isEqual(tint, vec3(229.0, 101.0, 127.0) / 255.0, 2.0/255.0);
+        bool isGreenGlint = isEqual(texture, vec3(6.0, 229.0, 151.0) / 255.0, 6.0/255.0)
+            || isEqual(texture, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
+            || isEqual(texture, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
+
+        // make them emissive
+        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint) {
+            ambient_occlusion = 1.0;
+            emissivness = 1.0;
+
+            // saturate some of them
+            if ((isNetherPortal && !isObsidianTears) || isRedstone || isBlossom) {
+                albedo *= 1.5;
+            }
+        }
+    #endif
 }
