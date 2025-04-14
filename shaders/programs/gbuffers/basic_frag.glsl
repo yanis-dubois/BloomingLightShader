@@ -31,10 +31,12 @@ void main() {
     #ifdef BEACON_BEAM
         transparency = 0.5;
         albedo *= 1.5;
+        emissivness = 1.0;
     #endif
 
     #ifdef GLOWING
         albedo *= 2.0;
+        emissivness = 1.0;
     #endif
 
     albedo = clamp(albedo, 0.0, 1.0);

@@ -116,10 +116,14 @@ void main() {
         if (smoothness > 0.1 && hasNormalJittering(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
             float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291); // 41.43291
+            if (id == 20013) {
+                // zeta1 = snoise_4D(seed * 2.0) * 0.5 + 0.5;
+                // zeta2 = snoise_4D(seed * 2.0 + 41.43291) * 0.5 + 0.5;
+            }
             mat3 animatedTBN = generateTBN(normal);
 
             // sampling data
-            float roughness = clamp(pow(1.0 - smoothness, 2.0), 0.12, 0.4);
+            float roughness = clamp(pow(1.0 - smoothness, 2.0), 0.1, 0.4);
             roughness *= roughness;
 
             // view direction from view to tangent space
@@ -153,6 +157,7 @@ void main() {
         #endif
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
 
+        // tweak reflection fo water
         if (id == 20000)
             reflection.a = smoothstep(0.0, 1.0, reflection.a);
 

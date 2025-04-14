@@ -316,7 +316,7 @@ bool animatedLight_isLow(int id) {
 }
 ////////////////
 bool hasNormalJittering(int id) {
-    return id == 20000;
+    return id == 20000 || id == 20013;
 }
 
 // offset midBlock coordinate to make the root of foliage the origin
