@@ -61,7 +61,7 @@ const float darknessRange = 32.0;
 #define TEXTURE_RESOLUTION 16 // 0=off 1=on
 #define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
 #define PIXELATED_SPECULAR 1 // 0=off 1=on
-#define PIXELATED_REFLECTION 1 // 0=off 1=on
+#define PIXELATED_REFLECTION 2 // 0=off 1=on 2=jittered_normal_on_water
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 

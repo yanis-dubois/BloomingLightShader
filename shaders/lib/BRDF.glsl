@@ -97,7 +97,7 @@ vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
     float t1 = r * cos(phi);
     float t2 = r * sin(phi);
     float s = 0.5 * (1.0 + Vh.z);
-    t2 = (1.0 - s)*sqrt(1.0 - t1*t1) + s*t2;
+    t2 = (1.0 - s) * sqrt(1.0 - t1*t1) + s*t2;
 
     // reprojection onto hemisphere
     vec3 Nh = t1*T1 + t2*T2 + sqrt(max(0.0, 1.0 - t1*t1 - t2*t2)) * Vh;

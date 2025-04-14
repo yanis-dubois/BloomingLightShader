@@ -94,7 +94,6 @@ void main() {
     // animated normal
     #if ANIMATED_POSITION == 2
         if (isAnimated(id) && smoothness > 0.5) {
-            // vec3 uwp = floor((unanimatedWorldPosition + 0.001) * SHADOW_SNAP_RESOLUTION) / SHADOW_SNAP_RESOLUTION + 1.0/(2.0*SHADOW_SNAP_RESOLUTION);
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
             vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
             vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
@@ -109,6 +108,27 @@ void main() {
             if (dot(viewDirection, newNormal) > 0.1) {
                 normal = newNormal;
             }
+        }
+    #endif
+
+    // jittering normal for specular & reflective materials
+    #if defined TERRAIN && PIXELATED_REFLECTION == 2
+        if (smoothness > 0.1 && hasNormalJittering(id)) {
+            vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
+            float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291); // 41.43291
+            mat3 animatedTBN = generateTBN(normal);
+
+            // sampling data
+            float roughness = clamp(pow(1.0 - smoothness, 2.0), 0.12, 0.4);
+            roughness *= roughness;
+
+            // view direction from view to tangent space
+            vec3 viewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
+            vec3 tangentSpaceViewDirection = transpose(animatedTBN) * viewDirection;
+            // sample normal & convert to view
+            vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
+
+            normal = animatedTBN * sampledNormal;
         }
     #endif
 

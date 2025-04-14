@@ -64,6 +64,9 @@ float pseudoRandom(vec2 pos) {
 float pseudoRandom(vec3 pos){
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
+float pseudoRandom(vec4 pos) {
+    return fract(sin(dot(pos, vec4(12.9898, 78.233, 45.164, 94.618))) * 46367.21473);
+}
 vec2 sampleDiskArea(vec2 seed) {
     // pseudo uniform 
     float zeta1 = pseudoRandom(seed);
@@ -310,6 +313,10 @@ bool animatedLight_isMedium(int id) {
 }
 bool animatedLight_isLow(int id) {
     return true;
+}
+////////////////
+bool hasNormalJittering(int id) {
+    return id == 20000;
 }
 
 // offset midBlock coordinate to make the root of foliage the origin

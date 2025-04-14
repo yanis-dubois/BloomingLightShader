@@ -111,7 +111,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
 
     // -- subsurface & ao -- //
     if (10000 <= id && id < 20000) {
-        smoothness = 0.25; // 0.45
+        smoothness = 0.25;
         reflectance = getReflectance(n1, 2.5);
 
         // leaves

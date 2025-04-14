@@ -194,7 +194,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
                 float weight = 1.0;
 
                 // space conversion
-                vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / 16.0 * tangent + offset.y / 16.0 * bitangent;
+                vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / TEXTURE_RESOLUTION * tangent + offset.y / TEXTURE_RESOLUTION * bitangent;
                 vec3 playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
                 vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
                 shadowAccum += weight * getShadow(shadowClipPosition, false); // take shadow sample
