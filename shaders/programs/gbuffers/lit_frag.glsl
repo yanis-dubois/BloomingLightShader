@@ -185,12 +185,15 @@ void main() {
     float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
     float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
     dhBlend = pow(dhBlend, 5.0);
-    transparency *= dhBlend;
     float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
     if (dhBlend > dither) discard;
 
     // -- buffers -- //
     colorData = vec4(color);
     normalData = encodeNormal(normal);
-    lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
+    #ifdef TRANSPARENT
+        lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
+    #else
+        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
+    #endif
 }
