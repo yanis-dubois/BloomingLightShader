@@ -185,6 +185,12 @@ uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;
 uniform int isEyeInWater;
 
+#ifdef DISTANT_HORIZONS
+    uniform float dhNearPlane;
+    uniform float dhFarPlane;
+    uniform int dhRenderDistance;
+#endif
+
 ////////////////////////////////////////////////////
 ///////////////// custom uniforms //////////////////
 ////////////////////////////////////////////////////

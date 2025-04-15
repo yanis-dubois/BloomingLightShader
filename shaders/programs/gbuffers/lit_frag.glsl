@@ -92,7 +92,7 @@ void main() {
         normal = -normalize(playerLookVector);
     #endif
     // animated normal
-    #if ANIMATED_POSITION == 2
+    #if ANIMATED_POSITION == 2 && defined REFLECTIVE
         if (isAnimated(id) && smoothness > 0.5) {
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
             vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
@@ -157,7 +157,7 @@ void main() {
         #endif
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
 
-        // tweak reflection fo water
+        // tweak reflection for water
         if (id == 20000)
             reflection.a = smoothstep(0.0, 1.0, reflection.a);
 
@@ -179,6 +179,15 @@ void main() {
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);
+
+    // blending transition between classic terrain & DH terrain
+    vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
+    float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
+    float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
+    dhBlend = pow(dhBlend, 5.0);
+    transparency *= dhBlend;
+    float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
+    if (dhBlend > dither) discard;
 
     // -- buffers -- //
     colorData = vec4(color);

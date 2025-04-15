@@ -56,7 +56,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
     // rough
     else if (id == 20050) {
         smoothness = 0.2;
-        reflectance = getReflectance(n1, 1);
+        reflectance = getReflectance(n1, 1.0);
     }
     // emmissive and smooth
     else if (id == 30030 || id == 30040) {
@@ -70,7 +70,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
             emissivness = getLightness(albedo);
         }
         else if (id == 30040) {
-            emissivness = 1;
+            emissivness = 1.0;
             albedo *= 1.5;
         }
         // end portal & end gates
@@ -174,4 +174,38 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
             }
         }
     #endif
+}
+
+void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
+    smoothness = 0.0;
+    reflectance = 1.0;
+    emissivness = 0.0;
+    ambient_occlusion = 0.0;
+
+    float n1 = isEyeInWater == 1 ? 1.33 : 1.0;
+
+    // -- smoothness -- //
+    // water
+    if (id == DH_BLOCK_WATER) {
+        smoothness = 0.9;
+        float n2 = isEyeInWater == 0 ? 1.33 : 1.0;
+        reflectance = getReflectance(n1, n2);
+    }
+    // metal
+    else if (id == DH_BLOCK_METAL) {
+        smoothness = 0.75;
+        reflectance = getReflectance(n1, 3.0);
+    }
+
+    // -- emmissive -- //
+    if (id == DH_BLOCK_ILLUMINATED) {
+        emissivness = 1.0;
+        albedo *= 1.5;
+    }
+
+    // -- subsurface & ao -- //
+    if (id == DH_BLOCK_LEAVES) {
+        smoothness = 0.25;
+        reflectance = getReflectance(n1, 2.5);
+    }
 }

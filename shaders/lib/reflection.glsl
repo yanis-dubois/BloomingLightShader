@@ -447,3 +447,44 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         return vec4(reflection, fresnel);
     #endif
 }
+
+vec4 doDHReflection(vec2 uv, float depth, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+
+    // rough material have no reflection
+    if (smoothness < 0.5) {
+        return vec4(0.0);
+    }
+
+    // directions
+    vec3 viewSpacePosition = screenToView(uv, depth);
+    vec3 viewDirection = normalize(viewSpacePosition);
+    vec3 viewSpaceNormal = eyeToView(normal);
+
+    // fresnel index
+    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
+    float fresnel = schlick(viewDirectionDotNormal, reflectance);
+    #ifdef TRANSPARENT
+        fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
+    #endif
+    if (fresnel <= 0.001)
+        return vec4(0.0);
+
+    // directions and angles in view space
+    vec3 reflectedDirection = normalize(reflect(viewDirection, viewSpaceNormal));
+    // reflected direction points : >0 = along the camera's line of sight / <0 = towards camera
+    float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0.0, 0.0, -1.0));
+
+    // background color
+    float backgroundEmissivness; // useless here
+    vec3 outdoorBackground = isEyeInWater==0 
+        ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
+        : SRGBtoLinear(getWaterFogColor());
+    if (normal.y < -0.1) outdoorBackground *= 0.5;
+    vec3 indoorBackGround = vec3(0.0);
+    vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
+
+    // lite version (only fresnel)
+    vec3 reflection = backgroundColor;
+
+    return vec4(reflection, fresnel);
+}

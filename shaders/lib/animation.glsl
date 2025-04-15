@@ -99,7 +99,7 @@ float doWaterCausticAnimation(float time, vec3 worldSpacePosition) {
     return n1;
 }
 
-vec3 doWaterAnimation(float time, vec3 worldSpacePosition, vec3 midBlock) {
+vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     vec2 wind = getWind();
     float amplitude = 1.0 / 32.0;
     time *= 0.25;
@@ -175,7 +175,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
 
 vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
     if (isLiquid(id))
-        return doWaterAnimation(time, worldSpacePosition, midBlock);
+        return doWaterAnimation(time, worldSpacePosition);
     if (isFoliage(id))
         return doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
     if (isUnderGrowth(id))

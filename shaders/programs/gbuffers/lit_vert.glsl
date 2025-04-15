@@ -51,8 +51,6 @@ void main() {
     unanimatedWorldPosition = worldSpacePosition;
     gl_Position = ftransform();
 
-    float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-
     #ifdef WEATHER
         vec2 seed = vec2(floor(worldSpacePosition.x), floor(worldSpacePosition.z));
         float amplitude = 0.5;

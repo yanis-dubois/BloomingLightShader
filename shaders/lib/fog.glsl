@@ -68,6 +68,12 @@ float getCustomFogFactor(float t, float density) {
 
 float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
 
+    #ifdef DISTANT_HORIZONS
+        float renderDistance = dhRenderDistance;
+    #else
+        float renderDistance = far;
+    #endif
+
     // no fog
     #if FOG_TYPE == 0
         float fogFactor = 0.0;
@@ -75,13 +81,13 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
     // linear vanilla fog (tweaked when camera is under water)
     #elif FOG_TYPE == 1
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
-        float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
+        float fogFactor = map(distanceFromCameraXZ, far, renderDistance, 0.0, 1.0);
 
     // custom fog
     #else
         // normalized linear depth
         float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
-        float normalizedLinearDepth = distanceFromCamera / far;
+        float normalizedLinearDepth = distanceFromCamera / renderDistance;
 
         float fogDensity = getFogDensity(worldSpacePosition.y, isInWater);
         fogDensity = 1.0 - map(fogDensity, 0.5, 3.0, 0.3, 0.8);
