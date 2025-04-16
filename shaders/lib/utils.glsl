@@ -230,7 +230,7 @@ bool isWater(int id) {
     return id == 20000;
 }
 bool isAnimated(int id) {
-    return 10000 <= id && (id <= 10050 || id == 20000 || id == 30010 || id == 30020);
+    return 10000 <= id && (id <= 10050 || id == 20000);
 }
 bool isLiquid(int id) {
     return id == 20000 || id == 10040;
@@ -291,7 +291,7 @@ bool isPicherCropUpper(int id) {
 // ----- subsurface ----- //
 // ---------------------- //
 bool hasNoAmbiantOcclusion(int id) {
-    return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022;
+    return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022 || id == 20013;
 }
 bool hasSubsurface(int id) {
     return 10000 <= id && id < 20000;
@@ -305,18 +305,12 @@ bool isCobweb(int id) {
 // ---------------------- //
 // --- animated light --- //
 // ---------------------- //
-bool animatedLight_isHigh(int id) {
-    return true;
-}
-bool animatedLight_isMedium(int id) {
-    return true;
-}
-bool animatedLight_isLow(int id) {
-    return true;
+bool isAnimatedLight(int id) {
+    return id == 30010 || id == 30031;
 }
 ////////////////
 bool hasNormalJittering(int id) {
-    return id == 20000 || id == 20013;
+    return id == 20000;
 }
 
 // offset midBlock coordinate to make the root of foliage the origin

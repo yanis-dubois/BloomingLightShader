@@ -42,8 +42,8 @@ float getHorizontalNoise(vec3 seed, float amplitude) {
 
 vec2 doWaterRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
     float amplitude = 0.005;
-    float speed = time * 0.15;
-    vec3 seed = vec3(eyeSpaceDirection * 3.0) + speed;
+    time = time * 0.15;
+    vec3 seed = vec3(eyeSpaceDirection * 3.0) + time;
 
     uv.x = amplitude * snoise_3D(seed);
     uv.y = amplitude * snoise_3D(seed + 1.0);
@@ -52,16 +52,13 @@ vec2 doWaterRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
 
 // used during shadow rendering to simulate caustic
 float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
-    float amplitude = 0.0;
-    if (animatedLight_isHigh(id)) amplitude = 0.8;
-    else if (animatedLight_isMedium(id)) amplitude = 0.5;
-    else if (animatedLight_isLow(id)) amplitude = 0.2;
+    float amplitude = 0.8;
     
-    float speed = time * 0.25;
-    vec4 seed = vec4(- worldSpacePosition.y * 0.5, worldSpacePosition.xz * 0.125, 0.0) + speed;
+    time = time * 0.25;
+    vec4 seed = vec4(- worldSpacePosition * 0.25 + 0.5 * time, time);
     float noise = snoise_4D(seed);
 
-    return amplitude * noise;
+    return amplitude * abs(noise);
 }
 
 // used during shadow rendering for underwater light shaft animation

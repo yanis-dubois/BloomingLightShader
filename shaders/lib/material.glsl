@@ -59,7 +59,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
         reflectance = getReflectance(n1, 1.0);
     }
     // emmissive and smooth
-    else if (id == 30030 || id == 30040) {
+    else if (id == 30030 || id == 30031 || id == 30040) {
         smoothness = 0.95;
         reflectance = getReflectance(n1, 1.5);
     }
@@ -68,6 +68,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
     if (id >= 30000) {
         if (id < 30040) {
             emissivness = getLightness(albedo);
+            emissivness = smoothstep(0.25, 0.75, emissivness);
         }
         else if (id == 30040) {
             emissivness = 1.0;
@@ -110,30 +111,30 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
     }
 
     // -- subsurface & ao -- //
-    if (10000 <= id && id < 20000) {
+    if ((10000 <= id && id < 20000) || id == 20013) {
         smoothness = 0.25;
         reflectance = getReflectance(n1, 2.5);
 
         // leaves
         if (hasNoAmbiantOcclusion(id)) {
-            ambient_occlusion = 1;
+            ambient_occlusion = 1.0;
         }
         // flowers
         else if (isThin(id)) {
             vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(0, objectSpacePosition.y);
-            ambient_occlusion = min(ambient_occlusion, 1);
+            ambient_occlusion = distance(0.0, objectSpacePosition.y);
+            ambient_occlusion = min(ambient_occlusion, 1.0);
         }
         // sugar cane
         else if (isColumnSubsurface(id)) {
             vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(vec2(0), objectSpacePosition.xz);
-            ambient_occlusion = min(ambient_occlusion*5, 1);
+            ambient_occlusion = distance(vec2(0.0), objectSpacePosition.xz);
+            ambient_occlusion = min(ambient_occlusion * 5.0, 1.0);
         }
         // other foliage
         else {
             vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(vec3(0), objectSpacePosition);
+            ambient_occlusion = distance(vec3(0.0), objectSpacePosition);
         }
     }
 
@@ -162,9 +163,14 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
             || isEqual(texture, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
             || isEqual(texture, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
             || isEqual(texture, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
+        bool isSculkSoundWave = isEqual(texture, vec3(57.0, 214.0, 224.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(42.0, 227.0, 235.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(14.0, 180.0, 170.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(10.0, 126.0, 129.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(12.0, 81.0, 78.0) / 255.0, 2.0/255.0);
 
         // make them emissive
-        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint) {
+        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint || isSculkSoundWave) {
             ambient_occlusion = 1.0;
             emissivness = 1.0;
 

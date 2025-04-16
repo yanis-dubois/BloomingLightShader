@@ -81,7 +81,7 @@ const float darknessRange = 32.0;
 
 // animation
 #define ANIMATED_POSITION 2 // 0=off 1=only_vertex 2=vertex_and_normal
-#define ANIMATED_EMISSION 0 // 0=off 1=on
+#define ANIMATED_EMISSION 1 // 0=off 1=on
 
 // subsurface scattering
 #define SUBSURFACE_TYPE 1 // 0=off 1=on

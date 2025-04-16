@@ -1,4 +1,4 @@
-void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater,
+void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity,
                         inout vec3 color) {
 
     // if (depthAll == 1.0) return;
@@ -11,14 +11,14 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     float sunIntensity = VOLUMETRIC_LIGHT_INTENSITY;
 
     // does ray as a medium change in its trajectory ?
-    bool asMediumChange = isWater && depthAll<depthOpaque;
+    bool asMediumChange = depthAll<depthOpaque;
 
     // distances
     vec3 opaqueWorldSpacePosition = viewToWorld(screenToView(uv, depthOpaque));
     vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
     float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
     float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
-    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0.001, endShadowDecrease);
+    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0.001, min(endShadowDecrease, far));
     // direction
     vec3 worldSpaceViewDirection = normalize(opaqueWorldSpacePosition - cameraPosition);
 
@@ -111,6 +111,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, bool isWater
     if (cpt > 0.0 && isEyeInWater==0) {
         accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
     }
+    accumulatedLight *= ambientSkyLightIntensity;
 
     // write values
     color = mix(color + accumulatedLight / pow(far, 0.75), color, max(blindness, darknessFactor));

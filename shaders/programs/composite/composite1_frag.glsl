@@ -30,13 +30,14 @@ layout(location = 2) out vec4 depthOfFieldData;
 void main() {
     // retrieve data
     vec3 color = SRGBtoLinear(texture2D(colortex0, uv).rgb);
+    vec4 lightAndMaterialData = texture2D(colortex5, uv);
 
     // depth
     float depthAll = texture2D(depthtex0, uv).r;
     float depthOpaque = texture2D(depthtex1, uv).r;
 
     #if BLOOM_TYPE > 0
-        float emissivness = texture2D(colortex5, uv).g;
+        float emissivness = lightAndMaterialData.g;
     #else
         float emissivness = 0.0;
     #endif
@@ -49,7 +50,8 @@ void main() {
 
     // -- volumetric light -- //
     #if VOLUMETRIC_LIGHT_TYPE > 0
-        volumetricLighting(uv, depthAll, depthOpaque, true, color);
+        float ambientSkyLightIntensity = depthOpaque == 1.0 ? 1.0 : lightAndMaterialData.r;
+        volumetricLighting(uv, depthAll, depthOpaque, ambientSkyLightIntensity, color);
     #endif
 
     // gamma correct & write
@@ -63,14 +65,14 @@ void main() {
         #if TAA_TYPE == 0
             vec3 bloom = color;
             float lightness = getLightness(bloom);
-            bloom = bloom * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+            bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
 
         // apply jitter to avoid bloom glittering
         #else
             vec2 offset = sampleDiskArea(uv + frameTimeCounter / 3600.0);
             vec3 bloom = texture2D(colortex0, uv + BLOOM_RANGE * offset).rgb;
             float lightness = getLightness(bloom);
-            bloom = bloom * max(pow(lightness, 5) * 0.5, 2.0 * emissivness);
+            bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
             bloom = saturate(bloom, 1.66);
         #endif
 

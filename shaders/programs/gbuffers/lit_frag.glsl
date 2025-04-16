@@ -87,10 +87,16 @@ void main() {
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
     getMaterialData(gtexture, id, normal, midBlock, textureColor.rgb, tint, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
 
-    // normal
-    #ifdef PARTICLE 
-        normal = -normalize(playerLookVector);
+    // particle normal
+    #ifdef PARTICLE
+        vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+        normal = worldSpacelightDirection;
+
+        mat3 newTBN = generateTBN(normal);
+        tangent = TBN[0];
+        bitangent = TBN[1];
     #endif
+
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
         if (isAnimated(id) && smoothness > 0.5) {
@@ -115,11 +121,7 @@ void main() {
     #if defined TERRAIN && PIXELATED_REFLECTION == 2
         if (smoothness > 0.1 && hasNormalJittering(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
-            float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291); // 41.43291
-            if (id == 20013) {
-                // zeta1 = snoise_4D(seed * 2.0) * 0.5 + 0.5;
-                // zeta2 = snoise_4D(seed * 2.0 + 41.43291) * 0.5 + 0.5;
-            }
+            float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
             mat3 animatedTBN = generateTBN(normal);
 
             // sampling data
@@ -138,7 +140,7 @@ void main() {
 
     // light animation
     #if ANIMATED_EMISSION > 0
-        if (emissivness > 0.0) {
+        if (isAnimatedLight(id)) {
             float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
             emissivness -= noise;
         }
@@ -181,12 +183,14 @@ void main() {
     color.rgb = linearToSRGB(color.rgb);
 
     // blending transition between classic terrain & DH terrain
-    vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
-    float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
-    float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
-    dhBlend = pow(dhBlend, 5.0);
-    float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
-    if (dhBlend > dither) discard;
+    #ifdef DISTANT_HORIZONS
+        vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
+        float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
+        float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
+        dhBlend = pow(dhBlend, 5.0);
+        float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
+        if (dhBlend > dither) discard;
+    #endif
 
     // -- buffers -- //
     colorData = vec4(color);
