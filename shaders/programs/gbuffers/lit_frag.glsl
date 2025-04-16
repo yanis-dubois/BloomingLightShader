@@ -87,14 +87,11 @@ void main() {
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
     getMaterialData(gtexture, id, normal, midBlock, textureColor.rgb, tint, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
 
-    // particle normal
+    // particle normal tweak (every particles as subsurface)
     #ifdef PARTICLE
-        vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-        normal = worldSpacelightDirection;
-
-        mat3 newTBN = generateTBN(normal);
-        tangent = TBN[0];
-        bitangent = TBN[1];
+        normal = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+        tangent = vec3(0.0, 0.0, 1.0);
+        bitangent = cross(tangent, normal);
     #endif
 
     // animated normal

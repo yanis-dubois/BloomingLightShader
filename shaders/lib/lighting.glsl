@@ -34,17 +34,15 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         offsetWorldSpacePosition.y += 0.2;
     // get shadow
     vec4 shadow = vec4(0.0);
-    //#ifndef PARTICLE
-        if (distanceFromCamera < endShadowDecrease)
-            #if PIXELATED_SHADOW > 0
-                shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent);
-            #else
-                shadow = getSoftShadow(uv, offsetWorldSpacePosition);
-            #endif
-        // fade into the distance
-        float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
-        shadow *= shadow_fade;
-    //#endif
+    if (distanceFromCamera < endShadowDecrease)
+        #if PIXELATED_SHADOW > 0
+            shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent);
+        #else
+            shadow = getSoftShadow(uv, offsetWorldSpacePosition);
+        #endif
+    // fade into the distance
+    float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
+    shadow *= shadow_fade;
 
     // -- lighting -- //
 
@@ -61,11 +59,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
 
     // -- direct sky light
-    #ifdef PARTICLE
-        float directSkyLightIntensity = 1.0;
-    #else
-        float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
-    #endif
+    float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
     #ifdef TRANSPARENT
         directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
     #endif

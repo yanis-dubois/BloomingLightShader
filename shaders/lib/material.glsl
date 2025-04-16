@@ -111,7 +111,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
     }
 
     // -- subsurface & ao -- //
-    if ((10000 <= id && id < 20000) || id == 20013) {
+    if (10000 <= id && id < 20000) {
         smoothness = 0.25;
         reflectance = getReflectance(n1, 2.5);
 
@@ -137,6 +137,10 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
             ambient_occlusion = distance(vec3(0.0), objectSpacePosition);
         }
     }
+    // reflective & subsurface
+    if (id == 20013) {
+        ambient_occlusion = 1.0;
+    }
 
     // -- porosity -- //
     // if (20030 < id && id < 30000) {
@@ -153,7 +157,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
         bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
         bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
         bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
-        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0 && 2.0*tint.g < tint.b;
+        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0 && 2.0*tint.g < tint.b;
         bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
         bool isSoulFire = isEqual(texture, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
             || isEqual(texture, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)

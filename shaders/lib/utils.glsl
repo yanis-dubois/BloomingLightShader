@@ -291,7 +291,7 @@ bool isPicherCropUpper(int id) {
 // ----- subsurface ----- //
 // ---------------------- //
 bool hasNoAmbiantOcclusion(int id) {
-    return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022 || id == 20013;
+    return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022;
 }
 bool hasSubsurface(int id) {
     return 10000 <= id && id < 20000;
