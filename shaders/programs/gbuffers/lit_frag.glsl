@@ -99,7 +99,7 @@ void main() {
     ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
 
     // material data
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 0.0, subsurfaceScattering = 0.0;
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0;
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data

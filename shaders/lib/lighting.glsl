@@ -131,8 +131,8 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
     directSkyLight *= ambientOcclusion * 0.75 + 0.25;
     blockLight *= ambientOcclusion * 0.75 + 0.25;
-    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
-    ambientLight *= ambientOcclusion * 0.5 + 0.5;
+    ambientSkyLight *= ambientOcclusion * 0.25 + 0.75;
+    ambientLight *= ambientOcclusion * 0.25 + 0.75;
 
     // -- BRDF -- //
     // -- diffuse

@@ -54,6 +54,9 @@
         float darknessFogFactor = getBlindnessFactor(worldSpacePosition, darknessRange);
         reflection.a = mix(reflection.a, 0.0, darknessFogFactor * darknessFactor);
 
+        // metallic material
+        reflection.rgb *= color / max(color.r + 0.01, max(color.g, color.b));    
+
         // gamma correct
         reflection.rgb = linearToSRGB(reflection.rgb);
 

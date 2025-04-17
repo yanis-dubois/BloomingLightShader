@@ -3,15 +3,13 @@ float getReflectance(float n1, float n2) {
     return R0 * R0;
 }
 
-float schlick(float cosTheta, float F0) {
+vec3 schlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-// float fresnel(vec3 lightDirection, vec3 viewDirection, float reflectance) {
-//     vec3 H = normalize(lightDirection + viewDirection);
-//     float VdotH = clamp(dot(viewDirection, H), 0.001, 1.0);
-//     return schlick(VdotH, reflectance);
-// }
+float schlick(float cosTheta, float F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
 float fresnel(vec3 viewDirection, vec3 normal, float reflectance) {
     float VdotN = clamp(dot(viewDirection, normal), 0.001, 1.0);
@@ -36,9 +34,6 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 
 // Cook Torrance BRDF
 vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance) {
-    bool isReflective = smoothness > 0.5;
-    //smoothness *= 0.9;
-    //smoothness = min(smoothness, 0.5);
     float roughness = 1.0 - smoothness;
 
     vec3 H = normalize(V + L);
@@ -58,8 +53,9 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, flo
     float G = Smith_G(NdotV, NdotL, roughness);
 
     vec3 specularColor = saturate(albedo, 1.3); specularColor = albedo;
-    specularColor = mix(specularColor, vec3(1.0), isReflective ? 0.1 : 0.05);
+    specularColor = mix(specularColor, vec3(1.0), 0.05);
 
+    return specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
     return 20.0 * specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
 
     // not used
