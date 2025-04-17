@@ -66,7 +66,7 @@ vec3 getShadowLightColor() {
         shadowColor = vec3(getLightness(shadowColor));
 
     shadowColor = SRGBtoLinear(shadowColor);
-    return shadowColor;
+    return 0.85 * shadowColor;
 }
 
 vec3 getBlockLightColor(float blockLightIntensity, float emissivness) {

@@ -191,7 +191,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
                 
                 vec2 offset = vec2(x, y);
 
-                float weight = 1.0;
+                float weight = x==0 ? 1.0 : 0.5;
 
                 // space conversion
                 vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / TEXTURE_RESOLUTION * tangent + offset.y / TEXTURE_RESOLUTION * bitangent;

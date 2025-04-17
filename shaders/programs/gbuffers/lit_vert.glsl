@@ -33,12 +33,12 @@ void main() {
     /* geometry infos */
     // normal
     vec3 normal = normalize(gl_NormalMatrix * gl_Normal);
-    normal = mat3(gbufferModelViewInverse) * normal; // from view to world space
-    // tangent
     vec3 tangent = normalize(gl_NormalMatrix * at_tangent.xyz);
-    tangent = mat3(gbufferModelViewInverse) * tangent; // from view to world space
-    // bitangent
-    vec3 bitangent = cross(tangent, normal) * at_tangent.w;
+    vec3 bitangent = normalize(gl_NormalMatrix * cross(at_tangent.xyz, gl_Normal.xyz) * at_tangent.w);
+    // from view to world space
+    normal = mat3(gbufferModelViewInverse) * normal;
+    tangent = mat3(gbufferModelViewInverse) * tangent;
+    bitangent = mat3(gbufferModelViewInverse) * bitangent; 
     TBN = mat3(tangent, bitangent, normal);
 
     id = int(mc_Entity.x);

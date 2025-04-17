@@ -1,13 +1,14 @@
-vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion) {
+vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambientOcclusion, float subsurfaceScattering) {
 
     vec3 skyLightColor = getSkyLightColor();
 
     // directions and angles 
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float lightDirectionDotNormal = dot(worldSpacelightDirection, normal);
+    float lightDirectionDotNormal = dot(worldSpacelightDirection, normalMap);
+    float ambientLightDirectionDotNormal = dot(normal, normalMap);
     #if PIXELATED_SPECULAR > 0
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition, normal, tangent, bitangent));
     #else
         vec3 worldSpaceViewDirection = normalize(cameraPosition - unanimatedWorldPosition);
     #endif
@@ -25,13 +26,10 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #endif
     // apply offset
     #if PIXELATED_SHADOW > 0
-        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition) + noise * normal * offsetAmplitude;
+        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition, normal, tangent, bitangent) + noise * normal * offsetAmplitude;
     #else
         vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
     #endif
-    // lowers shadows a bit for subsurface on foliage
-    if (0.0 < ambient_occlusion && ambient_occlusion < 1.0)
-        offsetWorldSpacePosition.y += 0.2;
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
@@ -67,12 +65,10 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
     // subsurface scattering
     #if SUBSURFACE_TYPE == 1
-        float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
         // subsurface diffuse part
-        if (ambient_occlusion > 0.0) {
+        if (subsurfaceScattering > 0.0) {
+            float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
             directSkyLightIntensity = max(lightDirectionDotNormal, subsurface_fade);
-            ambient_occlusion = smoothstep(0.0, 0.9, ambient_occlusion);
-            directSkyLightIntensity *= ambient_occlusion * map(abs(lightDirectionDotNormal), 0.0, 1.0, 0.2, 1.0);
         }
     #endif
     // reduce contribution if no ambiant sky light (avoid cave leak)
@@ -96,12 +92,16 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     directSkyLight = mix(directSkyLight, directSkyLight * shadow.rgb, shadow.a);
 
     // -- ambient sky light
+    // apply normalmap
+    ambientSkyLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
     // apply darkness
     ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
     // get light color
     vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
 
     // -- block light
+    // apply normalmap
+    blockLightIntensity *= max(ambientLightDirectionDotNormal, 0.0);
     // apply darkness
     blockLightIntensity = mix(blockLightIntensity, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
     emissivness = mix(emissivness, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
@@ -111,6 +111,8 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
 
     // -- ambient light
     vec3 ambiantLightColor = light10000K;
+    // apply normalmap
+    ambientLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
     // apply darkness
     ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
     // get light color
@@ -125,6 +127,13 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         ambientLight = ambientLight * waterColor;
     }
 
+    // -- ambient occlusion
+    ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
+    directSkyLight *= ambientOcclusion * 0.75 + 0.25;
+    blockLight *= ambientOcclusion * 0.75 + 0.25;
+    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
+    ambientLight *= ambientOcclusion * 0.5 + 0.5;
+
     // -- BRDF -- //
     // -- diffuse
     vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
@@ -133,34 +142,36 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     // diffuse model
     vec3 color = albedo * light;
     // -- specular
-    if (0.1 < smoothness) {
+    if (smoothness > 0.1) {
         float specularFade = map(distanceFromCamera, endShadowDecrease * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
         vec3 specular = vec3(0.0);
 
         // subsurface transmission highlight
         #if SUBSURFACE_TYPE == 1
-            if (ambient_occlusion > 0.0) {
+            if (subsurfaceScattering > 0.0) {
                 specular = specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
             }
         #endif
 
         // specular reflection
-        specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
+        specular += CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
         // add specular contribution
         color += directSkyLight * specular;
     }
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
-        float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+        float fresnel = fresnel(worldSpaceViewDirection, normalMap, reflectance);
         transparency = max(transparency, fresnel);
     #endif
+    // -- emissivness
+    color = mix(color, albedo, emissivness);
 
     return vec4(color, transparency);
 }
 
 vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, 
-                float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness, float ambient_occlusion) {
+                float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 

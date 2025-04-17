@@ -18,6 +18,10 @@
 // uniforms
 uniform sampler2D gtexture;
 
+// PBR
+uniform sampler2D normals;
+uniform sampler2D specular;
+
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
     uniform sampler2D colortex4; // opaque color
     uniform sampler2D colortex5; // opaque light & material (ambientSkyLightIntensity, emissivness, smoothness, reflectance)
@@ -50,9 +54,20 @@ void main() {
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
 
-    vec3 tangent = TBN[0];
-    vec3 bitangent = TBN[1];
-    vec3 normal = TBN[2];
+    // retrieve tbn data
+    #ifndef PARTICLE
+        vec3 tangent = TBN[0];
+        vec3 bitangent = TBN[1];
+        vec3 normal = TBN[2];
+
+    // particle tbn tweak (every particles normal point to the light source)
+    #else
+        vec3 normal = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+        vec3 tangent = vec3(0.0, 0.0, 1.0);
+        vec3 bitangent = cross(tangent, normal);
+    #endif
+
+    vec3 normalMap = normal;
 
     // tweak transparency
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
@@ -84,15 +99,13 @@ void main() {
     ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
 
     // material data
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
-    getMaterialData(gtexture, id, normal, midBlock, textureColor.rgb, tint, albedo, smoothness, reflectance, emissivness, ambient_occlusion);  
-
-    // particle normal tweak (every particles as subsurface)
-    #ifdef PARTICLE
-        normal = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-        tangent = vec3(0.0, 0.0, 1.0);
-        bitangent = cross(tangent, normal);
-    #endif
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 0.0, subsurfaceScattering = 0.0;
+    // initialize specific material as end portal or glowing particles
+    getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, emissivness, subsurfaceScattering);
+    // update PBR values with my own custom data
+    getCustomMaterialData(id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering);  
+    // modify these PBR values if PBR textures are enable
+    getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering);
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
@@ -109,17 +122,17 @@ void main() {
 
             vec3 viewDirection = normalize(cameraPosition - actualPosition);
             if (dot(viewDirection, newNormal) > 0.1) {
-                normal = newNormal;
+                normalMap = newNormal;
             }
         }
     #endif
 
-    // jittering normal for specular & reflective materials
+    // jittering normal for water
     #if defined TERRAIN && PIXELATED_REFLECTION == 2
-        if (smoothness > 0.1 && hasNormalJittering(id)) {
+        if (isWater(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
             float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
-            mat3 animatedTBN = generateTBN(normal);
+            mat3 animatedTBN = generateTBN(normalMap);
 
             // sampling data
             float roughness = clamp(pow(1.0 - smoothness, 2.0), 0.1, 0.4);
@@ -131,7 +144,25 @@ void main() {
             // sample normal & convert to view
             vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
 
-            normal = animatedTBN * sampledNormal;
+            normalMap = animatedTBN * sampledNormal;
+        }
+    #endif
+
+    // -- normal map -- //
+    #if PBR_TYPE > 0 && !defined PARTICLE
+        vec4 normalMapData = texture2D(normals, textureCoordinate);
+        mat3 animatedTBN = generateTBN(normalMap);
+
+        // normal map
+        normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
+        normalMap = vec3(normalMapData.xy, sqrt(1.0 - dot(normalMapData.xy, normalMapData.xy)));
+
+        // only for water : apply normalmap on the generated one from "animated normal"
+        if (isWater(id)) {
+            normalMap = animatedTBN * normalMap;
+        }
+        else {
+            normalMap = TBN * normalMap;
         }
     #endif
 
@@ -139,22 +170,23 @@ void main() {
     #if ANIMATED_EMISSION > 0
         if (isAnimatedLight(id)) {
             float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
-            emissivness -= noise;
+            emissivness = max(emissivness - noise, 0.0);
         }
     #endif
 
     // -- apply lighting -- //
     albedo = SRGBtoLinear(albedo);
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion);
+    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambientOcclusion, subsurfaceScattering);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         #if PIXELATED_REFLECTION > 0
+            // avoid position glitche for animated material (like water)
             vec3 screenSpacePosition = worldToScreen((unanimatedWorldPosition));
         #else
             vec3 screenSpacePosition = vec3(uv, depth);
         #endif
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normalMap, ambientSkyLightIntensity, smoothness, reflectance);
 
         // tweak reflection for water
         if (id == 20000)
@@ -191,10 +223,14 @@ void main() {
 
     // -- buffers -- //
     colorData = vec4(color);
-    normalData = encodeNormal(normal);
+    normalData = encodeNormal(normalMap);
     #ifdef TRANSPARENT
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
+        if (reflectance == 0.0) {
+            reflectance = 1.0;
+            smoothness = 0.0;
+        }
         lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
     #endif
 }

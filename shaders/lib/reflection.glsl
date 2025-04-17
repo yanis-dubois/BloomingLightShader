@@ -160,7 +160,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     // directions
     #if PIXELATED_REFLECTION > 0
         vec3 worldSpacePosition = screenToWorld(uv, depth);
-        worldSpacePosition = voxelize(worldSpacePosition);
+        worldSpacePosition = voxelize(worldSpacePosition, normal);
         vec3 viewSpacePosition = worldToView(worldSpacePosition);
     #else
         vec3 viewSpacePosition = screenToView(uv, depth);
@@ -451,7 +451,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 vec4 doDHReflection(vec2 uv, float depth, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
 
     // rough material have no reflection
-    if (smoothness < 0.5) {
+    if (reflectance == 0.0 || smoothness == 0.0) {
         return vec4(0.0);
     }
 

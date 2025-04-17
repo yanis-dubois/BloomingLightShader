@@ -111,7 +111,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     if (cpt > 0.0 && isEyeInWater==0) {
         accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
     }
-    accumulatedLight *= ambientSkyLightIntensity;
+    // accumulatedLight *= ambientSkyLightIntensity;
 
     // write values
     color = mix(color + accumulatedLight / pow(far, 0.75), color, max(blindness, darknessFactor));

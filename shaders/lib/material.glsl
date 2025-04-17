@@ -9,145 +9,42 @@ const vec3[7] endPortalColors = vec3[](
     vec3(0.15, 0.392, 0.306)  // dark green
 );
 
-void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec3 texture, vec3 tint, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
-    smoothness = 0.0;
-    reflectance = 1.0;
-    emissivness = 0.0;
-    ambient_occlusion = 0.0;
+void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, inout vec3 albedo, inout float emissivness, inout float subsurfaceScattering) {
 
-    float n1 = isEyeInWater == 1 ? 1.33 : 1.0;
+    // end portal & end gates
+    #ifdef TERRAIN
+        if (id == 31000) {
+            albedo = vec3(0.0);
+            vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
+            float speed = frameTimeCounter * 0.005;
 
-    // -- smoothness -- //
-    // water
-    if (id == 20000) {
-        smoothness = 0.9;
-        float n2 = isEyeInWater == 0 ? 1.33 : 1.0;
-        reflectance = getReflectance(n1, n2);
-    }
-    // glass 
-    else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
-        smoothness = 0.95;
-        reflectance = getReflectance(n1, 1.5);
-    }
-    // metal
-    else if (id == 20020) {
-        smoothness = 0.75;
-        reflectance = getReflectance(n1, 3.0);
-    }
-    // polished
-    else if (id == 20030 || id == 20031) {
-        smoothness = 0.6;
-        reflectance = getReflectance(n1, 1.4);
-    }
-    // specular
-    else if (id == 20040 || id == 20041) {
-        // grass block
-        if (normal.y > 0.5) {
-            if (id == 20040) {
-                smoothness = 0.4;
-                reflectance = getReflectance(n1, 1.3);
-            }
-            else if (id == 20041) {
-                smoothness = 0.2;
-                reflectance = getReflectance(n1, 1.3);
-            }
-        }
-    }
-    // rough
-    else if (id == 20050) {
-        smoothness = 0.2;
-        reflectance = getReflectance(n1, 1.0);
-    }
-    // emmissive and smooth
-    else if (id == 30030 || id == 30031 || id == 30040) {
-        smoothness = 0.95;
-        reflectance = getReflectance(n1, 1.5);
-    }
+            screenPos *= 0.75;
+            vec3 tint = vec3(0.098, 0.196, 0.255);
 
-    // -- emmissive -- //
-    if (id >= 30000) {
-        if (id < 30040) {
-            emissivness = getLightness(albedo);
-            emissivness = smoothstep(0.25, 0.75, emissivness);
-        }
-        else if (id == 30040) {
-            emissivness = 1.0;
-            albedo *= 1.5;
-        }
-        // end portal & end gates
-        #ifdef TERRAIN
-            else if (id == 31000) {
-                albedo = vec3(0.0);
-                vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
-                float speed = frameTimeCounter * 0.005;
+            for (int i=0; i<8; ++i) {
+                for (int j=0; j<3; ++j) {
+                    float angle = j * PI/3.0 + i * PI/8.0;
+                    float Cos = cos(angle);
+                    float Sin = sin(angle);
+                    mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
 
-                screenPos *= 0.75;
-                vec3 tint = vec3(0.098, 0.196, 0.255);
-
-                for (int i=0; i<8; ++i) {
-                    for (int j=0; j<3; ++j) {
-                        float angle = j * PI/3.0 + i * PI/8.0;
-                        float Cos = cos(angle);
-                        float Sin = sin(angle);
-                        mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
-
-                        vec2 uv = mod(rotation * screenPos.xy + speed, 1.0);
-                        vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;
-                        portalColor *= map(1.0 - (float(i) / 8.0), 0.0, 1.0, 0.33, 1.0);
-                        albedo += portalColor * length(portalColor);
-                    }
-
-                    screenPos *= 1.4;
+                    vec2 uv = mod(rotation * screenPos.xy + speed, 1.0);
+                    vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;
+                    portalColor *= map(1.0 - (float(i) / 8.0), 0.0, 1.0, 0.33, 1.0);
+                    albedo += portalColor * length(portalColor);
                 }
 
-                albedo *= tint;
-                albedo = mix(albedo * 2.0, tint, length(albedo));
-                albedo += tint * 0.08;
-                albedo *= 1.5;
-
-                emissivness = getLightness(albedo) < 0.2 ? 0.0 : 1.0;
+                screenPos *= 1.4;
             }
-        #endif
-    }
 
-    // -- subsurface & ao -- //
-    if (10000 <= id && id < 20000) {
-        smoothness = 0.25;
-        reflectance = getReflectance(n1, 2.5);
+            albedo *= tint;
+            albedo = mix(albedo * 2.0, tint, length(albedo));
+            albedo += tint * 0.08;
+            albedo *= 1.5;
 
-        // leaves
-        if (hasNoAmbiantOcclusion(id)) {
-            ambient_occlusion = 1.0;
+            emissivness = getLightness(albedo) < 0.2 ? 0.0 : 1.0;
         }
-        // flowers
-        else if (isThin(id)) {
-            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(0.0, objectSpacePosition.y);
-            ambient_occlusion = min(ambient_occlusion, 1.0);
-        }
-        // sugar cane
-        else if (isColumnSubsurface(id)) {
-            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(vec2(0.0), objectSpacePosition.xz);
-            ambient_occlusion = min(ambient_occlusion * 5.0, 1.0);
-        }
-        // other foliage
-        else {
-            vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-            ambient_occlusion = distance(vec3(0.0), objectSpacePosition);
-        }
-    }
-    // reflective & subsurface
-    if (id == 20013) {
-        ambient_occlusion = 1.0;
-    }
-
-    // -- porosity -- //
-    // if (20030 < id && id < 30000) {
-    //     float porosityFactor = 0.6;
-    //     smoothness = max(smoothness, mix(smoothness, 0.9 * porosityFactor, rainStrength));
-    //     reflectance = max(reflectance, mix(reflectance, getReflectance(1.0, 1.33) * porosityFactor, rainStrength));
-    // }
+    #endif
 
     // glowing particles
     #ifdef PARTICLE
@@ -175,7 +72,7 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
 
         // make them emissive
         if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint || isSculkSoundWave) {
-            ambient_occlusion = 1.0;
+            subsurfaceScattering = 1.0;
             emissivness = 1.0;
 
             // saturate some of them
@@ -186,15 +83,161 @@ void getMaterialData(sampler2D gtexture, int id, vec3 normal, vec3 midBlock, vec
     #endif
 }
 
-void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness, out float ambient_occlusion) {
+void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering) {
+
+    #ifndef PARTICLE
+
+        // index of refraction of the actual medium
+        float n1 = isEyeInWater == 1 ? 1.33 : 1.0;
+
+        // -- smoothness -- //
+        // water
+        if (id == 20000) {
+            smoothness = 0.9;
+            float n2 = isEyeInWater == 0 ? 1.33 : 1.0;
+            reflectance = getReflectance(n1, n2);
+        }
+        // glass 
+        else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
+            smoothness = 0.95;
+            reflectance = getReflectance(n1, 1.5);
+        }
+        // metal
+        else if (id == 20020) {
+            smoothness = 0.75;
+            reflectance = getReflectance(n1, 3.0);
+        }
+        // polished
+        else if (id == 20030 || id == 20031) {
+            smoothness = 0.6;
+            reflectance = getReflectance(n1, 1.4);
+        }
+        // specular
+        else if (id == 20040 || id == 20041) {
+            // grass block
+            if (normal.y > 0.5) {
+                if (id == 20040) {
+                    smoothness = 0.4;
+                    reflectance = getReflectance(n1, 1.3);
+                }
+                else if (id == 20041) {
+                    smoothness = 0.2;
+                    reflectance = getReflectance(n1, 1.3);
+                }
+            }
+        }
+        // rough
+        else if (id == 20050) {
+            smoothness = 0.2;
+            reflectance = getReflectance(n1, 1.0);
+        }
+        // emmissive and smooth
+        else if (id == 30030 || id == 30031 || id == 30040) {
+            smoothness = 0.95;
+            reflectance = getReflectance(n1, 1.5);
+        }
+
+        // -- emmissive -- //
+        if (id >= 30000) {
+            if (id < 30040) {
+                emissivness = getLightness(albedo);
+                emissivness = smoothstep(0.25, 0.75, emissivness);
+            }
+            else if (id == 30040) {
+                emissivness = 1.0;
+            }
+        }
+
+        // -- subsurface & ao -- //
+        if (10000 <= id && id < 20000) {
+            smoothness = 0.25;
+            reflectance = getReflectance(n1, 2.5);
+            subsurfaceScattering = 1.0;
+
+            // leaves
+            if (hasNoAmbiantOcclusion(id)) {
+                
+            }
+            // flowers
+            else if (isThin(id)) {
+                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+                ambientOcclusion = distance(0.0, objectSpacePosition.y);
+                ambientOcclusion = min(ambientOcclusion, 1.0);
+            }
+            // sugar cane
+            else if (isColumnSubsurface(id)) {
+                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+                ambientOcclusion = distance(vec2(0.0), objectSpacePosition.xz);
+                ambientOcclusion = min(ambientOcclusion * 5.0, 1.0);
+            }
+            // other foliage
+            else {
+                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+                ambientOcclusion = distance(vec3(0.0), objectSpacePosition);
+            }
+        }
+        // reflective & subsurface
+        if (id == 20013) {
+            subsurfaceScattering = 1.0;
+        }
+
+        // -- porosity -- //
+        // if (20030 < id && id < 30000) {
+        //     float porosityFactor = 0.6;
+        //     smoothness = max(smoothness, mix(smoothness, 0.9 * porosityFactor, rainStrength));
+        //     reflectance = max(reflectance, mix(reflectance, getReflectance(1.0, 1.33) * porosityFactor, rainStrength));
+        // }
+    #endif
+}
+
+// handle labPBR format
+void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoordinate, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering) {
+
+    #if PBR_TYPE > 0 && !defined PARTICLE
+        vec4 normalMapData = texture2D(normals, textureCoordinate);
+        vec4 specularMapData = texture2D(specular, textureCoordinate);
+
+        if (length(normalMapData) > 0.0) {
+            // -- ambient occlusion -- //
+            ambientOcclusion *= normalMapData.z;
+
+            // -- height field -- //
+            // ...
+        }
+
+        if (length(specularMapData) > 0.0) {
+            // -- smoothness -- //
+            smoothness = specularMapData.r;
+
+            // -- reflectance -- //
+            reflectance = specularMapData.g;
+            if (reflectance > 229.0/255.0) {
+                reflectance = 0.5;
+            }
+
+            // -- porosity -- //
+            // ...
+
+            // -- subsurface scattering -- //
+            // ...
+
+            // -- emissivness -- //
+            emissivness = specularMapData.a < 1.0 ? specularMapData.a : 0.0;
+            // fix issues caused by mipmaps
+            float emissivnessL0 = texture2DLod(specular, textureCoordinate, 0).a;
+            emissivnessL0 = emissivnessL0 < 1.0 ? emissivnessL0 : 0.0;
+            emissivness = min(emissivness, emissivnessL0);
+        }
+    #endif
+}
+
+void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness) {
     smoothness = 0.0;
     reflectance = 1.0;
     emissivness = 0.0;
-    ambient_occlusion = 0.0;
 
     float n1 = isEyeInWater == 1 ? 1.33 : 1.0;
 
-    // -- smoothness -- //
     // water
     if (id == DH_BLOCK_WATER) {
         smoothness = 0.9;
@@ -206,16 +249,14 @@ void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out floa
         smoothness = 0.75;
         reflectance = getReflectance(n1, 3.0);
     }
-
-    // -- emmissive -- //
-    if (id == DH_BLOCK_ILLUMINATED) {
-        emissivness = 1.0;
-        albedo *= 1.5;
-    }
-
-    // -- subsurface & ao -- //
-    if (id == DH_BLOCK_LEAVES) {
+    // leaves
+    else if (id == DH_BLOCK_LEAVES) {
         smoothness = 0.25;
         reflectance = getReflectance(n1, 2.5);
+    }
+    // emissive
+    else if (id == DH_BLOCK_ILLUMINATED) {
+        emissivness = 1.0;
+        albedo *= 1.5;
     }
 }

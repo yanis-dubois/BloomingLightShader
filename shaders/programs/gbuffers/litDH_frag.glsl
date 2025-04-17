@@ -72,11 +72,11 @@ void main() {
     ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
 
     // material data
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambient_occlusion = 0.0;
-    getDHMaterialData(id, albedo, smoothness, reflectance, emissivness, ambient_occlusion);
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0;
+    getDHMaterialData(id, albedo, smoothness, reflectance, emissivness);
 
     // -- apply lighting -- //
-    vec4 color = doDHLighting(albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambient_occlusion);
+    vec4 color = doDHLighting(albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
