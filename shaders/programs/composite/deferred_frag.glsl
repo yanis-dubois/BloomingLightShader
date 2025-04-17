@@ -39,6 +39,7 @@
         float ambientSkyLightIntensity = lightAndMaterialData.x;
         float smoothness = lightAndMaterialData.z;
         float reflectance = lightAndMaterialData.w;
+        reflectance = reflectance > 0.95 ? 0.0 : reflectance;
         float depth = texture2D(depthtex0, uv).r;
 
         // apply reflection

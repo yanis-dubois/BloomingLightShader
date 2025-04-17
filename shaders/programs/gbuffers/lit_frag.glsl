@@ -222,14 +222,14 @@ void main() {
     #endif
 
     // -- buffers -- //
-    colorData = vec4(color);
+    colorData = color;
     normalData = encodeNormal(normalMap);
     #ifdef TRANSPARENT
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
+        // tricks to pass reflectance equal to zero without prblm with the alpha channel
         if (reflectance == 0.0) {
             reflectance = 1.0;
-            smoothness = 0.0;
         }
         lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
     #endif
