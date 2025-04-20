@@ -13,6 +13,7 @@
 in vec4 at_tangent;
 in vec3 mc_Entity;
 in vec3 at_midBlock;
+in vec4 mc_midTexCoord;
 
 // results
 out mat3 TBN;
@@ -20,15 +21,24 @@ out vec4 additionalColor;
 out vec3 worldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
-out vec2 textureCoordinate;
+out vec2 originalTextureCoordinate;
 out vec2 lightMapCoordinate;
+out vec4 textureCoordinateOffset;
+out vec2 localTextureCoordinate;
 flat out int id;
 
 void main() {
     /* color & light infos */
-    textureCoordinate = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+    originalTextureCoordinate = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     lightMapCoordinate = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     additionalColor = gl_Color;
+
+    // POM info
+    vec2 midCoord = (gl_TextureMatrix[0] * mc_midTexCoord).xy; // middle of the actual face in the atlas space
+    vec2 atlasMidToCorner = originalTextureCoordinate - midCoord; // vector from the middle of the face to the actual corner (vertex) in the atlas space
+    localTextureCoordinate = sign(atlasMidToCorner) * 0.5 + 0.5; // local uv coordinates of the actual face
+    textureCoordinateOffset.xy = abs(atlasMidToCorner) * 2.0; // length of the diagonal of the actual face in atlas space
+    textureCoordinateOffset.zw = min(originalTextureCoordinate, midCoord - (atlasMidToCorner)); // coordinates in atlas space of the corner that have the (0,0) local uv coordinate
 
     /* geometry infos */
     // normal

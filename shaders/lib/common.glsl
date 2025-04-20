@@ -49,7 +49,7 @@ const float darknessRange = 32.0;
 // PBR texture
 // manualy choose the format in case the texture pack doesn't specify it
 #define PBR_TYPE 2 // 0=off 1=oldPBR 2=labPBR 
-#define PBR_EMISSIVNESS 1 // 0=off 1=on (for pbr pack that specify emissivness)
+#define PBR_POM 1 // 0=off 1=on (parallax occlusion mapping needs height field)
 
 // sky
 #define SKY_TYPE 1 // 0=vanilla 1=custom

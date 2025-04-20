@@ -14,6 +14,9 @@
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
     #include "/lib/reflection.glsl"
 #endif
+#if PBR_POM > 0
+    #include "/lib/POM.glsl"
+#endif
 
 // uniforms
 uniform sampler2D gtexture;
@@ -34,8 +37,10 @@ in vec4 additionalColor; // albedo of : foliage, water, particules
 in vec3 unanimatedWorldPosition;
 in vec3 midBlock;
 in vec3 worldSpacePosition;
-in vec2 textureCoordinate; // immuable block & item albedo
+in vec2 originalTextureCoordinate; // immuable block & item albedo
 in vec2 lightMapCoordinate; // light map
+in vec4 textureCoordinateOffset;
+in vec2 localTextureCoordinate;
 flat in int id;
 
 // results
@@ -46,15 +51,24 @@ layout(location = 2) out vec4 reflectionData;
 layout(location = 3) out vec4 lightAndMaterialData;
 
 void main() {
-    // retrieve data
+
+    // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
+    vec3 viewDirection = normalize(cameraPosition - worldSpacePosition);
+
+    vec2 textureCoordinate = originalTextureCoordinate;
+    #if PBR_POM > 0
+        textureCoordinate = doPOM(normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset);
+    #endif
+
+    // color data
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 tint = additionalColor.rgb;
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
 
-    // retrieve tbn data
+    // tbn data
     #ifndef PARTICLE
         vec3 tangent = TBN[0];
         vec3 bitangent = TBN[1];
@@ -67,6 +81,7 @@ void main() {
         vec3 bitangent = cross(tangent, normal);
     #endif
 
+    // initialize normalmap
     vec3 normalMap = normal;
 
     // tweak transparency
@@ -110,18 +125,22 @@ void main() {
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
         if (isAnimated(id) && smoothness > 0.5) {
+
+            // sample noise function
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
             vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
             vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
 
+            // calcul derivative
             vec3 newTangent = normalize(tangentDerivative - actualPosition);
             vec3 newBitangent = normalize(bitangentDerivative - actualPosition);
 
+            // get new normal from derivative
             vec3 newNormal = - normalize(cross(newTangent, newBitangent));
             if (dot(newNormal, normal) < 0.0) newNormal *= -1.0;
 
-            vec3 viewDirection = normalize(cameraPosition - actualPosition);
-            if (dot(viewDirection, newNormal) > 0.1) {
+            // use the new normal if it's visible
+            if (dot(viewDirection, newNormal) > 0.0) {
                 normalMap = newNormal;
             }
         }
@@ -139,8 +158,8 @@ void main() {
             roughness *= roughness;
 
             // view direction from view to tangent space
-            vec3 viewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
-            vec3 tangentSpaceViewDirection = transpose(animatedTBN) * viewDirection;
+            vec3 voxelizedViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
+            vec3 tangentSpaceViewDirection = transpose(animatedTBN) * voxelizedViewDirection;
             // sample normal & convert to view
             vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
 
