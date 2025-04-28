@@ -123,6 +123,9 @@ bool isInRange(float x, float min_, float max_) {
 bool isInRange(vec2 xy, float min_, float max_) {
     return isInRange(xy.x, min_, max_) && isInRange(xy.y, min_, max_);
 }
+bool isInRange(vec3 xyz, float min_, float max_) {
+    return isInRange(xyz.xy, min_, max_) && isInRange(xyz.z, min_, max_);
+}
 float map(float value, float fromMin, float fromMax, float toMin, float toMax) {
     float mapped = (value-fromMin) / (fromMax-fromMin); // from [fromMin;fromMax] to [0;1]
     return clamp(mapped*(toMax-toMin) + toMin, toMin, toMax); // from [0;1] to [toMin;toMax]

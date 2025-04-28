@@ -197,6 +197,9 @@ void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoord
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         vec4 specularMapData = texture2D(specular, textureCoordinate);
 
+        // vec4 normalMapData = texture2DLod(normals, textureCoordinate, 0);
+        // vec4 specularMapData = texture2DLod(specular, textureCoordinate, 0);
+
         if (length(normalMapData) > 0.0) {
             // -- ambient occlusion -- //
             ambientOcclusion *= normalMapData.z;

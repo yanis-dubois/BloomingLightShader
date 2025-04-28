@@ -55,10 +55,10 @@ void main() {
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
-    vec3 viewDirection = normalize(cameraPosition - worldSpacePosition);
+    vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
     vec2 textureCoordinate = originalTextureCoordinate;
-    #if PBR_POM > 0
+    #if !defined PARTICLE && PBR_POM > 0
         textureCoordinate = doPOM(normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset);
     #endif
 
@@ -247,9 +247,10 @@ void main() {
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
         // tricks to pass reflectance equal to zero without prblm with the alpha channel
-        if (reflectance == 0.0) {
-            reflectance = 1.0;
-        }
-        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
+        // if (reflectance == 0.0) {
+        //     reflectance = 1.0;
+        // }
+        reflectance = 0;
+        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, clamp(1.0 - reflectance, alphaTestRef, 1.0));
     #endif
 }
