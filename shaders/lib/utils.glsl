@@ -123,6 +123,9 @@ bool isInRange(float x, float min_, float max_) {
 bool isInRange(vec2 xy, float min_, float max_) {
     return isInRange(xy.x, min_, max_) && isInRange(xy.y, min_, max_);
 }
+bool isInRange(vec2 xy, vec2 min_, vec2 max_) {
+    return isInRange(xy.x, min_.x, max_.x) && isInRange(xy.y, min_.y, max_.y);
+}
 bool isInRange(vec3 xyz, float min_, float max_) {
     return isInRange(xyz.xy, min_, max_) && isInRange(xyz.z, min_, max_);
 }

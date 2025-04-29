@@ -2,13 +2,17 @@ vec2 localToAtlasTextureCoordinates(vec2 localTextureCoordinate, vec4 textureCoo
     return localTextureCoordinate * textureCoordinateOffset.xy + textureCoordinateOffset.zw;
 }
 
+ivec2 localToAtlasTextureCoordinatesInt(vec2 localTextureCoordinate, vec4 textureCoordinateOffset) {
+    return ivec2(localTextureCoordinate + textureCoordinateOffset.zw);
+}
+
 // row
 // vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset) {
 
 //     int nbSteps = 64;
 //     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
 
-//     float heightScale = 2.0/16.0;
+//     float heightScale = 12.0/16.0;
 //     float layerDepth = 1.0;
 //     float stepSize = layerDepth / float(nbSteps);
 
@@ -43,30 +47,27 @@ vec2 localToAtlasTextureCoordinates(vec2 localTextureCoordinate, vec4 textureCoo
 // pixel perfect 3D ?
 vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset) {
 
-    int nbSteps = 64;
+    ivec2 texSize = textureSize(normals, 0);
+    textureCoordinateOffset.xy *= texSize;
+    textureCoordinateOffset.zw *= texSize;
+    int nbSteps = int(textureCoordinateOffset.x + textureCoordinateOffset.y) + 16;
+
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
-
     float heightScale = 4.0/16.0;
-    float layerDepth = 1.0;
-    float stepSize = layerDepth / float(nbSteps);
-
-    vec3 rayDirection = - normalize(tangentSpaceViewDirection);
+    vec3 rayDirection = - tangentSpaceViewDirection;
     rayDirection.z *= heightScale;
+    rayDirection = normalize(rayDirection);
 
-    vec3 rayPosition = vec3(localTextureCoordinate, 0.0) * TEXTURE_RESOLUTION;
+    vec3 rayPosition = vec3(localTextureCoordinate * textureCoordinateOffset.xy, 0.0);
+    vec3 rayInitialPosition = rayPosition;
     float rayDepth = 0.0;
 
-    bool x = false, y = false;
-    if (!x && rayPosition.x > 8) {
-        rayPosition.x += 1;
-        x = true;
-    }
-    if (!y && rayPosition.y > 8) {
-        rayPosition.y += 1;
-        y = true;
+    vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0);
+    if (normalData.x + normalData.y <= 0.001 || normalData.a >= 0.99) {
+        return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
     }
 
-    float textureDepth = 1.0 - texelFetch(normals, ivec2(floor(textureSize(normals, 0) * localToAtlasTextureCoordinates(floor(rayPosition.xy) / TEXTURE_RESOLUTION, textureCoordinateOffset))), 0).a;
+    float textureDepth = 1.0 - normalData.a;
 
     vec3 rayIntPosition = floor(rayPosition);
     ivec3 intStep = ivec3(
@@ -90,39 +91,26 @@ vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoo
     float maxTz = rayDirection.z > 0.0 
         ? (rayIntPosition.z + 1 - rayPosition.z) / rayDirection.z 
         : (rayPosition.z - rayIntPosition.z) / - rayDirection.z;
-    
+
     vec3 rayLastPosition = rayPosition;
 
     // raymarching loop
     for (int i=0; i<nbSteps; ++i) {
 
-        if (!isInRange(rayPosition / TEXTURE_RESOLUTION, 0.0, 1.0)) {
+        if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy)) {
             rayPosition = rayLastPosition;
             break;
         }
 
         if (rayDepth >= textureDepth) {
-            //rayPosition = rayLastPosition;
-
-            // if (rayDepth > 0.0)
-            //     rayPosition = rayLastPosition;
-                //rayPosition += 1;
-            
-            // if (rayPosition.x > 8) {
-            //     rayPosition.x += 1;
-            // }
-            // if (rayPosition.y > 8) {
-            //     rayPosition.y += 1;
-            // }
-
             break;
         }
 
-        if (maxTx < maxTy && maxTx < maxTz) {
+        if (maxTx <= maxTy && maxTx <= maxTz) {
             maxTx += delta.x;
             rayIntPosition.x += intStep.x;
         } 
-        else if (maxTy < maxTx && maxTy < maxTz) {
+        else if (maxTy <= maxTx && maxTy <= maxTz) {
             maxTy += delta.y;
             rayIntPosition.y += intStep.y;
         } 
@@ -134,29 +122,11 @@ vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoo
         rayLastPosition = rayPosition;
         rayPosition = rayIntPosition;
 
-        if (!x && rayPosition.x > 8) {
-            rayPosition.x += 1;
-            x = true;
-        }
-        if (!y && rayPosition.y > 8) {
-            rayPosition.y += 1;
-            y = true;
-        }
-
         float t = min(min(maxTx, maxTy), maxTz);
         rayDepth = - rayDirection.z * t;
 
-        textureDepth = 1.0 - texelFetch(normals, ivec2(floor(textureSize(normals, 0) * localToAtlasTextureCoordinates(floor(rayPosition.xy) / TEXTURE_RESOLUTION, textureCoordinateOffset))), 0).a;
+        textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0).a;
     }
 
-    if (rayDepth == 0.0) {
-        if (rayPosition.x > 8) {
-            rayPosition.x -= 1;
-        }
-        if (rayPosition.y > 8) {
-            rayPosition.y -= 1;
-        }
-    }
-
-    return localToAtlasTextureCoordinates(rayPosition.xy / TEXTURE_RESOLUTION, textureCoordinateOffset);
+    return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
 }
