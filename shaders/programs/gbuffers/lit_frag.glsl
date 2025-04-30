@@ -59,7 +59,12 @@ void main() {
 
     vec2 textureCoordinate = originalTextureCoordinate;
     #if !defined PARTICLE && PBR_POM > 0
-        textureCoordinate = doPOM(normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset);
+        float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
+
+        // POM only apply on object that are inside POM render distance
+        if (worldSpaceDistance < PBR_POM_DISTANCE) {
+            textureCoordinate = doPOM(gtexture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance);
+        }
     #endif
 
     // color data
@@ -67,6 +72,8 @@ void main() {
     vec3 tint = additionalColor.rgb;
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
+
+    // colorData = vec4(textureCoordinate, 0, 1); return;
 
     // tbn data
     #ifndef PARTICLE

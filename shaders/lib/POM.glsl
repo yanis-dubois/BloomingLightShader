@@ -7,69 +7,76 @@ ivec2 localToAtlasTextureCoordinatesInt(vec2 localTextureCoordinate, vec4 textur
 }
 
 // row
-// vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset) {
-
-//     int nbSteps = 64;
-//     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
-
-//     float heightScale = 12.0/16.0;
-//     float layerDepth = 1.0;
-//     float stepSize = layerDepth / float(nbSteps);
-
-//     vec2 P = tangentSpaceViewDirection.xy / tangentSpaceViewDirection.z * heightScale;
-//     vec2 deltaUV = - P * stepSize;
-
-//     vec2 rayPosition = localTextureCoordinate;
-//     rayPosition += deltaUV * abs(pseudoRandom(frameTimeCounter / 3600.0 + viewDirection));
-//     float rayDepth = 0.0;
-//     float currentHeight = 1.0 - texture2D(normals, localToAtlasTextureCoordinates(rayPosition, textureCoordinateOffset)).a;
-
-//     // raymarching loop
-//     for (int i=0; i<nbSteps; ++i) {
-
-//         if (!isInRange(rayPosition, 0.0, 1.0)) {
-//             rayPosition -= deltaUV;
-//             break;
-//         }
-
-//         if (rayDepth >= currentHeight) {
-//             break;
-//         }
-
-//         rayPosition += deltaUV;
-//         rayDepth += stepSize;
-//         currentHeight = 1.0 - texture2D(normals, localToAtlasTextureCoordinates(rayPosition, textureCoordinateOffset)).a;            
-//     }
-
-//     return localToAtlasTextureCoordinates(rayPosition, textureCoordinateOffset);
-// }
-
-// pixel perfect 3D ?
-vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset) {
+vec2 doBasicPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset, float worldSpaceDistance) {
 
     ivec2 texSize = textureSize(normals, 0);
+    vec4 textureCoordinateOffsetInt = vec4(
+        textureCoordinateOffset.xy * texSize,
+        textureCoordinateOffset.zw * texSize
+    );
+
+    int nbSteps = 64;
+    vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
+
+    float layerDepth = 1.0;
+    float stepSize = layerDepth / float(nbSteps);
+
+    vec2 P = (tangentSpaceViewDirection.xy / tangentSpaceViewDirection.z) * (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH);
+    vec2 deltaUV = - P * stepSize;
+
+    vec2 rayPosition = localTextureCoordinate;
+    float rayDepth = 0.0;
+    float currentHeight = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy * textureCoordinateOffsetInt.xy, textureCoordinateOffsetInt), 0).a;
+
+    if (currentHeight <= 0.001) 
+        return localToAtlasTextureCoordinates(localTextureCoordinate, textureCoordinateOffset);
+
+    // raymarching loop
+    for (int i=0; i<nbSteps; ++i) {
+
+        if (!isInRange(rayPosition, 0.0, 1.0)) {
+            rayPosition -= deltaUV;
+            break;
+        }
+
+        if (rayDepth >= currentHeight) {
+            break;
+        }
+
+        rayPosition += deltaUV;
+        rayDepth += stepSize;
+        currentHeight = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy * textureCoordinateOffsetInt.xy, textureCoordinateOffsetInt), 0).a;          
+    }
+
+    return localToAtlasTextureCoordinates(rayPosition, textureCoordinateOffset);
+}
+
+// pixel perfect 3D ?
+vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset, float worldSpaceDistance) {
+
+    // 
+    ivec2 texSize = textureSize(texture, 0);
     textureCoordinateOffset.xy *= texSize;
     textureCoordinateOffset.zw *= texSize;
     int nbSteps = int(textureCoordinateOffset.x + textureCoordinateOffset.y) + 16;
 
+    // ray direction
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
-    float heightScale = 4.0/16.0;
     vec3 rayDirection = - tangentSpaceViewDirection;
-    rayDirection.z *= heightScale;
-    rayDirection = normalize(rayDirection);
+    rayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
 
     vec3 rayPosition = vec3(localTextureCoordinate * textureCoordinateOffset.xy, 0.0);
-    vec3 rayInitialPosition = rayPosition;
+    vec3 rayIntPosition = floor(rayPosition);
     float rayDepth = 0.0;
 
-    vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0);
+    vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayIntPosition.xy, textureCoordinateOffset), 0);
     if (normalData.x + normalData.y <= 0.001 || normalData.a >= 0.99) {
+        rayPosition = rayIntPosition;
         return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
     }
 
     float textureDepth = 1.0 - normalData.a;
 
-    vec3 rayIntPosition = floor(rayPosition);
     ivec3 intStep = ivec3(
         rayDirection.x > 0.0 ? 1 : -1,
         rayDirection.y > 0.0 ? 1 : -1,
@@ -106,17 +113,17 @@ vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoo
             break;
         }
 
-        if (maxTx <= maxTy && maxTx <= maxTz) {
+        if (maxTz <= maxTx && maxTz <= maxTy) {
+            maxTz += delta.z;
+            rayIntPosition.z += intStep.z;
+        } 
+        else if (maxTx <= maxTy && maxTx <= maxTz) {
             maxTx += delta.x;
             rayIntPosition.x += intStep.x;
         } 
-        else if (maxTy <= maxTx && maxTy <= maxTz) {
+        else {
             maxTy += delta.y;
             rayIntPosition.y += intStep.y;
-        } 
-        else {
-            maxTz += delta.z;
-            rayIntPosition.z += intStep.z;
         }
 
         rayLastPosition = rayPosition;
@@ -129,4 +136,12 @@ vec2 doPOM(sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoo
     }
 
     return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
+}
+
+vec2 doPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset, float worldSpaceDistance) {
+    #if PBR_POM == 1
+        return doBasicPOM(normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance);
+    #else
+        return doCustomPOM(texture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance);
+    #endif
 }
