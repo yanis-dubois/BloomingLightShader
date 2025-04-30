@@ -62,7 +62,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
     #endif
     // tweak for south and north facing fragment
-    directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
+    directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
     // subsurface scattering
     #if SUBSURFACE_TYPE == 1
         // subsurface diffuse part

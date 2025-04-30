@@ -57,24 +57,6 @@ void main() {
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
-    vec2 textureCoordinate = originalTextureCoordinate;
-    #if !defined PARTICLE && PBR_POM > 0
-        float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
-
-        // POM only apply on object that are inside POM render distance
-        if (worldSpaceDistance < PBR_POM_DISTANCE) {
-            textureCoordinate = doPOM(gtexture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance);
-        }
-    #endif
-
-    // color data
-    vec4 textureColor = texture2D(gtexture, textureCoordinate);
-    vec3 tint = additionalColor.rgb;
-    vec3 albedo = textureColor.rgb * tint;
-    float transparency = textureColor.a;
-
-    // colorData = vec4(textureCoordinate, 0, 1); return;
-
     // tbn data
     #ifndef PARTICLE
         vec3 tangent = TBN[0];
@@ -88,8 +70,30 @@ void main() {
         vec3 bitangent = cross(tangent, normal);
     #endif
 
-    // initialize normalmap
+    // initialize normalmap & POM normal
     vec3 normalMap = normal;
+    vec3 normalPOM = vec3(0.0);
+
+    vec2 textureCoordinate = originalTextureCoordinate;
+    #if !defined PARTICLE && PBR_POM > 0
+        float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
+
+        // POM only apply on object that are inside POM render distance
+        if (worldSpaceDistance < PBR_POM_DISTANCE) {
+            textureCoordinate = doPOM(gtexture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance, normalPOM);
+
+            // if the ray hit the side of a pixel, it gets a new normal
+            if (length(normalPOM) > 0.0) {
+                normalPOM = TBN * normalPOM;
+            }
+        }
+    #endif
+
+    // color data
+    vec4 textureColor = texture2D(gtexture, textureCoordinate);
+    vec3 tint = additionalColor.rgb;
+    vec3 albedo = textureColor.rgb * tint;
+    float transparency = textureColor.a;
 
     // tweak transparency
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
@@ -131,7 +135,7 @@ void main() {
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
-        if (isAnimated(id) && smoothness > 0.5) {
+        if (isAnimated(id) && smoothness > 0.5 && length(normalPOM) <= 0.0) {
 
             // sample noise function
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
@@ -155,7 +159,7 @@ void main() {
 
     // jittering normal for water
     #if defined TERRAIN && PIXELATED_REFLECTION == 2
-        if (isWater(id)) {
+        if (isWater(id) && length(normalPOM) <= 0.001) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
             float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
             mat3 animatedTBN = generateTBN(normalMap);
@@ -175,20 +179,26 @@ void main() {
     #endif
 
     // -- normal map -- //
-    #if PBR_TYPE > 0 && !defined PARTICLE
+    #if PBR_TYPE > 0 && !defined PARTICLE  
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         mat3 animatedTBN = generateTBN(normalMap);
 
         // normal map
         normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
         normalMap = vec3(normalMapData.xy, sqrt(1.0 - dot(normalMapData.xy, normalMapData.xy)));
+        normalMap = TBN * normalMap;
+        normalMap = mix(normal, normalMap, 0.75);
 
-        // only for water : apply normalmap on the generated one from "animated normal"
-        if (isWater(id)) {
-            normalMap = animatedTBN * normalMap;
-        }
-        else {
-            normalMap = TBN * normalMap;
+        // apply POM normals
+        #if PBR_POM_NORMAL > 0
+            if (length(normalPOM) > 0.0) {
+                normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+            }
+        #endif
+
+        // clamp non visible normal
+        if (dot(normalMap, viewDirection) < 0.0) {
+            normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
         }
     #endif
 

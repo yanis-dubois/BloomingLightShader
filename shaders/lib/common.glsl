@@ -52,6 +52,7 @@ const float darknessRange = 32.0;
 #define PBR_POM 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DEPTH 7.0/16.0 // in [0;1] - linear for basicPOM but not for customPOM (tricky to adjust)
 #define PBR_POM_DISTANCE 32.0 // spherical distance in blocks
+#define PBR_POM_NORMAL 1 // 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
 
 // sky
 #define SKY_TYPE 1 // 0=vanilla 1=custom

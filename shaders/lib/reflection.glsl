@@ -150,7 +150,7 @@ bool SSR_secondPass(sampler2D depthTexture, vec2 texelSpaceStartPosition, vec2 t
 
 vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
 
-    // rough material have no reflection
+    // rough material have no reflection [0.5]
     if (smoothness < 0.5) {
         return vec4(0.0);
     }
@@ -169,7 +169,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     vec3 viewSpaceNormal = eyeToView(normal);
 
     // fresnel index
-    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
+    float viewDirectionDotNormal = max(dot(-viewDirection, viewSpaceNormal), 0.0);
     float fresnel = schlick(viewDirectionDotNormal, reflectance);
     #ifdef TRANSPARENT
         fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
