@@ -150,12 +150,12 @@ bool SSR_secondPass(sampler2D depthTexture, vec2 texelSpaceStartPosition, vec2 t
 
 vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
 
-    // rough material have no reflection [0.5]
-    if (smoothness < 0.5) {
+    // ------------------ step 1 : preparation ------------------ //
+
+    // early reject for rough materials
+    if (smoothness < 0.33) {
         return vec4(0.0);
     }
-
-    // ------------------ step 1 : preparation ------------------ //
 
     // directions
     #if PIXELATED_REFLECTION > 0
@@ -169,18 +169,22 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     vec3 viewSpaceNormal = eyeToView(normal);
 
     // fresnel index
+    float roughness = pow(1.0 - smoothness, 2.0);
     float viewDirectionDotNormal = max(dot(-viewDirection, viewSpaceNormal), 0.0);
     float fresnel = schlick(viewDirectionDotNormal, reflectance);
     #ifdef TRANSPARENT
         fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
     #endif
+    // attenuate fresnel effect on rough material
+    float fresnelAttenuation = pow(1.0 - roughness, 2.0);
+    fresnel *= fresnelAttenuation;
+    // early reject
     if (fresnel <= 0.001)
         return vec4(0.0);
 
     // sample VNDF
     if (smoothness < 0.9) { // TODO: revoir ce threshold ?
         // sampling data
-        float roughness = pow(1.0 - smoothness, 2.0);
         roughness *= roughness; 
         float zeta1 = pseudoRandom(uv + 0.913 * frameTimeCounter / 3600.0);
         float zeta2 = pseudoRandom(uv + 0.32 + 0.913 * frameTimeCounter / 3600.0);
