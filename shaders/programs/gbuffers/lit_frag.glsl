@@ -183,9 +183,15 @@ void main() {
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         mat3 animatedTBN = generateTBN(normalMap);
 
-        // normal map
+        // retrieve normal map
         normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
-        normalMap = vec3(normalMapData.xy, sqrt(1.0 - dot(normalMapData.xy, normalMapData.xy)));
+        normalMap = vec3(normalMapData.xy, sqrt(1.0 - min(dot(normalMapData.xy, normalMapData.xy), 1.0)));
+        // avoid normal map to be too tilted
+        if (normalMap.z <= 0.1) {
+            normalMap.z = 0.1;
+            normalMap = normalize(normalMap);
+        }
+        // convert to world space and combine with normal
         normalMap = TBN * normalMap;
         normalMap = mix(normal, normalMap, 0.75);
 

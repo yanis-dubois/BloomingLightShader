@@ -173,6 +173,18 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0).a;
     }
 
+    // -- TMP : shadows -- //
+
+    // light ray
+    // vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+    // vec3 tangentSpaceLightDirection = transpose(TBN) * worldSpacelightDirection;
+    // vec3 lightRayDirection = - tangentSpaceLightDirection;
+    // lightRayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
+
+
+
+    // -- TMP : shadows -- //
+
     return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
 }
 
