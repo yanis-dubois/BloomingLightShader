@@ -82,8 +82,8 @@ const float darknessRange = 32.0;
 #define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
 #define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much
 #define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
-#define REFLECTION_BLUR_RANGE 0.0025 // extent of the kernel
-#define REFLECTION_BLUR_RESOLUTION 0.25 // in [0;1], proportion of pixel to be sampled
+#define REFLECTION_BLUR_RANGE 0.001 // extent of the kernel
+#define REFLECTION_BLUR_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
 #define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 

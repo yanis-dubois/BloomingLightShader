@@ -125,6 +125,14 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     // raymarching loop
     for (int i=0; i<nbSteps; ++i) {
 
+        #ifdef CUTOUT
+            // if out of bounds : break
+            if (!isInRange(rayPosition.xy, vec2(0.001), textureCoordinateOffset.xy - vec2(0.001))) {
+                rayPosition = rayLastPosition;
+                break;
+            }
+        #endif
+
         // hit
         if (rayDepth >= textureDepth) {
 
@@ -160,19 +168,21 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         rayLastPosition = rayPosition;
         rayPosition = rayIntPosition;
 
-        // if out of bounds : keep on texture limits
-        if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy - vec2(0.001))) {
-            vec2 offset = vec2(0.0);
-            if (rayPosition.x < 0.0) {
-                offset.x = 1.0;
-            }
-            if (rayPosition.y < 0.0) {
-                offset.y = 1.0;
-            }
+        #ifndef CUTOUT
+            // if out of bounds : keep on texture limits
+            if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy - vec2(0.001))) {
+                vec2 offset = vec2(0.0);
+                if (rayPosition.x < 0.0) {
+                    offset.x = 1.0;
+                }
+                if (rayPosition.y < 0.0) {
+                    offset.y = 1.0;
+                }
 
-            rayPosition.xy = mod(rayPosition.xy - vec2(0.001), textureCoordinateOffset.xy);
-            rayPosition.xy += offset;
-        }
+                rayPosition.xy = mod(rayPosition.xy - vec2(0.001), textureCoordinateOffset.xy);
+                rayPosition.xy += offset;
+            }
+        #endif
 
         // update depth
         rayLastDepth = rayDepth;
@@ -180,6 +190,8 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         rayDepth = - rayDirection.z * t;
         textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0).a;
     }
+
+    rayPosition.xy = clamp(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy);
 
     return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
 }
