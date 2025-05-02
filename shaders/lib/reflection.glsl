@@ -400,7 +400,9 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 // sky box tweak
                 if (finalPositionDepth == 1.0) {
                     if (emissivness == 0.0) {
-                        sampledReflection = backgroundColor;
+                        #ifndef DISTANT_HORIZONS
+                            sampledReflection = backgroundColor;
+                        #endif
                     }
                 }
                 else {

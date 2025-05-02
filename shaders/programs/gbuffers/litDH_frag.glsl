@@ -17,18 +17,17 @@
 
 // uniforms
 uniform sampler2D gtexture;
+uniform sampler2D depthtex1; // opaque depth
 
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
     uniform sampler2D colortex4; // opaque color
     uniform sampler2D colortex5; // opaque light & material (ambientSkyLightIntensity, emissivness, smoothness, reflectance)
-    uniform sampler2D depthtex1; // opaque depth
 #endif
 
 // attributes
 in vec4 Valbedo;
 in vec3 worldSpacePosition;
 in vec3 Vnormal;
-in vec2 textureCoordinate;
 in vec2 lightMapCoordinate; // light map
 flat in int id;
 
@@ -50,9 +49,7 @@ void main() {
 
     // avoid transparent DH layer being over the classical opaque one
     #ifdef TRANSPARENT
-        float opaqueDepth = texture2D(depthtex1, uv).r;
-        vec3 opaquePlayerSpacePosition = screenToPlayer(uv, opaqueDepth);
-        if (length(playerSpacePosition) > length(opaquePlayerSpacePosition)) discard;
+        if (texture2D(depthtex1, uv).r < 1.0) discard;
     #endif
 
     // blending transition between classic terrain & DH terrain
@@ -81,17 +78,11 @@ void main() {
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         vec3 screenSpacePosition = vec3(uv, depth);
-        vec4 reflection = doDHReflection(uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        // vec4 reflection = doDHReflection(uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
 
         // tweak reflection on water
         reflection.a = smoothstep(0.0, 1.0, reflection.a);
-
-        // blindness
-        float blindnessFogFactor = getBlindnessFactor(worldSpacePosition, blindnessRange);
-        reflection.a = mix(reflection.a, 0.0, blindnessFogFactor * blindness);
-        // darkness
-        float darknessFogFactor = getBlindnessFactor(worldSpacePosition, darknessRange);
-        reflection.a = mix(reflection.a, 0.0, darknessFogFactor * darknessFactor);
 
         // apply reflection
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
@@ -111,6 +102,6 @@ void main() {
     #ifdef TRANSPARENT
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
-        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, reflectance);
+        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, 1.0);
     #endif
 }

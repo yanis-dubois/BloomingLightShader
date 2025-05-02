@@ -14,13 +14,11 @@
 out vec4 Valbedo;
 out vec3 worldSpacePosition;
 out vec3 Vnormal;
-out vec2 textureCoordinate;
 out vec2 lightMapCoordinate;
 flat out int id;
 
 void main() {
     /* color & light infos */
-    textureCoordinate = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
     lightMapCoordinate = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
     Valbedo = gl_Color;
 
@@ -32,7 +30,7 @@ void main() {
     id = dhMaterialId;
 
     // set position
-    worldSpacePosition = gl_Vertex.xyz + cameraPosition;
+    worldSpacePosition = (gbufferModelViewInverse * gl_ModelViewMatrix * gl_Vertex).xyz + cameraPosition;
     gl_Position = ftransform();
 
     // TAA

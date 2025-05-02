@@ -236,7 +236,7 @@ void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoord
 
 void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out float reflectance, out float emissivness) {
     smoothness = 0.0;
-    reflectance = 1.0;
+    reflectance = 0.0;
     emissivness = 0.0;
 
     float n1 = isEyeInWater == 1 ? 1.33 : 1.0;

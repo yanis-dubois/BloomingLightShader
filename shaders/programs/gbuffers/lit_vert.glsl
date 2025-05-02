@@ -62,14 +62,14 @@ void main() {
     gl_Position = ftransform();
 
     #ifdef WEATHER
-        vec2 seed = vec2(floor(worldSpacePosition.x), floor(worldSpacePosition.z));
-        float amplitude = 0.5;
-        float noiseX = amplitude * pseudoRandom(seed.xy) - amplitude;
-        float noiseZ = amplitude * pseudoRandom(seed.yx) - amplitude;
-        worldSpacePosition.x += noiseX;
-        worldSpacePosition.z += noiseZ;
-        vec3 viewSpacePosition = worldToView(worldSpacePosition);
-        gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
+        // vec2 seed = vec2(floor(worldSpacePosition.x), floor(worldSpacePosition.z));
+        // float amplitude = 0.5;
+        // float noiseX = amplitude * pseudoRandom(seed.xy) - amplitude;
+        // float noiseZ = amplitude * pseudoRandom(seed.yx) - amplitude;
+        // worldSpacePosition.x += noiseX;
+        // worldSpacePosition.z += noiseZ;
+        // vec3 viewSpacePosition = worldToView(worldSpacePosition);
+        // gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
     #endif
 
     // remapped midBlock coordinates

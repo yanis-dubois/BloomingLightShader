@@ -243,13 +243,6 @@ void main() {
         if (id == 20000)
             reflection.a = smoothstep(0.0, 1.0, reflection.a);
 
-        // blindness
-        float blindnessFogFactor = getBlindnessFactor(worldSpacePosition, blindnessRange);
-        reflection.a = mix(reflection.a, 0.0, blindnessFogFactor * blindness);
-        // darkness
-        float darknessFogFactor = getBlindnessFactor(worldSpacePosition, darknessRange);
-        reflection.a = mix(reflection.a, 0.0, darknessFogFactor * darknessFactor);
-
         // apply reflection
         color.rgb = mix(color.rgb, reflection.rgb, reflection.a);
     #endif
