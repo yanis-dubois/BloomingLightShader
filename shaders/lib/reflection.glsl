@@ -152,11 +152,6 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // ------------------ step 1 : preparation ------------------ //
 
-    // early reject for rough materials
-    if (smoothness < 0.33) {
-        return vec4(0.0);
-    }
-
     // directions
     #if PIXELATED_REFLECTION > 0
         vec3 worldSpacePosition = screenToWorld(uv, depth);
@@ -176,11 +171,12 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
     #endif
     // attenuate fresnel effect on rough material
-    float fresnelAttenuation = pow(1.0 - roughness, 2.0);
+    float fresnelAttenuation = pow(1.0 - roughness, 5.0);
     fresnel *= fresnelAttenuation;
     // early reject
-    if (fresnel <= 0.001)
+    if (fresnel <= 0.001) {
         return vec4(0.0);
+    }
 
     // sample VNDF
     if (smoothness < 0.9) { // TODO: revoir ce threshold ?
@@ -251,7 +247,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         // initialize some variable
         vec2 seed = uv + frameTimeCounter / 3600.0;
         vec2 texelSpaceCurrentPosition = texelSpaceStartPosition;
-        texelSpaceCurrentPosition += stepLength * pseudoRandom(seed);
+        texelSpaceCurrentPosition += stepLength * abs(pseudoRandom(seed));
         vec2 screenSpaceCurrentPosition = screenSpaceStartPosition;
         float rayDepth = startPositionDepth;
         float fragmentDepth = startPositionDepth;
@@ -265,6 +261,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
             // ray marching 1 : find intersection
             for (int i=0; i<stepsNumber; ++i) {
+                hitFirstPass = false;
                 lastPosition = currentPosition;
 
                 texelSpaceCurrentPosition += stepLength;
@@ -299,6 +296,8 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
                 // hit surface
                 if (rayDepth > fragmentDepth) {
+                    hitFirstPass = true;
+
                     vec2 resultingPosition;
                     hitSecondPass = SSR_secondPass(
                         depthTexture, 
@@ -327,23 +326,14 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
         // ------------------ step 3 : adjustments and special cases ------------------ //
 
-        // blur that up !
-        #ifdef REFLECTIVE
-            int nb_step = 4;
-        #else
-            int nb_step = 4;
-        #endif
+        // blur reflection a bit
+        int nb_step = 4;
         vec3 blurredReflection = vec3(0.0);
         int cpt = 0;
         for (int i=0; i<=nb_step; ++i) {
             vec3 sampledReflection = vec3(0.0);
 
-            #ifdef REFLECTIVE
-                texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
-            #else
-                //texelSpaceCurrentPosition = texelSpaceFinalPosition;
-                texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
-            #endif
+            texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
             screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
 
             // evalutate if reflection point is valid or not

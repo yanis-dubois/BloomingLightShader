@@ -55,7 +55,13 @@ void main() {
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
-    vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
+
+    // worldSpacePosition is broken for handeld object
+    #ifdef HAND
+        vec3 viewDirection = normalize(eyeCameraPosition - screenToWorld(uv, depth));
+    #else
+        vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
+    #endif
 
     // tbn data
     #ifndef PARTICLE
@@ -75,7 +81,7 @@ void main() {
     vec3 normalPOM = vec3(0.0);
 
     vec2 textureCoordinate = originalTextureCoordinate;
-    #if !defined PARTICLE && PBR_POM > 0
+    #if !defined PARTICLE && PBR_TYPE > 0 && PBR_POM > 0
         float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
 
         // POM only apply on object that are inside POM render distance
@@ -135,7 +141,7 @@ void main() {
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
-        if (isAnimated(id) && smoothness > 0.5 && length(normalPOM) <= 0.0) {
+        if (isAnimated(id) && length(normalPOM) <= 0.001) {
 
             // sample noise function
             vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
@@ -179,32 +185,41 @@ void main() {
     #endif
 
     // -- normal map -- //
-    #if PBR_TYPE > 0 && !defined PARTICLE  
+    #if !defined PARTICLE && PBR_TYPE > 0
         vec4 normalMapData = texture2D(normals, textureCoordinate);
-        mat3 animatedTBN = generateTBN(normalMap);
 
-        // retrieve normal map
-        normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
-        normalMap = vec3(normalMapData.xy, sqrt(1.0 - min(dot(normalMapData.xy, normalMapData.xy), 1.0)));
-        // avoid normal map to be too tilted
-        if (normalMap.z <= 0.1) {
-            normalMap.z = 0.1;
-            normalMap = normalize(normalMap);
-        }
-        // convert to world space and combine with normal
-        normalMap = TBN * normalMap;
-        normalMap = mix(normal, normalMap, 0.75);
-
-        // apply POM normals
-        #if PBR_POM_NORMAL > 0
-            if (length(normalPOM) > 0.0) {
-                normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+        // only if normal texture is specified
+        if (normalMapData.x + normalMapData.y > 0.001) {
+            // retrieve normal map
+            normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
+            normalMap = vec3(normalMapData.xy, sqrt(1.0 - min(dot(normalMapData.xy, normalMapData.xy), 1.0)));
+            // avoid normal map to be too tilted
+            if (normalMap.z <= 0.1) {
+                normalMap.z = 0.1;
+                normalMap = normalize(normalMap);
             }
-        #endif
+            // convert to world space and combine with normal
+            normalMap = TBN * normalMap;
+            normalMap = mix(normal, normalMap, 0.75);
 
-        // clamp non visible normal
-        if (dot(normalMap, viewDirection) < 0.0) {
-            normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+            // apply POM normals
+            #if PBR_POM_NORMAL > 0
+                if (length(normalPOM) > 0.0) {
+                    normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+                }
+            #endif
+
+            // clamp non visible normal
+            if (dot(normalMap, viewDirection) < 0.0) {
+                normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+                // albedo = vec3(1,0,0);
+            }
+            // albedo = normalMap;
+            // colorData = vec4(vec3(dot(normalMap, viewDirection)), 1); return;
+            // colorData = vec4(viewDirection, 1); return;
+            // colorData = vec4(screenToPlayer(uv, depth), 1); return;
+
+            // normalMap = normal;
         }
     #endif
 
@@ -263,6 +278,11 @@ void main() {
         if (dhBlend > dither) discard;
     #endif
 
+    #ifdef HAND
+        reflectance = 0;
+        smoothness = 0;
+    #endif
+
     // -- buffers -- //
     colorData = color;
     normalData = encodeNormal(normalMap);
@@ -273,7 +293,7 @@ void main() {
         // if (reflectance == 0.0) {
         //     reflectance = 1.0;
         // }
-        reflectance = 0;
+        // reflectance = 0;
         lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, clamp(1.0 - reflectance, alphaTestRef, 1.0));
     #endif
 }

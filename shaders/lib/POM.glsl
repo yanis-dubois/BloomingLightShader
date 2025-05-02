@@ -43,12 +43,6 @@ vec2 doBasicPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirecti
     // raymarching loop
     for (int i=0; i<nbSteps; ++i) {
 
-        // out of bounds
-        if (!isInRange(rayPosition, 0.0, 1.0)) {
-            rayPosition -= deltaUV;
-            break;
-        }
-
         // hit
         if (rayDepth >= textureDepth) {
             break;
@@ -57,6 +51,12 @@ vec2 doBasicPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirecti
         // one step further
         rayPosition += deltaUV;
         rayDepth += stepSize;
+
+        // if out of bounds : keep on texture limits
+        if (!isInRange(rayPosition, vec2(0.0), vec2(1.0))) {
+            rayPosition.xy = mod(rayPosition.xy, 1.0);
+        }
+
         textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy * textureCoordinateOffsetInt.xy, textureCoordinateOffsetInt), 0).a;          
     }
 
@@ -125,12 +125,6 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     // raymarching loop
     for (int i=0; i<nbSteps; ++i) {
 
-        // out of bounds
-        if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy)) {
-            rayPosition = rayLastPosition;
-            break;
-        }
-
         // hit
         if (rayDepth >= textureDepth) {
 
@@ -166,24 +160,26 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         rayLastPosition = rayPosition;
         rayPosition = rayIntPosition;
 
+        // if out of bounds : keep on texture limits
+        if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy - vec2(0.001))) {
+            vec2 offset = vec2(0.0);
+            if (rayPosition.x < 0.0) {
+                offset.x = 1.0;
+            }
+            if (rayPosition.y < 0.0) {
+                offset.y = 1.0;
+            }
+
+            rayPosition.xy = mod(rayPosition.xy - vec2(0.001), textureCoordinateOffset.xy);
+            rayPosition.xy += offset;
+        }
+
         // update depth
         rayLastDepth = rayDepth;
         float t = min(min(maxTx, maxTy), maxTz);
         rayDepth = - rayDirection.z * t;
         textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0).a;
     }
-
-    // -- TMP : shadows -- //
-
-    // light ray
-    // vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    // vec3 tangentSpaceLightDirection = transpose(TBN) * worldSpacelightDirection;
-    // vec3 lightRayDirection = - tangentSpaceLightDirection;
-    // lightRayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
-
-
-
-    // -- TMP : shadows -- //
 
     return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
 }
