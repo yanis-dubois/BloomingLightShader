@@ -18,7 +18,7 @@ in vec4 mc_midTexCoord;
 // results
 out mat3 TBN;
 out vec4 additionalColor;
-out vec3 worldSpacePosition;
+out vec3 VworldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
 out vec2 originalTextureCoordinate;
@@ -57,7 +57,7 @@ void main() {
     #endif
 
     // set position
-    worldSpacePosition = gl_Vertex.xyz + cameraPosition;
+    worldSpacePosition = viewToWorld((gl_ModelViewMatrix * gl_Vertex).xyz);
     unanimatedWorldPosition = worldSpacePosition;
     gl_Position = ftransform();
 

@@ -55,13 +55,7 @@ void main() {
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
-
-    // worldSpacePosition is broken for handeld object
-    #ifdef HAND
-        vec3 viewDirection = normalize(eyeCameraPosition - screenToWorld(uv, depth));
-    #else
-        vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
-    #endif
+    vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
     // tbn data
     #ifndef PARTICLE
@@ -289,11 +283,6 @@ void main() {
     #ifdef TRANSPARENT
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
-        // tricks to pass reflectance equal to zero without prblm with the alpha channel
-        // if (reflectance == 0.0) {
-        //     reflectance = 1.0;
-        // }
-        // reflectance = 0;
-        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, clamp(1.0 - reflectance, alphaTestRef, 1.0));
+        lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, 1.0 - reflectance);
     #endif
 }
