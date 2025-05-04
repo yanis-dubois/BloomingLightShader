@@ -1,5 +1,6 @@
 #version 140
 
-#define ENTITY
+#define TERRAIN
+#define BLOCK_ENTITY
 
 #include "/programs/gbuffers/lit_frag.glsl"

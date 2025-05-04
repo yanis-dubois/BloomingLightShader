@@ -70,8 +70,6 @@ void main() {
         vec3 bitangent = cross(tangent, normal);
     #endif
 
-    // colorData = vec4(bitangent, 1); return;
-
     // initialize normalmap & POM normal
     vec3 normalMap = normal;
     vec3 normalPOM = vec3(0.0);
@@ -92,7 +90,10 @@ void main() {
     #endif
 
     // color data
-    vec4 textureColor = texture2D(gtexture, textureCoordinate);
+    // vec4 textureColor = texture2D(gtexture, textureCoordinate);
+    // TMP
+    vec4 textureColor = texture2DLod(gtexture, textureCoordinate, 0);
+    // TMP
     vec3 tint = additionalColor.rgb;
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;

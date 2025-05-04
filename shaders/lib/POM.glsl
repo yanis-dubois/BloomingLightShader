@@ -69,11 +69,13 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
 
     // texture atlas utils
     ivec2 texSize = textureSize(texture, 0);
-    textureCoordinateOffset.xy *= texSize;
-    textureCoordinateOffset.zw *= texSize;
+    vec4 textureCoordinateOffsetInt = vec4(
+        textureCoordinateOffset.xy * texSize,
+        textureCoordinateOffset.zw * texSize
+    );
 
     // maximum steps number
-    int nbSteps = int(textureCoordinateOffset.x + textureCoordinateOffset.y);
+    int nbSteps = int(textureCoordinateOffsetInt.x + textureCoordinateOffsetInt.y);
 
     // ray direction
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
@@ -81,17 +83,18 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     rayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
 
     // ray position
-    vec3 rayPosition = vec3(localTextureCoordinate * textureCoordinateOffset.xy, 0.0);
+    vec3 rayPosition = vec3(localTextureCoordinate * textureCoordinateOffsetInt.xy, 0.0);
     vec3 rayLastPosition = rayPosition;
     vec3 rayIntPosition = floor(rayPosition);
     float rayDepth = 0.0;
     float rayLastDepth = 0.0;
 
     // check if there is a normal map
-    vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayIntPosition.xy, textureCoordinateOffset), 0);
+    vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayIntPosition.xy, textureCoordinateOffsetInt), 0);
     if (normalData.x + normalData.y <= 0.001 || normalData.a >= 0.99) {
         rayPosition = rayIntPosition;
-        return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
+        rayPosition.xy = clamp(rayPosition.xy / textureCoordinateOffsetInt.xy, vec2(0.0), vec2(0.999));
+        return localToAtlasTextureCoordinates(rayPosition.xy, textureCoordinateOffset);
     }
 
     // get texture depth 
@@ -125,10 +128,9 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     // raymarching loop
     for (int i=0; i<nbSteps; ++i) {
 
-        #ifdef CUTOUT
+        #if defined CUTOUT || defined HAND || defined ENTITY
             // if out of bounds : break
-            if (!isInRange(rayPosition.xy, vec2(0.001), textureCoordinateOffset.xy - vec2(0.001))) {
-                rayPosition = rayLastPosition;
+            if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffsetInt.xy - vec2(0.001))) {
                 break;
             }
         #endif
@@ -168,9 +170,9 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         rayLastPosition = rayPosition;
         rayPosition = rayIntPosition;
 
-        #ifndef CUTOUT
+        #if !defined CUTOUT && !defined HAND && !defined ENTITY
             // if out of bounds : keep on texture limits
-            if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy - vec2(0.001))) {
+            if (!isInRange(rayPosition.xy, vec2(0.0), textureCoordinateOffsetInt.xy)) {
                 vec2 offset = vec2(0.0);
                 if (rayPosition.x < 0.0) {
                     offset.x = 1.0;
@@ -179,7 +181,7 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
                     offset.y = 1.0;
                 }
 
-                rayPosition.xy = mod(rayPosition.xy - vec2(0.001), textureCoordinateOffset.xy);
+                rayPosition.xy = mod(rayPosition.xy, textureCoordinateOffsetInt.xy);
                 rayPosition.xy += offset;
             }
         #endif
@@ -188,12 +190,15 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         rayLastDepth = rayDepth;
         float t = min(min(maxTx, maxTy), maxTz);
         rayDepth = - rayDirection.z * t;
-        textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffset), 0).a;
+        textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffsetInt), 0).a;
     }
 
-    rayPosition.xy = clamp(rayPosition.xy, vec2(0.0), textureCoordinateOffset.xy);
+    // clamp 
+    rayPosition.xy = clamp(rayPosition.xy / textureCoordinateOffsetInt.xy, vec2(0.0), vec2(0.999));
+    return localToAtlasTextureCoordinates(rayPosition.xy, textureCoordinateOffset);
 
-    return (rayPosition.xy / texSize) + (textureCoordinateOffset.zw / texSize);
+    rayPosition.xy = clamp(rayPosition.xy, vec2(0.0), textureCoordinateOffsetInt.xy);
+    return (rayPosition.xy / texSize) + (textureCoordinateOffsetInt.zw / texSize);
 }
 
 vec2 doPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset, float worldSpaceDistance, inout vec3 normal) {

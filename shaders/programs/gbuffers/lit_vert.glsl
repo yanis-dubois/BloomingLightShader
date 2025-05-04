@@ -48,7 +48,10 @@ void main() {
     // from view to world space
     normal = mat3(gbufferModelViewInverse) * normal;
     tangent = mat3(gbufferModelViewInverse) * tangent;
-    bitangent = mat3(gbufferModelViewInverse) * bitangent * at_tangent.w;
+    bitangent = mat3(gbufferModelViewInverse) * bitangent;
+    #if defined TERRAIN && !defined BLOCK_ENTITY && !defined CUTOUT
+        bitangent *= at_tangent.w;
+    #endif
     TBN = mat3(tangent, bitangent, normal);
 
     id = int(mc_Entity.x);
