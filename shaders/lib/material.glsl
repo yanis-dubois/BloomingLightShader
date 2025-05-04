@@ -9,6 +9,15 @@ const vec3[7] endPortalColors = vec3[](
     vec3(0.15, 0.392, 0.306)  // dark green
 );
 
+void getWaterMaterialData(inout float smoothness, inout float reflectance) {
+    smoothness = 0.9;
+    if (isEyeInWater == 0) {
+        reflectance = getReflectance(1.0, 1.33);
+    } else {
+        reflectance = getReflectance(1.33, 1.0);
+    }
+}
+
 void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, inout vec3 albedo, inout float emissivness, inout float subsurfaceScattering) {
 
     // end portal & end gates
@@ -83,19 +92,17 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
     #endif
 }
 
-void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering) {
+void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
     #ifndef PARTICLE
 
         // index of refraction of the actual medium
-        float n1 = isEyeInWater == 1 ? 1.33 : 1.0;
+        float n1 = isEyeInWater > 0 ? 1.33 : 1.0;
 
         // -- smoothness -- //
         // water
         if (id == 20000) {
-            smoothness = 0.9;
-            float n2 = isEyeInWater == 0 ? 1.33 : 1.0;
-            reflectance = getReflectance(n1, n2);
+            getWaterMaterialData(smoothness, reflectance);
         }
         // glass 
         else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
@@ -113,17 +120,25 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inou
             reflectance = getReflectance(n1, 1.4);
         }
         // specular
-        else if (id == 20040 || id == 20041) {
+        else if (id == 20040 || id == 10081) {
             // grass block
-            if (normal.y > 0.5) {
-                if (id == 20040) {
+            if (id == 20040) {
+                // up face
+                if (normal.y > 0.5) {
                     smoothness = 0.4;
                     reflectance = getReflectance(n1, 1.3);
+                    porosity = 0.4;
                 }
-                else if (id == 20041) {
-                    smoothness = 0.2;
-                    reflectance = getReflectance(n1, 1.3);
+                // other faces
+                else {
+                    porosity = 0.6;
                 }
+            }
+            // snow
+            else if (id == 10081) {
+                smoothness = 0.4;
+                reflectance = getReflectance(n1, 1.3);
+                porosity = 0.6;
             }
         }
         // rough
@@ -181,31 +196,23 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inou
             subsurfaceScattering = 1.0;
         }
 
-        // -- porosity -- //
-        // if (20030 < id && id < 30000) {
-        //     float porosityFactor = 0.6;
-        //     smoothness = max(smoothness, mix(smoothness, 0.9 * porosityFactor, rainStrength));
-        //     reflectance = max(reflectance, mix(reflectance, getReflectance(1.0, 1.33) * porosityFactor, rainStrength));
-        // }
+        // -- porosity -- // 
+        if (id == 20060) {
+            porosity = 0.6;
+        }
     #endif
 }
 
 // handle labPBR format
-void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoordinate, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering) {
+void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoordinate, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
     #if PBR_TYPE > 0 && !defined PARTICLE
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         vec4 specularMapData = texture2D(specular, textureCoordinate);
 
-        // vec4 normalMapData = texture2DLod(normals, textureCoordinate, 0);
-        // vec4 specularMapData = texture2DLod(specular, textureCoordinate, 0);
-
         if (length(normalMapData) > 0.0) {
             // -- ambient occlusion -- //
-            ambientOcclusion *= normalMapData.z;
-
-            // -- height field -- //
-            // ...
+            ambientOcclusion = normalMapData.z;
         }
 
         if (length(specularMapData) > 0.0) {
@@ -218,11 +225,16 @@ void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoord
                 reflectance = 0.5;
             }
 
-            // -- porosity -- //
-            // ...
-
             // -- subsurface scattering -- //
-            // ...
+            if (specularMapData.b > 64.0/255.0) {
+                subsurfaceScattering = map(specularMapData.b, 65.0/255.0, 255.0/255.0, 0.0, 1.0);
+            }
+            // -- porosity -- //
+            #if PBR_POROSITY > 0
+                else {
+                    porosity = map(specularMapData.b, 0.0/255.0, 64.0/255.0, 0.0, 1.0);
+                }
+            #endif
 
             // -- emissivness -- //
             emissivness = specularMapData.a < 1.0 ? specularMapData.a : 0.0;

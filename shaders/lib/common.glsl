@@ -48,10 +48,13 @@ const float darknessRange = 32.0;
 
 // PBR texture
 // manualy choose the format in case the texture pack doesn't specify it
-#define PBR_TYPE 2 // 0=off 1=oldPBR 2=labPBR 
+#define PBR_TYPE 0 // 0=off 1=oldPBR 2=labPBR
+// porosity (only few texture pack specify porosity)
+#define PBR_POROSITY 0 // 0=off 1=on
+// parallax occlusion mapping (POM)
 #define PBR_POM 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DEPTH 7.0/16.0 // in [0;1] - linear for basicPOM but not for customPOM (tricky to adjust)
-#define PBR_POM_DISTANCE 32.0 // spherical distance in blocks
+#define PBR_POM_DISTANCE 24.0 // spherical distance in blocks
 #define PBR_POM_NORMAL 1 // 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
 
 // sky
@@ -93,6 +96,9 @@ const float darknessRange = 32.0;
 
 // subsurface scattering
 #define SUBSURFACE_TYPE 1 // 0=off 1=on
+
+// porority
+#define POROSITY_TYPE 1 // 0=off 1=on
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
@@ -171,12 +177,12 @@ uniform float fogStart;
 uniform float fogEnd;
 uniform float rainStrength;
 uniform float thunderStrength;
+uniform float wetness;
 uniform float alphaTestRef;
 uniform float near;
 uniform float far;
 uniform float viewHeight;
 uniform float viewWidth;
-uniform float gamma;
 uniform float frameTimeCounter;
 uniform float ambientLight;
 uniform float centerDepthSmooth;
@@ -192,6 +198,7 @@ uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning
 uniform int heldBlockLightValue;
 uniform int heldBlockLightValue2;
 uniform int isEyeInWater;
+uniform int biome_precipitation;
 
 #ifdef DISTANT_HORIZONS
     uniform float dhNearPlane;
@@ -203,7 +210,9 @@ uniform int isEyeInWater;
 ///////////////// custom uniforms //////////////////
 ////////////////////////////////////////////////////
 
+uniform float gamma;
 uniform float framemod8;
+uniform float inRainyBiome;
 
 ////////////////////////////////////////////////////
 ///////////////// custom constants /////////////////

@@ -26,7 +26,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #endif
     // apply offset
     #if PIXELATED_SHADOW > 0
-        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition, normal, tangent, bitangent) + noise * normal * offsetAmplitude;
+        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition + noise * normal * offsetAmplitude, normal, tangent, bitangent);
     #else
         vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
     #endif
@@ -67,7 +67,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #if SUBSURFACE_TYPE == 1
         // subsurface diffuse part
         if (subsurfaceScattering > 0.0) {
-            float subsurface_fade = map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
+            float subsurface_fade = subsurfaceScattering * map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
             directSkyLightIntensity = max(lightDirectionDotNormal, subsurface_fade);
         }
     #endif
@@ -128,11 +128,18 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     }
 
     // -- ambient occlusion
-    ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
-    directSkyLight *= ambientOcclusion * 0.75 + 0.25;
-    blockLight *= ambientOcclusion * 0.75 + 0.25;
-    ambientSkyLight *= ambientOcclusion * 0.25 + 0.75;
-    ambientLight *= ambientOcclusion * 0.25 + 0.75;
+    #if PBR_TYPE > 0
+        directSkyLight *= ambientOcclusion;
+        blockLight *= ambientOcclusion;
+        ambientSkyLight *= ambientOcclusion;
+        ambientLight *= ambientOcclusion;
+    #else
+        ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
+        directSkyLight *= ambientOcclusion * 0.75 + 0.25;
+        blockLight *= ambientOcclusion * 0.75 + 0.25;
+        ambientSkyLight *= ambientOcclusion * 0.25 + 0.75;
+        ambientLight *= ambientOcclusion * 0.25 + 0.75;
+    #endif
 
     // -- BRDF -- //
     // -- diffuse

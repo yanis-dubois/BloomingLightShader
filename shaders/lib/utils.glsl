@@ -264,7 +264,7 @@ bool isFoliage(int id) {
 }
 // bamboo, pumpkin & melon
 bool isSolidFoliage(int id) {
-    return id == 10080;
+    return id == 10080 || id == 10081;
 }
 // roots, grass, flowers, mushroom, ...
 bool isUnderGrowth(int id) {

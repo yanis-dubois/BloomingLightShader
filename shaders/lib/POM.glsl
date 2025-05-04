@@ -73,7 +73,7 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     textureCoordinateOffset.zw *= texSize;
 
     // maximum steps number
-    int nbSteps = int(textureCoordinateOffset.x + textureCoordinateOffset.y) + 16;
+    int nbSteps = int(textureCoordinateOffset.x + textureCoordinateOffset.y);
 
     // ray direction
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
@@ -145,23 +145,23 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         }
 
         // one step further on the closest boundary (X, Y or Z)
-        // Z boundary
-        if (maxTz <= maxTx && maxTz <= maxTy) {
-            maxTz += delta.z;
-            rayIntPosition.z += intStep.z;
-            normal = vec3(0.0);
-        }
         // X boundary
-        else if (maxTx <= maxTy && maxTx <= maxTz) {
+        if (maxTx <= maxTy && maxTx <= maxTz) {
             maxTx += delta.x;
             rayIntPosition.x += intStep.x;
             normal = vec3(- intStep.x, 0.0, 0.0);
         } 
         // Y boundary
-        else {
+        else if (maxTy <= maxTx && maxTy <= maxTz) {
             maxTy += delta.y;
             rayIntPosition.y += intStep.y;
             normal = vec3(0.0, - intStep.y, 0.0);
+        }
+        // Z boundary
+        else {
+            maxTz += delta.z;
+            rayIntPosition.z += intStep.z;
+            normal = vec3(0.0);
         }
 
         // update position

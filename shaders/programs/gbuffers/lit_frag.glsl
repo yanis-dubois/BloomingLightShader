@@ -125,13 +125,16 @@ void main() {
     ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
 
     // material data
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0;
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0, porosity = 0.0;
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
-    getCustomMaterialData(id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering);  
+    getCustomMaterialData(id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     // modify these PBR values if PBR textures are enable
-    getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering);
+    getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);
+
+    // gamma correct albedo
+    albedo = SRGBtoLinear(albedo);
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
@@ -206,14 +209,7 @@ void main() {
             // clamp non visible normal
             if (dot(normalMap, viewDirection) < 0.0) {
                 normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
-                // albedo = vec3(1,0,0);
             }
-            // albedo = normalMap;
-            // colorData = vec4(vec3(dot(normalMap, viewDirection)), 1); return;
-            // colorData = vec4(viewDirection, 1); return;
-            // colorData = vec4(screenToPlayer(uv, depth), 1); return;
-
-            // normalMap = normal;
         }
     #endif
 
@@ -225,8 +221,23 @@ void main() {
         }
     #endif
 
+    // -- apply porosity -- //
+    #if POROSITY_TYPE > 0
+        // retrieve water material data
+        float waterSmoothness, waterReflectance;
+        getWaterMaterialData(waterSmoothness, waterReflectance);
+
+        float wetnessFactor = inRainyBiome * wetness * smoothstep(0.5, 1.0, ambientSkyLightIntensity);
+
+        // material get smoother and more reflective as it absorb water
+        smoothness = mix(smoothness, waterSmoothness, porosity * wetnessFactor);
+        reflectance = mix(reflectance, waterReflectance, porosity * wetnessFactor);
+
+        // darken all material
+        albedo = mix(albedo, 0.45 * albedo, sqrt(porosity) * wetnessFactor);
+    #endif
+
     // -- apply lighting -- //
-    albedo = SRGBtoLinear(albedo);
     vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, emissivness, ambientOcclusion, subsurfaceScattering);
 
     // -- reflection on transparent material -- //
