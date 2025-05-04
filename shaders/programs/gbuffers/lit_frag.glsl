@@ -70,12 +70,14 @@ void main() {
         vec3 bitangent = cross(tangent, normal);
     #endif
 
+    // colorData = vec4(bitangent, 1); return;
+
     // initialize normalmap & POM normal
     vec3 normalMap = normal;
     vec3 normalPOM = vec3(0.0);
 
     vec2 textureCoordinate = originalTextureCoordinate;
-    #if !defined PARTICLE && PBR_TYPE > 0 && PBR_POM > 0
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
         float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
 
         // POM only apply on object that are inside POM render distance
@@ -182,7 +184,7 @@ void main() {
     #endif
 
     // -- normal map -- //
-    #if !defined PARTICLE && PBR_TYPE > 0
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
         vec4 normalMapData = texture2D(normals, textureCoordinate);
 
         // only if normal texture is specified
