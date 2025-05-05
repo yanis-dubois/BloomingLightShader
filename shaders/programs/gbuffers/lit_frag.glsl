@@ -90,10 +90,12 @@ void main() {
     #endif
 
     // color data
-    // vec4 textureColor = texture2D(gtexture, textureCoordinate);
-    // TMP
-    vec4 textureColor = texture2DLod(gtexture, textureCoordinate, 0);
-    // TMP
+    vec4 textureColor = texture2D(gtexture, textureCoordinate);
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
+        if (worldSpaceDistance < PBR_POM_DISTANCE) {
+            textureColor = texture2DLod(gtexture, textureCoordinate, 0);
+        }
+    #endif
     vec3 tint = additionalColor.rgb;
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
@@ -187,6 +189,11 @@ void main() {
     // -- normal map -- //
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
         vec4 normalMapData = texture2D(normals, textureCoordinate);
+        #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
+            if (worldSpaceDistance < PBR_POM_DISTANCE) {
+                normalMapData = texture2DLod(normals, textureCoordinate, 0);
+            }
+        #endif
 
         // only if normal texture is specified
         if (normalMapData.x + normalMapData.y > 0.001) {
