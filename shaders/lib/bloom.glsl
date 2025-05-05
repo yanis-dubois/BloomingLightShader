@@ -1,18 +1,12 @@
-vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
+vec4 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
 
-    // no blur
-    if (normalizedRange <= 0.0 || resolution <= 0.0)
-        return SRGBtoLinear(texture2D(texture, uv).rgb);
-
-    // prepare loop
-    float range = 0.0, stepLength = 0.0;
-    prepareBlurLoop(normalizedRange, resolution, isFirstPass, range, stepLength);
     // init sums
     vec3 totalBloom = vec3(0.0);
+    float totalSunBloom = 0.0;
 
     const int n = 2;
     const int lodMin = 3;
-    const int lodMax = 6;
+    const int lodMax = 7;
     for (int lod=lodMin; lod<=lodMax; ++lod) {
         float blurSize = pow(2.0, float(lod)) / n;
 
@@ -25,21 +19,34 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
         mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
 
         vec3 bloom = vec3(0.0);
+        float sunBloom = 0.0;
         float totalWeight = 0.0;
+        float totalSunWeight = 0.0;
         for (int x=-n; x<=n; ++x) {
             vec2 offset = isFirstPass ? vec2(x, 0.0) : vec2(0.0, x);
-            offset = offset * blurSize / vec2(viewWidth, viewWidth);
+            offset = offset * blurSize / vec2(viewWidth, viewHeight);
             offset = rotation * offset;
 
             float weight = 1.0;
 
-            bloom += weight * SRGBtoLinear(texture2DLod(texture, uv + offset, lod).rgb);
-            totalWeight += weight;
+            vec4 bloomData = texture2DLod(texture, uv + offset, lod);
+            if (lod < lodMax) {
+                bloom += weight * SRGBtoLinear(bloomData.rgb);
+                totalWeight += weight;
+            }
+            sunBloom += weight * bloomData.a;
+            totalSunWeight += weight;
         }
-        float lodFactor = exp(-lod * 0.33);
-        totalBloom += lodFactor * bloom / totalWeight;
+
+        if (lod < lodMax) {
+            float lodFactor = exp(-lod * 0.33);
+            totalBloom += lodFactor * bloom / totalWeight;
+        }
+        totalSunBloom += sunBloom / totalSunWeight;
     }
 
-    totalBloom = clamp(totalBloom / (lodMax - lodMin + 1), 0.0, 1.0);
-    return totalBloom;
+    int nbLayer = lodMax - lodMin + 1;
+    totalBloom = clamp(totalBloom / (nbLayer - 1), 0.0, 1.0);
+    totalSunBloom = clamp(totalSunBloom / (nbLayer), 0.0, 1.0);
+    return vec4(totalBloom, totalSunBloom);
 }

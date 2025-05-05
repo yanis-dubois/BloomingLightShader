@@ -10,21 +10,21 @@
 
 // mipmap bloom
 #if BLOOM_TYPE > 1
-    const bool colortex1MipmapEnabled = true;
+    const bool colortex4MipmapEnabled = true;
 #endif
 
 // textures
 uniform sampler2D colortex0; // color
-uniform sampler2D colortex1; // bloom
+uniform sampler2D colortex4; // bloom
 uniform sampler2D colortex5; // depth of field
 
 // attributes
 in vec2 uv;
 
 // results
-/* RENDERTARGETS: 0,1,5 */
+/* RENDERTARGETS: 0,4,5 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec3 bloomData;
+layout(location = 1) out vec4 bloomData;
 layout(location = 2) out vec4 depthOfFieldData;
 
 /*******************************************/
@@ -41,10 +41,10 @@ void main() {
 
     // -- bloom : 1st pass -- //
     #if BLOOM_TYPE == 1
-        vec3 bloom = doBlur(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
-        bloomData = linearToSRGB(bloom);
+        vec3 bloom = doBlur(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
+        bloomData = vec4(linearToSRGB(bloom.rgb), 0.0);
     #elif BLOOM_TYPE == 2
-        vec3 bloom = doBloom(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
-        bloomData = linearToSRGB(bloom);
+        vec4 bloom = doBloom(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
+        bloomData = vec4(linearToSRGB(bloom.rgb), bloom.a);
     #endif
 }

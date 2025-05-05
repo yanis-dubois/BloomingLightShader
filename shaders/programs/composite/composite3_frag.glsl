@@ -10,21 +10,20 @@
 
 // mipmap bloom
 #if BLOOM_TYPE > 1
-    const bool colortex1MipmapEnabled = true;
+    const bool colortex4MipmapEnabled = true;
 #endif
 
 // textures
 uniform sampler2D colortex0; // color
-uniform sampler2D colortex1; // bloom
+uniform sampler2D colortex4; // bloom
 uniform sampler2D colortex5; // depth of field
 
 // attributes
 in vec2 uv;
 
 // results
-/* RENDERTARGETS: 0,1 */
+/* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec3 bloomData;
 
 /*******************************************/
 /**** bloom & depth of field : 2nd pass ****/
@@ -42,14 +41,20 @@ void main() {
 
     // -- bloom : 2nd pass + apply it -- //
     #if BLOOM_TYPE == 1
-        vec3 bloom = doBlur(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
-        bloomData = linearToSRGB(bloom);
+        vec3 bloom = doBlur(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
     #elif BLOOM_TYPE == 2
-        vec3 bloom = doBloom(uv, colortex1, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
-        bloomData = linearToSRGB(bloom);
-
-        bloom = pow(bloom, 1.0 / vec3(1.75));
-        color += bloom * BLOOM_FACTOR;
+        vec4 bloom = doBloom(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
+        // classic bloom
+        bloom.rgb = pow(bloom.rgb, 1.0 / vec3(1.75));
+        // sun/moon bloom
+        vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * screenToView(uv, 1.0));
+        vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+        bool isFacingSun = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition) > 0.0;
+        vec3 bloomTint = isFacingSun ? vec3(1.0, 0.5, 0.125) * pow(bloom.a, 1.0 / 1.5) : vec3(0.8, 0.85, 1.0) * pow(bloom.a, 1.0 / 0.5);
+        bloom.rgb += bloomTint;
+    #endif
+    #if BLOOM_TYPE > 0
+        color += bloom.rgb * BLOOM_FACTOR;
     #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);

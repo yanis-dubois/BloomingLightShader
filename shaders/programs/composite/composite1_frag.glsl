@@ -19,9 +19,9 @@ in vec2 uv;
 #include "/lib/volumetric_light.glsl"
 
 // results
-/* RENDERTARGETS: 0,1,5 */
+/* RENDERTARGETS: 0,4,5 */
 layout(location = 0) out vec4 colorData;
-layout(location = 1) out vec3 bloomData;
+layout(location = 1) out vec4 bloomData;
 layout(location = 2) out vec4 depthOfFieldData;
 
 /******************************************/
@@ -74,9 +74,11 @@ void main() {
             vec3 bloom = texture2D(colortex0, uv + BLOOM_RANGE * offset).rgb;
             float lightness = getLightness(bloom);
             bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
-            bloom = saturate(bloom, 2.0); // 1.66
+            bloom = saturate(bloom, 1.66);
         #endif
 
+        // sun bloom
+        float sunMask = 0.0;
         // frag position
         vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
         vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
@@ -87,13 +89,13 @@ void main() {
         vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
         float radius = VdotS > 0.0 ? 0.075 : 0.05;
         // cut sun & moon glare
-        if (distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) < radius) {
-            bloom = emissivness * saturate(vec3(1.0, 0.5, 0.125), 3.0);
+        if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) < radius) {
+            sunMask = emissivness;
         }
 
-        bloomData = linearToSRGB(bloom);
+        bloomData = vec4(linearToSRGB(bloom), sunMask);
     #else
-        bloomData = vec3(0.0);
+        bloomData = vec4(0.0);
     #endif
 
     // -- depth of field buffer -- //
