@@ -280,6 +280,7 @@ void main() {
         if (dhBlend > dither) discard;
     #endif
 
+    // no reflections for handeld object
     #ifdef HAND
         reflectance = 0;
         smoothness = 0;

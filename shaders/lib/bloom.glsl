@@ -36,7 +36,6 @@ vec3 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
             bloom += weight * SRGBtoLinear(texture2DLod(texture, uv + offset, lod).rgb);
             totalWeight += weight;
         }
-        // float lodFactor = (1.0 - 0.2*(lod - lodMin));
         float lodFactor = exp(-lod * 0.33);
         totalBloom += lodFactor * bloom / totalWeight;
     }

@@ -35,6 +35,7 @@ void main() {
     // depth
     float depthAll = texture2D(depthtex0, uv).r;
     float depthOpaque = texture2D(depthtex1, uv).r;
+    vec3 viewSpacePosition = screenToView(uv, depthOpaque);
 
     #if BLOOM_TYPE > 0
         float emissivness = lightAndMaterialData.g;
@@ -76,6 +77,20 @@ void main() {
             bloom = saturate(bloom, 2.0); // 1.66
         #endif
 
+        // frag position
+        vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
+        vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+        vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
+        float VdotS = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition);
+        // polar coord of sun, moon & frag
+        vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
+        vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
+        float radius = VdotS > 0.0 ? 0.075 : 0.05;
+        // cut sun & moon glare
+        if (distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) < radius) {
+            bloom = emissivness * saturate(vec3(1.0, 0.5, 0.125), 3.0);
+        }
+
         bloomData = linearToSRGB(bloom);
     #else
         bloomData = vec3(0.0);
@@ -85,7 +100,6 @@ void main() {
     depthOfFieldData = vec4(vec3(0.0), 1.0);
     #if DOF_TYPE > 0
         // actual distance
-        vec3 viewSpacePosition = screenToView(uv, depthOpaque);
         float linearDepth = - viewSpacePosition.z;
 
         // blur amount
