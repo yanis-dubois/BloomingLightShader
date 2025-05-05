@@ -5,11 +5,11 @@
 // format
 /*
 const int colortex0Format = RGBA16F; // color
-const int colortex1Format = RGB16F; // deferred = normal | composite = bloom
+const int colortex1Format = RGB16F; // deferred = normal 
 const int colortex2Format = RGB16F; // TAA: last frame color
 const int colortex3Format = R32F; // TAA: last frame depth
-const int colortex4Format = RGBA16F; // opaque gbuffer = material | deferred = opaque reflection | transparent gbuffer = opaque color
-const int colortex5Format = RGBA8; // light - depth of field mask
+const int colortex4Format = RGBA16F; // opaque gbuffer = material | deferred = opaque reflection | transparent gbuffer = opaque color | composite = bloom
+const int colortex5Format = RGBA8; // deferred,composite1 = light data | composite>1 = depth of field mask
 const int shadowcolor0Format = RGBA8; // shadow color
 const int shadowcolor1Format = RGBA8; // light shaft color
 */
