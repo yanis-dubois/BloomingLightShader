@@ -65,7 +65,7 @@ void main() {
     gl_Position = ftransform();
 
     #ifdef WEATHER
-        // vec2 seed = vec2(floor(worldSpacePosition.x), floor(worldSpacePosition.z));
+        // vec2 seed = vec2( floor(worldSpacePosition.x), floor(worldSpacePosition.z));
         // float amplitude = 0.5;
         // float noiseX = amplitude * pseudoRandom(seed.xy) - amplitude;
         // float noiseZ = amplitude * pseudoRandom(seed.yx) - amplitude;

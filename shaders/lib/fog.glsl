@@ -4,6 +4,10 @@ vec3 getWaterFogColor() {
     return hsvToRgb(HSVfogColor);
 }
 
+vec3 getLavaFogColor() {
+    return fogColor;
+}
+
 // used by volumetric light
 vec3 getFogColor(bool isInWater) {
     if (isInWater) return getWaterFogColor();
@@ -11,6 +15,7 @@ vec3 getFogColor(bool isInWater) {
 }
 
 vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
+    if (isEyeInWater > 1) return getLavaFogColor();
     if (isInWater) return getWaterFogColor();
     float _; // useless here
     return getSkyColor(eyeSpacePosition, true, _);
@@ -19,7 +24,7 @@ vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
 const float minimumFogDensity = 0.5; // 0.5
 const float maximumFogDensity = 3.0; // 3.0
 float getFogDensity(float worldSpaceHeight, bool isInWater) {
-    if (isInWater) return maximumFogDensity;
+    if (isInWater || isEyeInWater > 1) return maximumFogDensity;
 
     float minFogDensity = sunAngle > 0.5 ? 2.0 * minimumFogDensity : minimumFogDensity;
     float maxFogDensity = maximumFogDensity;
@@ -74,6 +79,14 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
         float renderDistance = far;
     #endif
 
+    // in lava
+    if (isEyeInWater == 2) {
+        renderDistance = 16.0;
+    }
+    else if (isEyeInWater == 3) {
+        renderDistance = 8.0;
+    }
+
     // no fog
     #if FOG_TYPE == 0
         float fogFactor = 0.0;
@@ -81,10 +94,11 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
     // linear vanilla fog (tweaked when camera is under water)
     #elif FOG_TYPE == 1
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+        float fogFactor = map(distanceFromCameraXZ, max(renderDistance - 16.0, 0.0), renderDistance, 0.0, 1.0);
         #ifdef DISTANT_HORIZONS
-            float fogFactor = map(distanceFromCameraXZ, far, renderDistance, 0.0, 1.0);
-        #else
-            float fogFactor = map(distanceFromCameraXZ, far - 16.0, far, 0.0, 1.0);
+            if (isEyeInWater <= 1) {
+                fogFactor = map(distanceFromCameraXZ, far, renderDistance, 0.0, 1.0);
+            }
         #endif
 
     // custom fog

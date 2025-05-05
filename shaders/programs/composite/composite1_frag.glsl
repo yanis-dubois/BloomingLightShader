@@ -73,7 +73,7 @@ void main() {
             vec3 bloom = texture2D(colortex0, uv + BLOOM_RANGE * offset).rgb;
             float lightness = getLightness(bloom);
             bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
-            bloom = saturate(bloom, 1.66);
+            bloom = saturate(bloom, 2.0); // 1.66
         #endif
 
         bloomData = linearToSRGB(bloom);

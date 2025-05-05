@@ -18,7 +18,7 @@ void getWaterMaterialData(inout float smoothness, inout float reflectance) {
     }
 }
 
-void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, inout vec3 albedo, inout float emissivness, inout float subsurfaceScattering) {
+void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, inout vec3 albedo, inout float transparency, inout float emissivness, inout float subsurfaceScattering) {
 
     // end portal & end gates
     #ifdef TERRAIN
@@ -55,7 +55,7 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
         }
     #endif
 
-    // glowing particles
+    // particles
     #ifdef PARTICLE
 
         // all types of glowing particles
@@ -79,7 +79,7 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
             || isEqual(texture, vec3(10.0, 126.0, 129.0) / 255.0, 2.0/255.0)
             || isEqual(texture, vec3(12.0, 81.0, 78.0) / 255.0, 2.0/255.0);
 
-        // make them emissive
+        // emissive 
         if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint || isSculkSoundWave) {
             subsurfaceScattering = 1.0;
             emissivness = 1.0;
@@ -89,6 +89,29 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
                 albedo *= 1.5;
             }
         }
+
+        // transparency is not supported for particles ...
+        // // all type of transparent particles
+        // bool isRain = isEqual(texture, vec3(72.0, 106.0, 204.0) / 255.0, 2.0/255.0)
+        //     || isEqual(texture, vec3(23.0, 72.0, 204.0) / 255.0, 6.0/255.0)
+        //     || isEqual(texture, vec3(0.0, 54.0, 204.0) / 255.0, 2.0/255.0);
+
+        // // transparent
+        // if (isRain) {
+        //     transparency *= rainStrength;
+        //     transparency = min(transparency, 0.2);
+        // }
+    #endif
+
+    // weather particles
+    #ifdef WEATHER
+
+        // differentiates snow and rain
+        bool isSnow = isEqual(min(texture.r, min(texture.g, texture.b)), 1.0, 2.0/255.0);
+
+        float maxTransparency = isSnow ? 0.5 : 0.2;
+        transparency *= rainStrength; // weather fade-in/out
+        transparency = min(transparency, maxTransparency); // clamp transparency
     #endif
 }
 

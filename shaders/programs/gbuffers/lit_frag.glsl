@@ -113,12 +113,6 @@ void main() {
     // apply red flash when mob are hitted
     albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
-    // weather smooth transition
-    #ifdef WEATHER
-        transparency *= rainStrength;
-        transparency = min(transparency, 0.2);
-    #endif
-
     // light data
     float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
@@ -132,7 +126,7 @@ void main() {
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0, porosity = 0.0;
     // initialize specific material as end portal or glowing particles
-    getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, emissivness, subsurfaceScattering);
+    getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
     getCustomMaterialData(id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     // modify these PBR values if PBR textures are enable
