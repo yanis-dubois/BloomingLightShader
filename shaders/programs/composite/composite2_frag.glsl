@@ -44,7 +44,7 @@ void main() {
         vec3 bloom = doBlur(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
         bloomData = vec4(linearToSRGB(bloom.rgb), 0.0);
     #elif BLOOM_TYPE == 2
-        vec4 bloom = doBloom(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, true);
+        vec4 bloom = doBloom(uv, colortex4, true);
         bloomData = vec4(linearToSRGB(bloom.rgb), bloom.a);
     #endif
 }

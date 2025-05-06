@@ -1,9 +1,10 @@
-vec4 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution, float std, bool isGaussian, bool isFirstPass) {
+vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
 
     // init sums
     vec3 totalBloom = vec3(0.0);
     float totalSunBloom = 0.0;
 
+    // loop over multiple LODs
     const int n = 2;
     const int lodMin = 3;
     const int lodMax = 7;
@@ -18,6 +19,7 @@ vec4 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
         // rotation matrix
         mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
 
+        // loop over pixel neighbors
         vec3 bloom = vec3(0.0);
         float sunBloom = 0.0;
         float totalWeight = 0.0;
@@ -30,6 +32,7 @@ vec4 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
             float weight = 1.0;
 
             vec4 bloomData = texture2DLod(texture, uv + offset, lod);
+            // last LOD is only for the sunBloom
             if (lod < lodMax) {
                 bloom += weight * SRGBtoLinear(bloomData.rgb);
                 totalWeight += weight;
@@ -38,6 +41,7 @@ vec4 doBloom(vec2 uv, sampler2D texture, float normalizedRange, float resolution
             totalSunWeight += weight;
         }
 
+        // last LOD is only for the sunBloom
         if (lod < lodMax) {
             float lodFactor = exp(-lod * 0.33);
             totalBloom += lodFactor * bloom / totalWeight;
