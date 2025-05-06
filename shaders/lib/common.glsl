@@ -48,7 +48,7 @@ const float darknessRange = 32.0;
 
 // PBR texture
 // only support labPBR
-#define PBR_TYPE 2 // 0=off 1=on
+#define PBR_TYPE 1 // 0=off 1=on
 // porosity (only few texture pack specify porosity)
 #define PBR_POROSITY 0 // 0=off 1=on
 // parallax occlusion mapping (POM)
@@ -71,8 +71,11 @@ const float darknessRange = 32.0;
 // pixelated shadding
 #define TEXTURE_RESOLUTION 16 // 0=off 1=on
 #define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
-#define PIXELATED_SPECULAR 0 // 0=off 1=on
-#define PIXELATED_REFLECTION 0 // 0=off 1=on 2=jittered_normal_on_water
+#define PIXELATED_SPECULAR 1 // 0=off 1=on
+#define PIXELATED_REFLECTION 0 // 0=off 1=on
+
+// custom normalmap for water
+#define WATER_CUSTOM_NORMALMAP 1 // 0=off 1=on
 
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 

@@ -10,7 +10,7 @@ const vec3[7] endPortalColors = vec3[](
 );
 
 void getWaterMaterialData(inout float smoothness, inout float reflectance) {
-    smoothness = 0.9;
+    smoothness = 0.95;
     if (isEyeInWater == 0) {
         reflectance = getReflectance(1.0, 1.33);
     } else {
@@ -115,7 +115,7 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
     #endif
 }
 
-void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
+void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 texture, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
     #ifndef PARTICLE
 
@@ -126,6 +126,8 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 albedo, inou
         // water
         if (id == 20000) {
             getWaterMaterialData(smoothness, reflectance);
+            smoothness -= map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.25);
+            reflectance += map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.05);
         }
         // glass 
         else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {

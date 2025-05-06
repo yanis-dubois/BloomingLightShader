@@ -1,5 +1,5 @@
 vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float subsurfaceScattering, inout float emissivness) {
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float subsurfaceScattering, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -148,8 +148,6 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     light = mix(light, pow(light, vec3(0.33)), nightVision);
     // diffuse model
     vec3 color = albedo * light;
-    // -- emissivness
-    color = mix(color, albedo, emissivness);
     // -- specular
     if (smoothness > 0.1) {
         vec3 subsurfaceSpecular = vec3(0.0);
@@ -167,15 +165,14 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
 
         // add specular contribution
         color += directSkyLight * (specular + subsurfaceSpecular);
-
-        // make material emissive when specular highlight
-        emissivness = max(emissivness, clamp(getLightness(specular), 0.0, 1.0));
     }
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
         float fresnel = fresnel(worldSpaceViewDirection, normalMap, reflectance);
         transparency = max(transparency, fresnel);
     #endif
+    // -- emissivness
+    color = mix(color, albedo, emissivness);
 
     return vec4(color, transparency);
 }

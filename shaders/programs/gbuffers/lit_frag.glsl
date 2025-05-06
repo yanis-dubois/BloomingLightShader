@@ -128,7 +128,7 @@ void main() {
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
-    getCustomMaterialData(id, normal, midBlock, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
+    getCustomMaterialData(id, normal, midBlock, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);
 
@@ -159,9 +159,9 @@ void main() {
         }
     #endif
 
-    // jittering normal for water
-    #if defined TERRAIN && PIXELATED_REFLECTION == 2
-        if (isWater(id) && length(normalPOM) <= 0.001) {
+    // custom normal map for water
+    #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
+        if (isWater(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
             float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
             mat3 animatedTBN = generateTBN(normalMap);
@@ -182,6 +182,9 @@ void main() {
 
     // -- normal map -- //
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
+        // take account of previous normalmap modification 
+        mat3 animatedTBN = generateTBN(normalMap);
+
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
             if (worldSpaceDistance < PBR_POM_DISTANCE) {
@@ -200,7 +203,7 @@ void main() {
                 normalMap = normalize(normalMap);
             }
             // convert to world space and combine with normal
-            normalMap = TBN * normalMap;
+            normalMap = animatedTBN * normalMap;
             normalMap = mix(normal, normalMap, 0.75);
 
             // apply POM normals
