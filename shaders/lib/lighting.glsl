@@ -8,7 +8,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normalMap);
     float ambientLightDirectionDotNormal = dot(normal, normalMap);
     #if PIXELATED_SPECULAR > 0
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition, normal, tangent, bitangent));
+        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition, normal));
     #else
         vec3 worldSpaceViewDirection = normalize(cameraPosition - unanimatedWorldPosition);
     #endif
@@ -26,7 +26,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #endif
     // apply offset
     #if PIXELATED_SHADOW > 0
-        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition + noise * normal * offsetAmplitude, normal, tangent, bitangent);
+        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition + noise * normal * offsetAmplitude, normal);
     #else
         vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
     #endif

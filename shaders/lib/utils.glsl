@@ -196,11 +196,10 @@ vec3 voxelize(vec3 worldSpacePosition) {
 }
 vec3 voxelize(vec3 worldSpacePosition, vec3 normal) {
     float halfStep = 1.0 / (2.0*TEXTURE_RESOLUTION);
-    return floor((worldSpacePosition + normal * 0.001) * TEXTURE_RESOLUTION) / TEXTURE_RESOLUTION + 1.0/(2.0*TEXTURE_RESOLUTION);
-}
-vec3 voxelize(vec3 worldSpacePosition, vec3 normal, vec3 tangent, vec3 bitangent) {
-    float halfStep = 1.0 / (2.0*TEXTURE_RESOLUTION);
-    return floor((worldSpacePosition + normal * 0.001) * TEXTURE_RESOLUTION) / TEXTURE_RESOLUTION + (tangent * halfStep + bitangent * halfStep);
+    worldSpacePosition = floor((worldSpacePosition + normal * 0.001) * TEXTURE_RESOLUTION) / TEXTURE_RESOLUTION;
+    worldSpacePosition += halfStep;
+    worldSpacePosition -= normal * halfStep;
+    return worldSpacePosition;
 }
 
 // -- data encoding & decoding -- //

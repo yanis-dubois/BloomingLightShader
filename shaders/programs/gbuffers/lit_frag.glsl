@@ -182,40 +182,43 @@ void main() {
 
     // -- normal map -- //
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
-        // take account of previous normalmap modification 
-        mat3 animatedTBN = generateTBN(normalMap);
-
-        vec4 normalMapData = texture2D(normals, textureCoordinate);
-        #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
-            if (worldSpaceDistance < PBR_POM_DISTANCE) {
-                normalMapData = texture2DLod(normals, textureCoordinate, 0);
-            }
+        // don't apply PBR normalmap on water if the water custom normalmap is activated
+        #if WATER_CUSTOM_NORMALMAP > 0
+        if (!isWater(id))
         #endif
-
-        // only if normal texture is specified
-        if (normalMapData.x + normalMapData.y > 0.001) {
-            // retrieve normal map
-            normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
-            normalMap = vec3(normalMapData.xy, sqrt(1.0 - min(dot(normalMapData.xy, normalMapData.xy), 1.0)));
-            // avoid normal map to be too tilted
-            if (normalMap.z <= 0.1) {
-                normalMap.z = 0.1;
-                normalMap = normalize(normalMap);
-            }
-            // convert to world space and combine with normal
-            normalMap = animatedTBN * normalMap;
-            normalMap = mix(normal, normalMap, 0.75);
-
-            // apply POM normals
-            #if PBR_POM_NORMAL > 0
-                if (length(normalPOM) > 0.0) {
-                    normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+        {
+            vec4 normalMapData = texture2D(normals, textureCoordinate);
+            #if PBR_POM > 0
+                if (worldSpaceDistance < PBR_POM_DISTANCE) {
+                    normalMapData = texture2DLod(normals, textureCoordinate, 0);
                 }
             #endif
 
-            // clamp non visible normal
-            if (dot(normalMap, viewDirection) < 0.0) {
-                normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+            // only if normal texture is specified
+            if (normalMapData.x + normalMapData.y > 0.001) {
+                // retrieve normal map
+                normalMapData.xy = normalMapData.xy * 2.0 - 1.0;
+                normalMap = vec3(normalMapData.xy, sqrt(1.0 - min(dot(normalMapData.xy, normalMapData.xy), 1.0)));
+                // avoid normal map to be too tilted
+                if (normalMap.z <= 0.1) {
+                    normalMap.z = 0.1;
+                    normalMap = normalize(normalMap);
+                }
+                // convert to world space and combine with normal
+                normalMap = TBN * normalMap;
+                normalMap = mix(normal, normalMap, 0.75);
+
+                // apply POM normals
+                #if PBR_POM_NORMAL > 0
+                    if (length(normalPOM) > 0.0) {
+                        normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+                    }
+                #endif
+
+                // clamp non visible normal
+                if (dot(normalMap, viewDirection) < 0.0) {
+                    normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+                }
             }
         }
     #endif
