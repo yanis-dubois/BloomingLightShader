@@ -61,16 +61,18 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #ifdef TRANSPARENT
         directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
     #endif
-    // tweak for south and north facing fragment
-    directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
     // subsurface scattering
     #if SUBSURFACE_TYPE == 1
         // subsurface diffuse part
         if (subsurfaceScattering > 0.0) {
-            float subsurface_fade = subsurfaceScattering * map(distanceFromCamera, 0.8 * endShadowDecrease, 0.8 * startShadowDecrease, 0.2, 1.0);
-            directSkyLightIntensity = max(lightDirectionDotNormal, subsurface_fade);
+            float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * endShadowDecrease, 0.0, 1.0);
+            float subsurfaceDirectSkyLightIntensity = smoothstep(0.0, 0.5, abs(lightDirectionDotNormal));
+            directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
+            directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
         }
     #endif
+    // tweak for south and north facing fragment
+    directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
     // reduce contribution if no ambiant sky light (avoid cave leak)
     directSkyLightIntensity *= map(smoothstep(0.0, 0.33, ambientSkyLightIntensity), 0.0, 1.0, 0.1, 1.0);
     // reduce contribution as it rains
