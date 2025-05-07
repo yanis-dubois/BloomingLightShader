@@ -10,7 +10,7 @@ const vec3[7] endPortalColors = vec3[](
 );
 
 void getWaterMaterialData(inout float smoothness, inout float reflectance) {
-    smoothness = 0.95;
+    smoothness = 0.9;
     if (isEyeInWater == 0) {
         reflectance = getReflectance(1.0, 1.33);
     } else {
@@ -126,7 +126,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 texture, vec
         // water
         if (id == 20000) {
             getWaterMaterialData(smoothness, reflectance);
-            smoothness -= map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.25);
+            smoothness -= 0.3 - map(texture.r, 124.0/255.0, 191.0/255.0, 0., 0.3);
             reflectance += map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.05);
         }
         // glass 
