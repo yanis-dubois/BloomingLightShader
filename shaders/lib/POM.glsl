@@ -24,7 +24,7 @@ vec2 doBasicPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirecti
 
     // ray direction
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
-    vec2 P = (tangentSpaceViewDirection.xy / tangentSpaceViewDirection.z) * (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH);
+    vec2 P = (tangentSpaceViewDirection.xy / tangentSpaceViewDirection.z) * (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE * 0.5, 0.0, 1.0) * PBR_POM_DEPTH);
     vec2 deltaUV = - P * stepSize;
 
     // ray position
@@ -80,7 +80,7 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
     // ray direction
     vec3 tangentSpaceViewDirection = transpose(TBN) * viewDirection;
     vec3 rayDirection = - tangentSpaceViewDirection;
-    rayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
+    // rayDirection.z *= clamp(pow(1 - (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE - 8.0, 0.0, 1.0) * PBR_POM_DEPTH), 2.5), 1.0/16.0, 15.0/16.0);
 
     // ray position
     vec3 rayPosition = vec3(localTextureCoordinate * textureCoordinateOffsetInt.xy, 0.0);
@@ -137,12 +137,10 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
 
         // hit
         if (rayDepth >= textureDepth) {
-
             // hit the top of a pixel
             if (rayLastDepth < textureDepth) {
                 normal = vec3(0.0);
             }
-
             break;
         }
 
@@ -191,14 +189,12 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
         float t = min(min(maxTx, maxTy), maxTz);
         rayDepth = - rayDirection.z * t;
         textureDepth = 1.0 - texelFetch(normals, localToAtlasTextureCoordinatesInt(rayPosition.xy, textureCoordinateOffsetInt), 0).a;
+        textureDepth *= (map(worldSpaceDistance, PBR_POM_DISTANCE, PBR_POM_DISTANCE * 0.5, 0.0, 1.0) * PBR_POM_DEPTH) * 16.0;
     }
 
     // clamp 
     rayPosition.xy = clamp(rayPosition.xy / textureCoordinateOffsetInt.xy, vec2(0.0), vec2(0.999));
     return localToAtlasTextureCoordinates(rayPosition.xy, textureCoordinateOffset);
-
-    rayPosition.xy = clamp(rayPosition.xy, vec2(0.0), textureCoordinateOffsetInt.xy);
-    return (rayPosition.xy / texSize) + (textureCoordinateOffsetInt.zw / texSize);
 }
 
 vec2 doPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirection, vec2 localTextureCoordinate, vec4 textureCoordinateOffset, float worldSpaceDistance, inout vec3 normal) {

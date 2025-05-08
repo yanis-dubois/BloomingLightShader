@@ -220,7 +220,10 @@ void main() {
                 // apply POM normals
                 #if PBR_POM_NORMAL > 0
                     if (length(normalPOM) > 0.0) {
-                        normalMap = normalize(mix(normalMap, normalPOM, 0.5));
+                        float dither = pseudoRandom(uv + 0.5325 + frameTimeCounter / 3600.0);
+                        normalPOM = mix(normalPOM, normalMap, 0.5); // attenuate POM normal
+                        normalMap = mix(normalPOM, normalMap, map(worldSpaceDistance, PBR_POM_DISTANCE*0.5, PBR_POM_DISTANCE, 0.0, 1.0));
+                        normalMap = normalize(normalMap);
                     }
                 #endif
 
