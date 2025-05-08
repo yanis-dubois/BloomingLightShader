@@ -50,17 +50,6 @@ vec2 doWaterRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
     return uv;
 }
 
-// used during shadow rendering to simulate caustic
-float doLightAnimation(int id, float time, vec3 worldSpacePosition) {
-    float amplitude = 0.8;
-    
-    time = time * 0.25;
-    vec4 seed = vec4(- worldSpacePosition * 0.25 + 0.5 * time, time);
-    float noise = snoise_4D(seed);
-
-    return amplitude * abs(noise);
-}
-
 // used during shadow rendering for underwater light shaft animation
 float doWaterLightShaftAnimation(float time, vec3 worldSpacePosition) {
     vec2 wind = getWind();

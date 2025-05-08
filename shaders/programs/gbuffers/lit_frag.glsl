@@ -32,7 +32,9 @@ uniform sampler2D specular;
 #endif
 
 // attributes
-in mat3 TBN;
+in vec3 Vnormal;
+in vec3 Vtangent;
+in vec3 Vbitangent;
 in vec4 additionalColor; // albedo of : foliage, water, particules
 in vec3 unanimatedWorldPosition;
 in vec3 midBlock;
@@ -57,6 +59,12 @@ void main() {
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
+    mat3 TBN = mat3(
+        normalize(Vtangent),
+        normalize(Vbitangent),
+        normalize(Vnormal)
+    );
+
     // tbn data
     #ifndef PARTICLE
         vec3 tangent = TBN[0];
@@ -75,6 +83,7 @@ void main() {
     vec3 normalPOM = vec3(0.0);
 
     vec2 textureCoordinate = originalTextureCoordinate;
+    // -- POM -- //
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
         float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
 
@@ -220,14 +229,6 @@ void main() {
                     normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
                 }
             }
-        }
-    #endif
-
-    // light animation
-    #if ANIMATED_EMISSION > 0
-        if (isAnimatedLight(id)) {
-            float noise = doLightAnimation(id, frameTimeCounter, unanimatedWorldPosition);
-            emissivness = max(emissivness - noise, 0.0);
         }
     #endif
 

@@ -19,7 +19,7 @@ vec2 doBasicPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirecti
 
     // POM paramters
     float layerDepth = 1.0;
-    int nbSteps = 64;
+    int nbSteps = PBR_POM_LAYERS;
     float stepSize = layerDepth / float(nbSteps);
 
     // ray direction

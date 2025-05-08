@@ -16,9 +16,11 @@ in vec3 at_midBlock;
 in vec4 mc_midTexCoord;
 
 // results
-out mat3 TBN;
 out vec4 additionalColor;
-out vec3 VworldSpacePosition;
+out vec3 Vnormal;
+out vec3 Vtangent;
+out vec3 Vbitangent;
+out vec3 worldSpacePosition;
 out vec3 unanimatedWorldPosition;
 out vec3 midBlock;
 out vec2 originalTextureCoordinate;
@@ -40,6 +42,11 @@ void main() {
     textureCoordinateOffset.xy = abs(atlasMidToCorner) * 2.0; // length of the diagonal of the actual face in atlas space
     textureCoordinateOffset.zw = min(originalTextureCoordinate, midCoord - (atlasMidToCorner)); // coordinates in atlas space of the corner that have the (0,0) local uv coordinate
 
+    id = int(mc_Entity.x);
+    #ifdef TERRAIN
+        if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
+    #endif
+
     /* geometry infos */
     // normal
     vec3 normal = normalize(gl_NormalMatrix * gl_Normal);
@@ -50,14 +57,12 @@ void main() {
     tangent = mat3(gbufferModelViewInverse) * tangent;
     bitangent = mat3(gbufferModelViewInverse) * bitangent;
     #if defined TERRAIN && !defined BLOCK_ENTITY && !defined CUTOUT
-        bitangent *= at_tangent.w;
+        if (id != 20049 && id != 20048) bitangent *= at_tangent.w;
     #endif
-    TBN = mat3(tangent, bitangent, normal);
-
-    id = int(mc_Entity.x);
-    #ifdef TERRAIN
-        if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
-    #endif
+    // TBN = mat3(tangent, bitangent, normal);
+    Vnormal = normal;
+    Vtangent = tangent;
+    Vbitangent = bitangent;
 
     // set position
     worldSpacePosition = viewToWorld((gl_ModelViewMatrix * gl_Vertex).xyz);
