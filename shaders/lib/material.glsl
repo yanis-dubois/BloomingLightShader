@@ -126,7 +126,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 texture, vec
         // water
         if (id == 20000) {
             getWaterMaterialData(smoothness, reflectance);
-            smoothness -= 0.3 - map(texture.r, 124.0/255.0, 191.0/255.0, 0., 0.3);
+            smoothness -= 0.3 - map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.3);
             reflectance += map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.05);
         }
         // glass 

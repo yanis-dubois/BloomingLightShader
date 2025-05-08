@@ -4,11 +4,11 @@
 
 // format
 /*
-const int colortex0Format = RGBA16F; // color
+const int colortex0Format = RGBA8; // color
 const int colortex1Format = RGB16F; // deferred = normal 
-const int colortex2Format = RGB16F; // TAA: last frame color
+const int colortex2Format = RGB8; // TAA: last frame color
 const int colortex3Format = R32F; // TAA: last frame depth
-const int colortex4Format = RGBA16F; // opaque gbuffer = material | deferred = opaque reflection | transparent gbuffer = opaque color | composite = bloom
+const int colortex4Format = RGBA8; // opaque gbuffer = material | deferred = opaque reflection | transparent gbuffer = opaque color | composite = bloom
 const int colortex5Format = RGBA8; // deferred,composite1 = light data | composite>1 = depth of field mask
 const int shadowcolor0Format = RGBA8; // shadow color
 const int shadowcolor1Format = RGBA8; // light shaft color
@@ -31,7 +31,7 @@ const float sunPathRotation = 0.0;
 
 // shadow
 const bool shadowHardwareFiltering = true;
-const int shadowMapResolution = 2048; // 1024 1536 2048
+const int shadowMapResolution = 1536; // 1024 1536 2048
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
@@ -67,7 +67,7 @@ const float darknessRange = 32.0;
 #define SPLIT_TONING 1 // 0=off 1=on (give a blueish tint to shadows)
 
 // fog
-#define FOG_TYPE 0 // 0=off 1=vanilla 2=custom
+#define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
 
 // pixelated shadding
 #define TEXTURE_RESOLUTION 16 // 0=off 1=on

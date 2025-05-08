@@ -183,11 +183,29 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         bool checker = false;
         for (float x=-range; x<=range; x+=range) {
             for (float y=-range; y<=range; y+=range) {
-                if (checker) {
-                    checker = false;
-                    continue;
+                // five sample shapped like X
+                if (distanceToPlayer < 0.33 * endShadowDecrease) {
+                    if (checker) {
+                        checker = false;
+                        continue;
+                    }
+                    checker = true;
                 }
-                checker = true;
+                // three sample shapped like Y
+                else if (distanceToPlayer < 0.66 * endShadowDecrease) {
+                    if ((x < 0.1 && y > -0.1)  || (x > 0.1 && y > -0.1)) {
+                        continue;
+                    }
+                    if ((-0.1 < x && x < 0.1) && y < 0.1) {
+                        continue;
+                    }
+                }
+                // only one sample
+                else {
+                    if ((x < -0.1 && 0.1 < x) || (y < -0.1 && 0.1 < y)) {
+                        continue;
+                    }
+                }
                 
                 vec2 offset = vec2(x, y);
 

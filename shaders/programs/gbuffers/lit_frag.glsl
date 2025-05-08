@@ -171,7 +171,7 @@ void main() {
     // custom normal map for water
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
         if (isWater(id)) {
-            vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
+            vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
             float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
             mat3 animatedTBN = generateTBN(normalMap);
 
@@ -185,7 +185,7 @@ void main() {
             // sample normal & convert to view
             vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
 
-            normalMap = animatedTBN * sampledNormal;
+            normalMap = mix(normalMap, animatedTBN * sampledNormal, map(seed.r - 0.35, 124.0/255.0, 191.0/255.0, 0.0, 1.0));
         }
     #endif
 
