@@ -20,6 +20,11 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
             vec2 pixelVelocity = (uv - prevUV) * vec2(viewWidth, viewHeight);
             blendFactor *= map(exp(- 2 * length(pixelVelocity)), 0.0, 1.0, 0.7, 1.0);
 
+            // camera velocity reject for handled object
+            if (length(playerSpacePosition) < 0.25) {
+                blendFactor *= length(cameraOffset) > 0.0 ? 0.0 : 1.0;
+            }
+
             // neighborhood clipping
             ivec2 UV = ivec2(uv * vec2(viewWidth, viewHeight));
             UV = clamp(UV, ivec2(2), ivec2(viewWidth, viewHeight) - 2);
