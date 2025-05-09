@@ -156,7 +156,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 }
 
 // pixelated version of soft shadow
-vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangent) {
+vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangent, float ambientSkyLightIntensity) {
 
     // no shadows
     #if SHADOW_TYPE == 0
@@ -180,7 +180,21 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         vec4 shadowAccum = vec4(0.0); // sum of all shadow samples
         float count = 0.0;
 
+        // return the middle sample if it has no transparency and sky light is nul
+        // avoid cave leaks while allowing water caustics deep underwater
+        vec4 middleSampledShadow = vec4(0.0);
+        if (ambientSkyLightIntensity < 0.01) {
+            vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
+            vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+            middleSampledShadow = getShadow(shadowClipPosition, false);
+
+            if (middleSampledShadow.a > 0.9) {
+                return middleSampledShadow;
+            }
+        }
+
         bool checker = false;
+        vec4 sampledShadow = vec4(0.0);
         for (float x=-range; x<=range; x+=range) {
             for (float y=-range; y<=range; y+=range) {
                 // five sample shapped like X
@@ -208,14 +222,22 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
                 }
 
                 vec2 offset = vec2(x, y);
+                float weight = isInRange(offset, -0.1, 0.1) ? 1.0 : 0.5;
 
-                float weight = x==0 ? 1.0 : 0.5;
+                // avoid to resample middle shadow
+                if (middleSampledShadow.a > 0.0 && isInRange(offset, -0.1, 0.1)) {
+                    sampledShadow = middleSampledShadow;
+                }
+                // sample it
+                else {
+                    vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / TEXTURE_RESOLUTION * tangent + offset.y / TEXTURE_RESOLUTION * bitangent;
+                    vec3 playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
+                    vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+                    sampledShadow = getShadow(shadowClipPosition, false);
+                }
 
-                // space conversion
-                vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / TEXTURE_RESOLUTION * tangent + offset.y / TEXTURE_RESOLUTION * bitangent;
-                vec3 playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
-                vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
-                shadowAccum += weight * getShadow(shadowClipPosition, false); // take shadow sample
+                // add shadow contribution
+                shadowAccum += weight * sampledShadow;
                 count += weight;
             }
         }

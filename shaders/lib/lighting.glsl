@@ -34,7 +34,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
         #if PIXELATED_SHADOW > 0
-            shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent);
+            shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent, ambientSkyLightIntensity);
         #else
             shadow = getSoftShadow(uv, offsetWorldSpacePosition);
         #endif
