@@ -135,7 +135,7 @@ const float darknessRange = 32.0;
 #define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
 
 // water caustics
-#define WATER_CAUSTIC_TYPE 2 // 0=off 1=vanilla+ 2=realistic
+#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
 
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on

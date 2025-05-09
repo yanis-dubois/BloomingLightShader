@@ -55,8 +55,9 @@ void main() {
             #if WATER_CAUSTIC_TYPE == 1
                 float causticFactor = getLightness(albedo);
                 causticFactor = pow(causticFactor, 4.0);
-                causticFactor = smoothstep(0.0, 0.8, causticFactor);
+                causticFactor = smoothstep(0.0, 0.6, causticFactor);
                 causticFactor = pow(causticFactor, 1.5);
+                causticFactor = smoothstep(0.0, 1.0, causticFactor);
             #else
                 vec3 pos = floor((worldSpacePosition + 0.001) * 16.0) / 16.0 + 1.0/32.0;
                 float causticFactor = doWaterCausticAnimation(frameTimeCounter, pos);
