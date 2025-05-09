@@ -71,7 +71,7 @@ void main() {
         // apply jitter to avoid bloom glittering
         #else
             vec2 offset = sampleDiskArea(uv + frameTimeCounter / 3600.0);
-            vec3 bloom = texture2D(colortex0, uv + BLOOM_RANGE * offset).rgb;
+            vec3 bloom = texture2D(colortex0, uv + 0.015 * offset).rgb;
             float lightness = getLightness(bloom);
             bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
             bloom = saturate(bloom, 1.66);
@@ -82,15 +82,14 @@ void main() {
         // frag position
         vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
         vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-        vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
-        float VdotS = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition);
         // polar coord of sun, moon & frag
         vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
-        vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
-        float radius = VdotS > 0.0 ? 0.075 : 0.05;
+        vec3 polarSunPosition = cartesianToPolar(eyeSpaceSunPosition);
+        float radius = 0.075;
         // cut sun & moon glare
-        if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) < radius) {
+        if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) < radius) {
             sunMask = emissivness;
+            bloom *= 1.0 - sunMask;
         }
 
         bloomData = vec4(linearToSRGB(bloom), sunMask);

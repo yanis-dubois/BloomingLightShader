@@ -206,7 +206,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
                         continue;
                     }
                 }
-                
+
                 vec2 offset = vec2(x, y);
 
                 float weight = x==0 ? 1.0 : 0.5;

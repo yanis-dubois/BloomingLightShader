@@ -5,11 +5,11 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
     float totalSunBloom = 0.0;
 
     // loop over multiple LODs
-    const int n = 2;
+    const int n = BLOOM_MODERN_RESOLTUION;
     const int lodMin = 3;
-    const int lodMax = 7;
+    const int lodMax = 6;
     for (int lod=lodMin; lod<=lodMax; ++lod) {
-        float blurSize = pow(2.0, float(lod)) / n;
+        float blurSize = pow(2.0, float(lod + BLOOM_MODERN_RANGE)) / n;
 
         // get noise
         float noise = pseudoRandom(uv + 0.1*lod + frameTimeCounter / 3600.0);
@@ -32,21 +32,27 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
             float weight = 1.0;
 
             vec4 bloomData = texture2DLod(texture, uv + offset, lod);
-            // last LOD is only for the sunBloom
+            // don't use last layer for classic bloom
             if (lod < lodMax) {
                 bloom += weight * SRGBtoLinear(bloomData.rgb);
                 totalWeight += weight;
             }
-            sunBloom += weight * bloomData.a;
-            totalSunWeight += weight;
+            // don't use first layer for sun bloom
+            if (lod > lodMin) {
+                sunBloom += weight * bloomData.a;
+                totalSunWeight += weight;
+            }
         }
 
-        // last LOD is only for the sunBloom
+        // don't use last layer for classic bloom
         if (lod < lodMax) {
             float lodFactor = exp(-lod * 0.33);
             totalBloom += lodFactor * bloom / totalWeight;
         }
-        totalSunBloom += sunBloom / totalSunWeight;
+        // don't use first layer for sun bloom
+        if (lod > lodMin) {
+            totalSunBloom += sunBloom / totalSunWeight;
+        }
     }
 
     int nbLayer = lodMax - lodMin + 1;

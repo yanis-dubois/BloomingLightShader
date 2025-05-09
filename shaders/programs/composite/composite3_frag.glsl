@@ -41,17 +41,13 @@ void main() {
 
     // -- bloom : 2nd pass + apply it -- //
     #if BLOOM_TYPE == 1
-        vec3 bloom = doBlur(uv, colortex4, BLOOM_RANGE, BLOOM_RESOLUTION, BLOOM_STD, BLOOM_KERNEL == 1, false);
+        vec3 bloom = doBlur(uv, colortex4, BLOOM_OLD_RANGE, BLOOM_OLD_RESOLUTION, BLOOM_OLD_STD, BLOOM_OLD_KERNEL == 1, false);
     #elif BLOOM_TYPE == 2
         vec4 bloom = doBloom(uv, colortex4, false);
         // classic bloom
         bloom.rgb = pow(bloom.rgb, 1.0 / vec3(1.75));
-        // sun/moon bloom
-        vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * screenToView(uv, 1.0));
-        vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-        bool isFacingSun = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition) > 0.0;
-        vec3 sunBloom = isFacingSun ? vec3(1.0, 0.5, 0.125) * pow(bloom.a, 1.0 / 1.5) : vec3(0.8, 0.85, 1.0) * pow(bloom.a, 1.0 / 0.5);
-        bloom.rgb += sunBloom;
+        // sun bloom
+        bloom.rgb += vec3(1.0, 0.5, 0.125) * pow(bloom.a, 1.0 / 1.5);
     #endif
     #if BLOOM_TYPE > 0
         color += bloom.rgb * BLOOM_FACTOR;

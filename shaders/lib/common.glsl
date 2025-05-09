@@ -112,11 +112,15 @@ const float darknessRange = 32.0;
 #define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=on 2=animated
 
 // bloom
-#define BLOOM_TYPE 2 // 0=off 1=old_school 2=ULTRA
-#define BLOOM_RANGE 0.015 // extent of the kernel
-#define BLOOM_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
-#define BLOOM_KERNEL 1 // 0=box 1=gaussian
-#define BLOOM_STD 0.5 // standard deviation (only for gaussian kernel)
+#define BLOOM_TYPE 2 // 0=off 1=old_school 2=modern
+// old bloom params
+#define BLOOM_OLD_RANGE 0.015 // extent of the kernel
+#define BLOOM_OLD_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
+#define BLOOM_OLD_KERNEL 1 // 0=box 1=gaussian
+#define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
+// modern bloom params
+#define BLOOM_MODERN_RANGE 1 // in [-2;2]
+#define BLOOM_MODERN_RESOLTUION 2 // number of samples in the radius 
 #define BLOOM_FACTOR 1.0 // from 0=none to inf=too_much
 
 // depth of field
