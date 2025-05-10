@@ -9,7 +9,7 @@ const float bias = 0.0; // 0.002
 // makes shadows near to the player higher resolution than ones far from him
 vec3 distortShadowClipPosition(vec3 shadowClipPosition) {
     // distance from the player in shadow clip space
-    float distortionFactor = length(shadowClipPosition.xy); 
+    float distortionFactor = length(shadowClipPosition.xy);
     // very small distances can cause issues so we add this to slightly reduce the distortion
     distortionFactor += 0.1; 
 
@@ -96,7 +96,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
                     // random offset by sampling disk area
                     vec2 seed = uv + 0.1 * i + frameTimeCounter;
-                    vec2 offset = sampleDiskArea(seed);
+                    float zeta1 = interleavedGradient(seed);
+                    float zeta2 = interleavedGradient(seed + 0.5);
+                    vec2 offset = sampleDiskArea(zeta1, zeta2);
 
                     // gaussian
                     #if SHADOW_KERNEL == 1
@@ -116,13 +118,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             // classic shadows (convolution)
             #elif SHADOW_TYPE > 1
                 #if SHADOW_TYPE == 2
-                    // get noise
-                    float noise = pseudoRandom(uv + 0.1382 * frameTimeCounter);
-                    float theta = noise * 2.0*PI;
-                    float cosTheta = cos(theta);
-                    float sinTheta = sin(theta);
-                    // rotation matrix
-                    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+                    // random rotation matrix
+                    float noise = interleavedGradient(uv + 0.1382 * frameTimeCounter);
+                    mat2 rotation = randomRotationMatrix(noise);
                 #endif
 
                 for (float x=-range; x<=range; x+=step_length) {
@@ -170,9 +168,13 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
 
     // soft shadows
     #else
-        // distant shadows are smoother
         float distanceToPlayer = distance(vec3(0.0), worldToPlayer(worldSpacePosition));
-        float blend = map(distanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
+
+        // distant shadows are smoother
+        vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
+        vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+        float shadowClipdistanceToPlayer = length(shadowClipPosition.xy);
+        float blend = map(shadowClipdistanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
         blend = 1.0 + 10.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
 
         float range = 1.0; // how far away from the original position we take our samples from
@@ -184,8 +186,6 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         // avoid cave leaks while allowing water caustics deep underwater
         vec4 middleSampledShadow = vec4(0.0);
         if (ambientSkyLightIntensity < 0.01) {
-            vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
-            vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
             middleSampledShadow = getShadow(shadowClipPosition, false);
 
             if (middleSampledShadow.a > 0.9) {
@@ -197,29 +197,11 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         vec4 sampledShadow = vec4(0.0);
         for (float x=-range; x<=range; x+=range) {
             for (float y=-range; y<=range; y+=range) {
-                // five sample shapped like X
-                if (distanceToPlayer < 0.33 * endShadowDecrease) {
-                    if (checker) {
-                        checker = false;
-                        continue;
-                    }
-                    checker = true;
+                if (checker) {
+                    checker = false;
+                    continue;
                 }
-                // three sample shapped like Y
-                else if (distanceToPlayer < 0.66 * endShadowDecrease) {
-                    if ((x < 0.1 && y > -0.1)  || (x > 0.1 && y > -0.1)) {
-                        continue;
-                    }
-                    if ((-0.1 < x && x < 0.1) && y < 0.1) {
-                        continue;
-                    }
-                }
-                // only one sample
-                else {
-                    if ((x < -0.1 && 0.1 < x) || (y < -0.1 && 0.1 < y)) {
-                        continue;
-                    }
-                }
+                checker = true;
 
                 vec2 offset = vec2(x, y);
                 float weight = isInRange(offset, -0.1, 0.1) ? 1.0 : 0.5;
@@ -228,11 +210,11 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
                 if (middleSampledShadow.a > 0.0 && isInRange(offset, -0.1, 0.1)) {
                     sampledShadow = middleSampledShadow;
                 }
-                // sample it
+                // sample shadow
                 else {
                     vec3 offsetWorldSpacePosition = worldSpacePosition + offset.x / TEXTURE_RESOLUTION * tangent + offset.y / TEXTURE_RESOLUTION * bitangent;
-                    vec3 playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
-                    vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+                    playerSpacePosition = worldToPlayer(offsetWorldSpacePosition);
+                    shadowClipPosition = playerToShadowClip(playerSpacePosition);
                     sampledShadow = getShadow(shadowClipPosition, false);
                 }
 
