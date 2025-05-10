@@ -91,7 +91,7 @@ vec2 doCustomPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirect
 
     // check if there is a normal map
     vec4 normalData = texelFetch(normals, localToAtlasTextureCoordinatesInt(rayIntPosition.xy, textureCoordinateOffsetInt), 0);
-    if (normalData.x + normalData.y <= 0.001 || normalData.a >= 0.99) {
+    if (normalData.x + normalData.y <= 0.001 || normalData.a >= 0.999) {
         rayPosition = rayIntPosition;
         rayPosition.xy = clamp(rayPosition.xy / textureCoordinateOffsetInt.xy, vec2(0.0), vec2(0.999));
         return localToAtlasTextureCoordinates(rayPosition.xy, textureCoordinateOffset);
