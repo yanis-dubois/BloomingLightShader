@@ -15,21 +15,22 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
 
     // -- shadow -- //
-    // offset position in normal direction (avoid self shadowing)
-    float offsetAmplitude = map(clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0), 0.0, 1.0, 0.2, 1.2);
-    // add noise to offset to reduce shadow acne
+    // add noise to offset to reduce shadow acne (only if not pixelated)
     #if SHADOW_TYPE > 0 && PIXELATED_SHADOW == 0
         float noise = pseudoRandom(uv + frameTimeCounter / 3600.0);
         noise = map(noise, 0.0, 1.0, 0.5, 1.1);
     #else
         float noise = 1.0;
     #endif
-    // apply offset
+    // apply offset in normal direction to avoid self shadowing
+    vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * 0.2;
+    // pixelize if needed
     #if PIXELATED_SHADOW > 0
-        vec3 offsetWorldSpacePosition = voxelize(unanimatedWorldPosition + noise * normal * offsetAmplitude, normal);
-    #else
-        vec3 offsetWorldSpacePosition = unanimatedWorldPosition + noise * normal * offsetAmplitude;
+        offsetWorldSpacePosition = voxelize(offsetWorldSpacePosition, normal);
     #endif
+    // add increasing offset in normal direction when further from player (avoid shadow acne)
+    float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
+    offsetWorldSpacePosition += normal * offsetAmplitude;
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < endShadowDecrease)
