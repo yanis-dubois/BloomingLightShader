@@ -32,10 +32,8 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
 
             for (int i=0; i<8; ++i) {
                 for (int j=0; j<3; ++j) {
-                    float angle = j * PI/3.0 + i * PI/8.0;
-                    float Cos = cos(angle);
-                    float Sin = sin(angle);
-                    mat2 rotation = mat2(Cos, Sin, -Sin, Cos);
+                    float theta = j * PI/3.0 + i * PI/8.0;
+                    mat2 rotation = rotationMatrix(theta);
 
                     vec2 uv = mod(rotation * screenPos.xy + speed, 1.0);
                     vec3 portalColor = texture2D(gtexture, uv).rgb * normalize(endPortalColors[(i+j) % 7]) * 0.8;

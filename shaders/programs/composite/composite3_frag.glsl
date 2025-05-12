@@ -41,7 +41,7 @@ void main() {
 
     // -- bloom : 2nd pass + apply it -- //
     #if BLOOM_TYPE == 1
-        vec3 bloom = doBlur(uv, colortex4, BLOOM_OLD_RANGE, BLOOM_OLD_RESOLUTION, BLOOM_OLD_STD, BLOOM_OLD_KERNEL == 1, false);
+        vec3 bloom = doBlur(uv, colortex4, BLOOM_OLD_RANGE, BLOOM_OLD_RESOLUTION, BLOOM_OLD_STD, BLOOM_OLD_KERNEL == 1, BLOOM_DITHERING_TYPE, false);
     #elif BLOOM_TYPE == 2
         vec4 bloom = doBloom(uv, colortex4, false);
         // classic bloom

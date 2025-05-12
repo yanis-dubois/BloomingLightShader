@@ -41,7 +41,7 @@ void main() {
 
     // -- bloom : 1st pass -- //
     #if BLOOM_TYPE == 1
-        vec3 bloom = doBlur(uv, colortex4, BLOOM_OLD_RANGE, BLOOM_OLD_RESOLUTION, BLOOM_OLD_STD, BLOOM_OLD_KERNEL == 1, true);
+        vec3 bloom = doBlur(uv, colortex4, BLOOM_OLD_RANGE, BLOOM_OLD_RESOLUTION, BLOOM_OLD_STD, BLOOM_OLD_KERNEL == 1, BLOOM_DITHERING_TYPE, true);
         bloomData = vec4(linearToSRGB(bloom.rgb), 0.0);
     #elif BLOOM_TYPE == 2
         vec4 bloom = doBloom(uv, colortex4, true);

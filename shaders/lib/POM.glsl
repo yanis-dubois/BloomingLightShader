@@ -203,7 +203,7 @@ vec2 doPOM(sampler2D texture, sampler2D normals, mat3 TBN, vec3 viewDirection, v
     normal = vec3(0.0);
 
     // apply POM
-    #if PBR_POM == 1
+    #if PBR_POM_TYPE == 1
         return doBasicPOM(texture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance);
     #else
         return doCustomPOM(texture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance, normal);

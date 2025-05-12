@@ -1,8 +1,6 @@
 void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambientSkyLightIntensity,
                         inout vec3 color) {
 
-    // if (depthAll == 1.0) return;
-
     vec3 skyLightColor = getSkyLightColor();
 
     // parameters
@@ -39,8 +37,8 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     vec3 accumulatedLight = vec3(0.0);
     float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps
     float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
-    vec2 seed = uv + frameTimeCounter / 3600.0;
-    float randomizedStepSize = stepSize * pseudoRandom(seed);
+    float dither = dithering(uv, VOLUMETRIC_LIGHT_DITHERING_TYPE);
+    float randomizedStepSize = stepSize * dither;
     vec3 rayWorldSpacePosition = cameraPosition;
     float rayDistance = 0.0;
     rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
@@ -97,9 +95,6 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         accumulatedLight += inscatteredLight;
 
         // go a step further
-        seed ++;
-        randomizedStepSize = stepSize * pseudoRandom(seed);
-        randomizedStepSize = stepSize + 0.1 * pseudoRandom(seed);
         rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     }
 
@@ -111,7 +106,6 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     if (cpt > 0.0 && isEyeInWater==0) {
         accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
     }
-    // accumulatedLight *= ambientSkyLightIntensity;
 
     // write values
     color = mix(color + accumulatedLight / pow(far, 0.75), color, max(blindness, darknessFactor));

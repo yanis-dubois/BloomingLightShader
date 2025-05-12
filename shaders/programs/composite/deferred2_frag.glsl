@@ -44,8 +44,8 @@ void main() {
         reflection.rgb = SRGBtoLinear(reflection.rgb);
 
         // blur 2nd pass
-        #if REFLECTION_TYPE > 1
-            reflection.rgb = doBlur(uv, colortex4, REFLECTION_BLUR_RANGE, REFLECTION_BLUR_RESOLUTION, REFLECTION_BLUR_STD, REFLECTION_BLUR_KERNEL==1, false);
+        #if REFLECTION_TYPE > 1 && REFLECTION_BLUR_TYPE > 0
+            reflection.rgb = doBlur(uv, colortex4, REFLECTION_BLUR_RANGE, REFLECTION_BLUR_RESOLUTION, REFLECTION_BLUR_STD, REFLECTION_BLUR_KERNEL==1, REFLECTION_BLUR_DITHERING_TYPE, false);
         #endif
 
         // apply fog on reflection visibility

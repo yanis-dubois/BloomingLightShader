@@ -65,7 +65,7 @@ vec3 doTAA(vec2 uv, float depth, vec3 color, sampler2D colorTexture, sampler2D t
             vec3 previousColor = SRGBtoLinear(texture2D(taaColorTexture, prevUV).rgb);
             float previousDepth = texture2D(taaDepthTexture, prevUV).r;
 
-            float noise = pseudoRandom(uv + 0.14291 * frameTimeCounter);
+            float noise = interleavedGradient(uv + 0.14291 * frameTimeCounter);
             vec3 previousRealPlayerSpacePosition = screenToPlayer(prevUV, previousDepth);
             float dist = abs(length(previousRealPlayerSpacePosition) - length(playerSpacePosition));
 

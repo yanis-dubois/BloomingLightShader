@@ -35,6 +35,9 @@ const int shadowMapResolution = 1536; // 1024 1536 2048
 const float startShadowDecrease = 100;
 const float endShadowDecrease = 150;
 
+// noise
+const int noiseTextureResolution = 256;
+
 // depth of field
 const float centerDepthHalflife = 2.0;
 
@@ -52,7 +55,8 @@ const float darknessRange = 32.0;
 // porosity (only few texture pack specify porosity)
 #define PBR_POROSITY 0 // 0=off 1=on
 // parallax occlusion mapping (POM)
-#define PBR_POM 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
+#define PBR_POM_TYPE 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
+#define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define PBR_POM_DEPTH 8.0/16.0 // in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
 #define PBR_POM_DISTANCE 24.0 // in [8;+inf] spherical distance in blocks
 #define PBR_POM_LAYERS 128 // 32 64 128 256 (only available with PBR_POM=1)
@@ -60,6 +64,7 @@ const float darknessRange = 32.0;
 
 // sky
 #define SKY_TYPE 1 // 0=vanilla 1=custom
+#define SKY_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 
 // light
 #define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
@@ -79,16 +84,23 @@ const float darknessRange = 32.0;
 #define WATER_CUSTOM_NORMALMAP 1 // 0=off 1=on
 
 // shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic 
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
+#define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define SHADOW_RANGE 0.66 // width of the sample area (in clip) 0.66
 #define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 // reflection
 #define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
+#define REFLECTION_NORMAL_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define REFLECTION_STEP_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
 #define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much
 #define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
+#define REFLECTION_LAST_BLUR_SAMPLES 1 // [0;inf]
+// blur reflections of opaque materials
+#define REFLECTION_BLUR_TYPE 0 // 0=off 1=on
+#define REFLECTION_BLUR_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_BLUR_RANGE 0.001 // extent of the kernel
 #define REFLECTION_BLUR_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
@@ -105,6 +117,7 @@ const float darknessRange = 32.0;
 
 // light shaft
 #define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
+#define VOLUMETRIC_LIGHT_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
 #define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
@@ -113,6 +126,8 @@ const float darknessRange = 32.0;
 
 // bloom
 #define BLOOM_TYPE 2 // 0=off 1=old_school 2=modern
+#define BLOOM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define BLOOM_FACTOR 1.0 // from 0=none to inf=too_much
 // old bloom params
 #define BLOOM_OLD_RANGE 0.015 // extent of the kernel
 #define BLOOM_OLD_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
@@ -121,7 +136,6 @@ const float darknessRange = 32.0;
 // modern bloom params
 #define BLOOM_MODERN_RANGE 1 // in [-2;2]
 #define BLOOM_MODERN_RESOLTUION 2 // number of samples in the radius 
-#define BLOOM_FACTOR 1.0 // from 0=none to inf=too_much
 
 // depth of field
 #define DOF_TYPE 0 // 0=off 1=dynamic_focus 2=static_focus
@@ -147,6 +161,8 @@ const float darknessRange = 32.0;
 // chromatic aberation
 #define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
 #define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.02=too_much
+
+#define DH_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 
 ////////////////////////////////////////////////////
 ///////////////////// uniforms /////////////////////
@@ -218,8 +234,10 @@ uniform int biome_precipitation;
 ////////////////////////////////////////////////////
 
 uniform float gamma;
-uniform float framemod8;
 uniform float inRainyBiome;
+
+uniform int frameMod8;
+uniform int frameMod16;
 
 ////////////////////////////////////////////////////
 ///////////////// custom constants /////////////////

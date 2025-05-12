@@ -70,10 +70,13 @@ void main() {
 
         // apply jitter to avoid bloom glittering
         #else
-            vec2 offset = sampleDiskArea(uv + frameTimeCounter / 3600.0);
+            vec2 seed = uv + frameTimeCounter / 3600.0;
+            float zeta1 = dithering(seed, BLOOM_DITHERING_TYPE);
+            float zeta2 = dithering(seed + 0.5, BLOOM_DITHERING_TYPE);
+            vec2 offset = sampleDiskArea(zeta1, zeta2);
             vec3 bloom = texture2D(colortex0, uv + 0.015 * offset).rgb;
             float lightness = getLightness(bloom);
-            bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
+            bloom = bloom * max(pow(lightness, 10.0) * 0.125, emissivness);
             bloom = saturate(bloom, 1.66);
         #endif
 
@@ -89,7 +92,9 @@ void main() {
         // cut sun & moon glare
         if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) < radius) {
             sunMask = emissivness;
-            bloom *= 1.0 - sunMask;
+            #if BLOOM_TYPE > 1
+                bloom *= 1.0 - sunMask;
+            #endif
         }
 
         bloomData = vec4(linearToSRGB(bloom), sunMask);

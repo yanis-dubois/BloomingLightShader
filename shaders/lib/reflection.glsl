@@ -182,8 +182,8 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     if (smoothness < 0.9) { // TODO: revoir ce threshold ?
         // sampling data
         roughness *= roughness; 
-        float zeta1 = pseudoRandom(uv + 0.913 * frameTimeCounter / 3600.0);
-        float zeta2 = pseudoRandom(uv + 0.32 + 0.913 * frameTimeCounter / 3600.0);
+        float zeta1 = dithering(uv + 0.913, REFLECTION_NORMAL_DITHERING_TYPE);
+        float zeta2 = dithering(uv + 0.32, REFLECTION_NORMAL_DITHERING_TYPE);
 
         // tbn - tangent to view 
         mat3 TBN = generateTBN(viewSpaceNormal); 
@@ -245,9 +245,9 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         float lastPosition = 0.0, currentPosition = 0.0;
 
         // initialize some variable
-        vec2 seed = uv + frameTimeCounter / 3600.0;
         vec2 texelSpaceCurrentPosition = texelSpaceStartPosition;
-        texelSpaceCurrentPosition += stepLength * abs(pseudoRandom(seed));
+        float noise = dithering(uv, REFLECTION_STEP_DITHERING_TYPE);
+        texelSpaceCurrentPosition += stepLength * noise;
         vec2 screenSpaceCurrentPosition = screenSpaceStartPosition;
         float rayDepth = startPositionDepth;
         float fragmentDepth = startPositionDepth;
@@ -320,20 +320,25 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
             // current position for 2nd pass hitted : end position for other
             vec2 texelSpaceFinalPosition = hitSecondPass 
                 ? texelSpaceCurrentPosition 
-                : texelSpaceEndPosition - stepLength * pseudoRandom(seed);
+                : texelSpaceEndPosition - stepLength * noise;
             vec2 screenSpaceFinalPosition = texelToScreen(texelSpaceFinalPosition);
         #endif
 
         // ------------------ step 3 : adjustments and special cases ------------------ //
 
         // blur reflection a bit
-        int nb_step = 4;
+        const int nb_step = REFLECTION_LAST_BLUR_SAMPLES;
         vec3 blurredReflection = vec3(0.0);
         int cpt = 0;
         for (int i=0; i<=nb_step; ++i) {
             vec3 sampledReflection = vec3(0.0);
 
-            texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
+            if (nb_step == 0) {
+                texelSpaceCurrentPosition = texelSpaceFinalPosition;
+            }
+            else {
+                texelSpaceCurrentPosition = mix(texelSpaceFinalPosition, texelSpaceFinalPosition - stepLength, float(i)/float(nb_step));
+            }
             screenSpaceCurrentPosition = texelToScreen(texelSpaceCurrentPosition);
 
             // evalutate if reflection point is valid or not
@@ -442,45 +447,4 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
         return vec4(reflection, fresnel);
     #endif
-}
-
-vec4 doDHReflection(vec2 uv, float depth, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
-
-    // rough material have no reflection
-    if (reflectance == 0.0 || smoothness == 0.0) {
-        return vec4(0.0);
-    }
-
-    // directions
-    vec3 viewSpacePosition = screenToView(uv, depth);
-    vec3 viewDirection = normalize(viewSpacePosition);
-    vec3 viewSpaceNormal = eyeToView(normal);
-
-    // fresnel index
-    float viewDirectionDotNormal = dot(-viewDirection, viewSpaceNormal);
-    float fresnel = schlick(viewDirectionDotNormal, reflectance);
-    #ifdef TRANSPARENT
-        fresnel = 1.0 - pow(1.0 - fresnel, 2.0);
-    #endif
-    if (fresnel <= 0.001)
-        return vec4(0.0);
-
-    // directions and angles in view space
-    vec3 reflectedDirection = normalize(reflect(viewDirection, viewSpaceNormal));
-    // reflected direction points : >0 = along the camera's line of sight / <0 = towards camera
-    float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0.0, 0.0, -1.0));
-
-    // background color
-    float backgroundEmissivness; // useless here
-    vec3 outdoorBackground = isEyeInWater==0 
-        ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
-        : SRGBtoLinear(getWaterFogColor());
-    if (normal.y < -0.1) outdoorBackground *= 0.5;
-    vec3 indoorBackGround = vec3(0.0);
-    vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
-
-    // lite version (only fresnel)
-    vec3 reflection = backgroundColor;
-
-    return vec4(reflection, fresnel);
 }

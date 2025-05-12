@@ -72,8 +72,8 @@ void main() {
     #ifdef WEATHER
         // vec2 seed = vec2( floor(worldSpacePosition.x), floor(worldSpacePosition.z));
         // float amplitude = 0.5;
-        // float noiseX = amplitude * pseudoRandom(seed.xy) - amplitude;
-        // float noiseZ = amplitude * pseudoRandom(seed.yx) - amplitude;
+        // float noiseX = amplitude * interleavedGradient(seed.xy) - amplitude;
+        // float noiseZ = amplitude * interleavedGradient(seed.yx) - amplitude;
         // worldSpacePosition.x += noiseX;
         // worldSpacePosition.z += noiseZ;
         // vec3 viewSpacePosition = worldToView(worldSpacePosition);

@@ -14,14 +14,6 @@ uniform sampler2D depthtex0; // all depth
 // attributes
 in vec2 uv;
 
-// Bayer matrix for dithering (4x4)
-const mat4 bayerMatrix = mat4(
-    0.0,  8.0,  2.0, 10.0,
-    12.0,  4.0, 14.0,  6.0,
-    3.0, 11.0,  1.0,  9.0,
-    15.0,  7.0, 13.0,  5.0
-);
-
 // results
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorData;

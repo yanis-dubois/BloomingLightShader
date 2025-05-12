@@ -95,9 +95,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                 for (float i=0; i<samples; ++i) {
 
                     // random offset by sampling disk area
-                    vec2 seed = uv + 0.1 * i + frameTimeCounter;
-                    float zeta1 = interleavedGradient(seed);
-                    float zeta2 = interleavedGradient(seed + 0.5);
+                    vec2 seed = uv + 0.23 * i;
+                    float zeta1 = dithering(seed, SHADOW_DITHERING_TYPE);
+                    float zeta2 = dithering(seed + 0.5, SHADOW_DITHERING_TYPE);
                     vec2 offset = sampleDiskArea(zeta1, zeta2);
 
                     // gaussian
@@ -119,7 +119,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
             #elif SHADOW_TYPE > 1
                 #if SHADOW_TYPE == 2
                     // random rotation matrix
-                    float noise = interleavedGradient(uv + 0.1382 * frameTimeCounter);
+                    float noise = dithering(uv, SHADOW_DITHERING_TYPE);
                     mat2 rotation = randomRotationMatrix(noise);
                 #endif
 

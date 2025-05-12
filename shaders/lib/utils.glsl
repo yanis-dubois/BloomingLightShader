@@ -55,22 +55,70 @@ vec3 hsvToRgb(vec3 c) {
 }
 
 // -- random generator -- //
-float pseudoRandom(float pos) {
-    return fract(sin(pos * 31.9428) * 91832.19424);
+// -- pseudo white noise
+float interleavedGradient(float seed) {
+    return fract(sin(seed * 31.9428) * 91832.19424);
 }
-float pseudoRandom(vec2 pos) {
-    return fract(sin(dot(pos, vec2(12.9898, 78.233))) * 43758.5453);
+float interleavedGradient(vec2 seed) {
+    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
 }
-float pseudoRandom(vec3 pos){
-    return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
+float interleavedGradient(vec3 seed){
+    return fract(sin(dot(seed, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
-float pseudoRandom(vec4 pos) {
-    return fract(sin(dot(pos, vec4(12.9898, 78.233, 45.164, 94.618))) * 46367.21473);
+float interleavedGradient(vec4 seed) {
+    return fract(sin(dot(seed, vec4(12.9898, 78.233, 45.164, 94.618))) * 46367.21473);
 }
-vec2 sampleDiskArea(vec2 seed) {
-    // pseudo uniform 
-    float zeta1 = pseudoRandom(seed);
-    float zeta2 = pseudoRandom(seed + 0.5);
+// -- pseudo blue noise
+// Bayer matrix (4x4)
+const mat4 bayerMatrix = mat4(
+    0.0,  8.0,  2.0, 10.0,
+    12.0,  4.0, 14.0,  6.0,
+    3.0, 11.0,  1.0,  9.0,
+    15.0,  7.0, 13.0,  5.0
+);
+const ivec2 offsets[2] = ivec2[] (
+    ivec2(1),
+    ivec2(1,-1)
+);
+float bayer(vec2 uv) {
+    ivec2 pixelPos = ivec2(uv * vec2(viewWidth, viewHeight));
+
+    #if TAA_TYPE > 0
+        pixelPos = (pixelPos + offsets[frameMod8>3?0:1] * ivec2(frameMod8%4)) % 4;
+    #else
+        pixelPos = pixelPos % 4;
+    #endif
+
+    return bayerMatrix[pixelPos.x][pixelPos.y] / 16.0;
+}
+// -- blue noise
+// blue noise texture (256x256)
+uniform sampler2D noisetex;
+// blue noise 
+float blueNoise(vec2 uv) {
+    vec2 pixelPos = uv * vec2(viewWidth, viewHeight);
+
+    #if TAA_TYPE > 0
+        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight) + 32*frameMod8, 256.0) / 256.0;
+    #else
+        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight), 256.0) / 256.0;
+    #endif
+
+    return texture2D(noisetex, pixelPos64).r;
+}
+// -- dithering
+float dithering(vec2 uv, int ditheringType) {
+    if (ditheringType == 1)
+        return interleavedGradient(uv + frameTimeCounter/3600.0);
+    if (ditheringType == 2)
+        return bayer(uv);
+    if (ditheringType == 3)
+        return blueNoise(uv);
+    return 0.5;
+}
+
+// -- sampling and generating -- //
+vec2 sampleDiskArea(float zeta1, float zeta2) {
 
     // uniform to polar
     float theta = zeta1 * 2.0*PI;
@@ -81,6 +129,15 @@ vec2 sampleDiskArea(vec2 seed) {
     float y = radius * sin(theta);
 
     return vec2(x,y);
+}
+mat2 rotationMatrix(float theta) {
+    float cosTheta = cos(theta);
+    float sinTheta = sin(theta);
+
+    return mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+}
+mat2 randomRotationMatrix(float noise) {
+    return rotationMatrix(noise * 2.0*PI);
 }
 
 // -- cartesian & polar coordinates conversions -- //

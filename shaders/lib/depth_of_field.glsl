@@ -7,6 +7,7 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
     // color data
     vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
     color = inverseToneMap(color);
+
     // retrieve depth of field data
     DOFdata = texture2D(DOFTexture, uv);
     float threshold = 0.2;
@@ -17,6 +18,7 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
     // prepare loop
     float range = 0.0, stepLength = 0.0;
     prepareBlurLoop(normalizedRange, resolution, isFirstPass, range, stepLength);
+
     // init sums
     vec3 nearDOF = vec3(0.0), farDOF = vec3(0.0);
     float nearTotalWeight = 0.0;

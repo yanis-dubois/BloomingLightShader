@@ -11,13 +11,9 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
     for (int lod=lodMin; lod<=lodMax; ++lod) {
         float blurSize = pow(2.0, float(lod + BLOOM_MODERN_RANGE)) / n;
 
-        // get noise
-        float noise = pseudoRandom(uv + 0.1*lod + frameTimeCounter / 3600.0);
-        float theta = noise * 2.0*PI;
-        float cosTheta = cos(theta);
-        float sinTheta = sin(theta);
-        // rotation matrix
-        mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+        // random rotation matrix
+        float dither = dithering(uv + 0.1*lod, BLOOM_DITHERING_TYPE);
+        mat2 rotation = randomRotationMatrix(dither);
 
         // loop over pixel neighbors
         vec3 bloom = vec3(0.0);

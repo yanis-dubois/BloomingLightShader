@@ -106,9 +106,7 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
     float theta;
     vec2 wind = getWind(theta);
     // rotation matrix
-    float cosTheta = cos(theta);
-    float sinTheta = sin(theta);
-    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+    mat2 rotation = rotationMatrix(theta);
     // horizontale coord
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;
@@ -136,9 +134,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
     float theta;
     vec2 wind = getWind(theta);
     // rotation matrix
-    float cosTheta = cos(theta);
-    float sinTheta = sin(theta);
-    mat2 rotation = mat2(cosTheta, -sinTheta, sinTheta, cosTheta);
+    mat2 rotation = rotationMatrix(theta);
     // horizontale coord
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;

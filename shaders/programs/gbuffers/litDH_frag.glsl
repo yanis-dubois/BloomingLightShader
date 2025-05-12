@@ -54,9 +54,8 @@ void main() {
 
     // blending transition between classic terrain & DH terrain
     float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
-    float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
-    dhBlend = pow(dhBlend, 2.0);
-    float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
+    float dhBlend = smoothstep(0.75*far, far, cylindricDistance);
+    float dither = dithering(uv, DH_DITHERING_TYPE);
     if (dhBlend < dither) discard;
 
     vec3 normal = Vnormal;

@@ -110,8 +110,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
             vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
 
             // add star
-            if (pseudoRandom(seed) > threshold) {
-                float noise_ = pseudoRandom(seed+1);
+            if (interleavedGradient(seed) > threshold) {
+                float noise_ = interleavedGradient(seed+1.5);
                 float intensity = noise_*noise_;
                 intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
                 intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
@@ -129,8 +129,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
 
     // -- noise to avoid color bending -- //
     vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
-    float noise = 0.01 * pseudoRandom(polarWorldSpaceViewDirection.yz);
-    skyColor += noise;
+    float dither = 0.015 * interleavedGradient(polarWorldSpaceViewDirection.yz);
+    skyColor += dither;
 
     // apply blindness & darkness
     skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));

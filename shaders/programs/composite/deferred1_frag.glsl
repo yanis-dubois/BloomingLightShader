@@ -29,9 +29,9 @@
         // retrieve data
         vec4 reflection = texture2D(colortex4, uv);
 
-        #if REFLECTION_TYPE > 1
+        #if REFLECTION_TYPE > 1 && REFLECTION_BLUR_TYPE > 0
             // blur 1st pass
-            reflection.rgb = doBlur(uv, colortex4, REFLECTION_BLUR_RANGE, REFLECTION_BLUR_RESOLUTION, REFLECTION_BLUR_STD, REFLECTION_BLUR_KERNEL==1, true);
+            reflection.rgb = doBlur(uv, colortex4, REFLECTION_BLUR_RANGE, REFLECTION_BLUR_RESOLUTION, REFLECTION_BLUR_STD, REFLECTION_BLUR_KERNEL==1, REFLECTION_BLUR_DITHERING_TYPE, true);
 
             // gamma correct
             reflection.rgb = linearToSRGB(reflection.rgb);

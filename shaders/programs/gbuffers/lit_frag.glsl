@@ -14,7 +14,7 @@
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
     #include "/lib/reflection.glsl"
 #endif
-#if PBR_POM > 0
+#if PBR_POM_TYPE > 0
     #include "/lib/POM.glsl"
 #endif
 
@@ -59,6 +59,15 @@ void main() {
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
+    // blending transition between classic terrain & DH terrain
+    #ifdef DISTANT_HORIZONS
+        vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
+        float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
+        float dhBlend = smoothstep(0.75*far, far, cylindricDistance);
+        float dither = dithering(uv, DH_DITHERING_TYPE);
+        if (dhBlend > dither) discard;
+    #endif
+
     mat3 TBN = mat3(
         normalize(Vtangent),
         normalize(Vbitangent),
@@ -84,12 +93,18 @@ void main() {
 
     vec2 textureCoordinate = originalTextureCoordinate;
     // -- POM -- //
-    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM_TYPE > 0
         float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
+        float POMblend = map(worldSpaceDistance, 0.5*PBR_POM_DISTANCE, PBR_POM_DISTANCE, 0.0, 1.0);
+        float POMdither = dithering(uv, PBR_POM_DITHERING_TYPE);
 
         // POM only apply on object that are inside POM render distance
         if (worldSpaceDistance < PBR_POM_DISTANCE) {
-            textureCoordinate = doPOM(gtexture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance, normalPOM);
+            vec2 POMtextureCoordinate = doPOM(gtexture, normals, TBN, viewDirection, localTextureCoordinate, textureCoordinateOffset, worldSpaceDistance, normalPOM);
+
+            // smooth transition
+            if (POMblend <= POMdither) 
+                textureCoordinate = POMtextureCoordinate;
 
             // if the ray hit the side of a pixel, it gets a new normal
             if (length(normalPOM) > 0.0) {
@@ -99,11 +114,16 @@ void main() {
     #endif
 
     // color data
-    vec4 textureColor = texture2D(gtexture, textureCoordinate);
-    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM > 0
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM_TYPE > 1
+        vec4 textureColor = vec4(0.0);
         if (worldSpaceDistance < PBR_POM_DISTANCE) {
             textureColor = texture2DLod(gtexture, textureCoordinate, 0);
+        } else {
+            textureColor = texture2D(gtexture, textureCoordinate);
         }
+        // textureColor = mix(texture2DLod(gtexture, textureCoordinate, 0), texture2D(gtexture, textureCoordinate), POMblend <= POMdither ? 0 : 1);
+    #else
+        vec4 textureColor = texture2D(gtexture, textureCoordinate);
     #endif
     vec3 tint = additionalColor.rgb;
     vec3 albedo = textureColor.rgb * tint;
@@ -172,7 +192,7 @@ void main() {
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
         if (isWater(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
-            float zeta1 = pseudoRandom(seed), zeta2 = pseudoRandom(seed + 41.43291);
+            float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
             mat3 animatedTBN = generateTBN(normalMap);
 
             // sampling data
@@ -196,11 +216,16 @@ void main() {
         if (!isWater(id))
         #endif
         {
-            vec4 normalMapData = texture2D(normals, textureCoordinate);
-            #if PBR_POM > 0
+            #if PBR_POM_TYPE > 1
+                vec4 normalMapData = vec4(0.0);
                 if (worldSpaceDistance < PBR_POM_DISTANCE) {
                     normalMapData = texture2DLod(normals, textureCoordinate, 0);
+                } else {
+                    normalMapData = texture2D(normals, textureCoordinate);
                 }
+                normalMapData = texture2D(normals, textureCoordinate);
+            #else
+                vec4 normalMapData = texture2D(normals, textureCoordinate);
             #endif
 
             // only if normal texture is specified
@@ -218,11 +243,13 @@ void main() {
                 normalMap = mix(normal, normalMap, 0.75);
 
                 // apply POM normals
-                #if PBR_POM_NORMAL > 0
+                #if PBR_POM_TYPE > 0 && PBR_POM_NORMAL > 0
                     if (length(normalPOM) > 0.0) {
-                        float dither = pseudoRandom(uv + 0.5325 + frameTimeCounter / 3600.0);
-                        normalPOM = mix(normalPOM, normalMap, 0.5); // attenuate POM normal
-                        normalMap = mix(normalPOM, normalMap, map(worldSpaceDistance, PBR_POM_DISTANCE*0.5, PBR_POM_DISTANCE, 0.0, 1.0));
+                        // attenuate POM normal
+                        normalPOM = mix(normalPOM, normalMap, 0.5);
+                        // fade out into the distance
+                        normalMap = mix(normalPOM, normalMap, POMblend);
+                        // normalMap = normalPOM;
                         normalMap = normalize(normalMap);
                     }
                 #endif
@@ -279,16 +306,6 @@ void main() {
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);
-
-    // blending transition between classic terrain & DH terrain
-    #ifdef DISTANT_HORIZONS
-        vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
-        float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
-        float dhBlend = smoothstep(0.5*far, far, cylindricDistance);
-        dhBlend = pow(dhBlend, 5.0);
-        float dither = pseudoRandom(uv + frameTimeCounter / 3600.0);
-        if (dhBlend > dither) discard;
-    #endif
 
     // no reflections for handeld object
     #ifdef HAND
