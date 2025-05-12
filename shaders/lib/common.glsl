@@ -57,8 +57,8 @@ const float darknessRange = 32.0;
 // parallax occlusion mapping (POM)
 #define PBR_POM_TYPE 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define PBR_POM_DEPTH 8.0/16.0 // in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
-#define PBR_POM_DISTANCE 24.0 // in [8;+inf] spherical distance in blocks
+#define PBR_POM_DEPTH 4.0/16.0 // in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
+#define PBR_POM_DISTANCE 16.0 // in [8;+inf] spherical distance in blocks
 #define PBR_POM_LAYERS 128 // 32 64 128 256 (only available with PBR_POM=1)
 #define PBR_POM_NORMAL 1 // 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
 
@@ -86,8 +86,8 @@ const float darknessRange = 32.0;
 // shadows
 #define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
 #define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define SHADOW_RANGE 0.66 // width of the sample area (in clip) 0.66
-#define SHADOW_SAMPLES 4 // number of samples (for stochastic) 4
+#define SHADOW_RANGE 3 // radius of the sample area in shadowmap pixels
+#define SHADOW_SAMPLES 4 // number of samples (in total for stochastic / in radius for classic)
 #define SHADOW_KERNEL 0 // 0=box 1=gaussian
 
 // reflection
@@ -95,7 +95,7 @@ const float darknessRange = 32.0;
 #define REFLECTION_NORMAL_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_STEP_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
-#define REFLECTION_MAX_STEPS 16 // from 0=none to inf=too_much
+#define REFLECTION_MAX_STEPS 8 // from 0=none to inf=too_much
 #define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
 #define REFLECTION_LAST_BLUR_SAMPLES 1 // [0;inf]
 // blur reflections of opaque materials
@@ -122,6 +122,7 @@ const float darknessRange = 32.0;
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
 #define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
 #define VOLUMETRIC_LIGHT_INTENSITY 1
+// underwater light shaft
 #define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=on 2=animated
 
 // bloom
@@ -135,7 +136,7 @@ const float darknessRange = 32.0;
 #define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
 // modern bloom params
 #define BLOOM_MODERN_RANGE 1 // in [-2;2]
-#define BLOOM_MODERN_RESOLTUION 2 // number of samples in the radius 
+#define BLOOM_MODERN_SAMPLES 1 // number of samples in the radius 
 
 // depth of field
 #define DOF_TYPE 0 // 0=off 1=dynamic_focus 2=static_focus

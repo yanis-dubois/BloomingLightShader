@@ -56,7 +56,7 @@ vec4 getShadow(vec4 shadowClipPosition, bool isLightShaft) {
     return sampleShadow(shadowScreenPosition, isLightShaft);
 }
 
-// blur shadow by calling getShadow around actual pixel and average the results
+// blur shadow by calling getShadow around pixel and average the results
 vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
 
     // no shadows
@@ -67,6 +67,8 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         // space conversion
         vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
         vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
+        vec4 distortedShadowClipPosition = distortAndBiasShadowClipPosition(shadowClipPosition);
+        vec3 shadowScreenPosition = shadowClipToShadowScreen(distortedShadowClipPosition);
 
         // hard shadowing
         #if SHADOW_SAMPLES < 1
@@ -77,13 +79,8 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
         // soft shadowing
         #else
 
-            // distant shadows are smoother
-            float distanceToPlayer = distance(vec3(0.0), playerSpacePosition);
-            float blend = map(distanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
-            blend = 1.0 + 19.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
-
+            // distant shadows are smoother because of distortion on shadow screen
             float range = SHADOW_RANGE; // how far away from the original position we take our samples from
-            range *= blend; // increase range as the shadow is further away
             float samples = SHADOW_SAMPLES;
             float step_length = range / samples; // distance between each sample
 
@@ -108,10 +105,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                         float weight = 1.0;
                     #endif
 
-                    // divide by the resolution so offset is in terms of pixels
-                    offset = offset * range / shadowMapResolution;
-                    vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
-                    shadowAccum += weight * getShadow(offsetShadowClipPosition, false); // take shadow sample
+                    offset = offset * range / shadowMapResolution; // divide by the resolution so offset is in terms of uvs
+                    vec3 offsetShadowScreenPosition = shadowScreenPosition + vec3(offset, 0.0);
+                    shadowAccum += weight * sampleShadow(offsetShadowScreenPosition, false);
                     count += weight;
                 }
 
@@ -140,9 +136,9 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition) {
                             offset = rotation * offset;
                         #endif
 
-                        offset /= shadowMapResolution; // divide by the resolution so offset is in terms of pixels
-                        vec4 offsetShadowClipPosition = shadowClipPosition + vec4(offset, 0.0, 0.0);
-                        shadowAccum += weight * getShadow(offsetShadowClipPosition, false); // take shadow sample
+                        offset /= shadowMapResolution; // divide by the resolution so offset is in terms of uvs
+                        vec3 offsetShadowScreenPosition = shadowScreenPosition + vec3(offset, 0.0);
+                        shadowAccum += weight * sampleShadow(offsetShadowScreenPosition, false);
                         count += weight;
                     }
                 }
@@ -174,8 +170,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         vec3 playerSpacePosition = worldToPlayer(worldSpacePosition);
         vec4 shadowClipPosition = playerToShadowClip(playerSpacePosition);
         float shadowClipdistanceToPlayer = length(shadowClipPosition.xy);
-        float blend = map(shadowClipdistanceToPlayer, 0.0, startShadowDecrease, 1.0, 20.0);
-        blend = 1.0 + 10.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
+        float blend = 1.0 + 10.0 * smoothstep(0.0, startShadowDecrease, distanceToPlayer);
 
         float range = 1.0; // how far away from the original position we take our samples from
         range *= blend;
@@ -194,6 +189,7 @@ vec4 getSoftShadow(vec2 uv, vec3 worldSpacePosition, vec3 tangent, vec3 bitangen
         }
 
         bool checker = false;
+        checker = distanceToPlayer > 0.5 * startShadowDecrease;
         vec4 sampledShadow = vec4(0.0);
         for (float x=-range; x<=range; x+=range) {
             for (float y=-range; y<=range; y+=range) {

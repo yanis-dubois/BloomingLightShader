@@ -5,7 +5,7 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
     float totalSunBloom = 0.0;
 
     // loop over multiple LODs
-    const int n = BLOOM_MODERN_RESOLTUION;
+    const int n = BLOOM_MODERN_SAMPLES;
     const int lodMin = 3;
     const int lodMax = 6;
     for (int lod=lodMin; lod<=lodMax; ++lod) {
