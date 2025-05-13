@@ -30,12 +30,9 @@ float getHorizontalNoise(vec3 seed, float amplitude) {
     float noise = snoise_3D(seed);
 
     // spike
-    float noise_2 = smoothstep(0.0, 0.8, noise);
-    noise_2 = pow(abs(noise), 2.5);
-    noise_2 = smoothstep(0.0, 0.7, noise_2);
-
-    noise = (noise + 1.5 * noise_2) * 0.5;
-    noise = min(noise, 1.5);
+    float noise_2 = smoothstep(0.0, 1.0, noise);
+    noise_2 = pow(abs(noise), 2.0);
+    noise = (noise + noise_2) * 0.5;
 
     return amplitude * noise;
 }
@@ -144,6 +141,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
         coord.y/180.0, 
         worldSpacePosition.y/50.0 + 0.1 * time
     );
+    vec3 verticalSeed = vec3(worldSpacePosition.xz/10.0 - time, worldSpacePosition.y/50.0 + 0.1 * time);
 
     // attuenuate amplitude at the root if rooted
     if (isRooted(id)) {
@@ -152,6 +150,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
     }
 
     worldSpacePosition.xz += wind * vec2(getHorizontalNoise(seed, amplitude));
+    worldSpacePosition.xz += getVerticalNoise(verticalSeed, 0.25 * amplitude);
     return worldSpacePosition;
 }
 

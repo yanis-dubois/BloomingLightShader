@@ -59,7 +59,6 @@ void main() {
     #if defined TERRAIN && !defined BLOCK_ENTITY && !defined CUTOUT
         if (id != 20049 && id != 20048) bitangent *= at_tangent.w;
     #endif
-    // TBN = mat3(tangent, bitangent, normal);
     Vnormal = normal;
     Vtangent = tangent;
     Vbitangent = bitangent;
@@ -68,17 +67,6 @@ void main() {
     worldSpacePosition = viewToWorld((gl_ModelViewMatrix * gl_Vertex).xyz);
     unanimatedWorldPosition = worldSpacePosition;
     gl_Position = ftransform();
-
-    #ifdef WEATHER
-        // vec2 seed = vec2( floor(worldSpacePosition.x), floor(worldSpacePosition.z));
-        // float amplitude = 0.5;
-        // float noiseX = amplitude * interleavedGradient(seed.xy) - amplitude;
-        // float noiseZ = amplitude * interleavedGradient(seed.yx) - amplitude;
-        // worldSpacePosition.x += noiseX;
-        // worldSpacePosition.z += noiseZ;
-        // vec3 viewSpacePosition = worldToView(worldSpacePosition);
-        // gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
-    #endif
 
     // remapped midBlock coordinates
     midBlock = at_midBlock;
