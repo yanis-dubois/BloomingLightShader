@@ -136,7 +136,7 @@ const float darknessRange = 32.0;
 #define BLOOM_OLD_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
 // modern bloom params
-#define BLOOM_MODERN_RANGE 1 // in [-2;2]
+#define BLOOM_MODERN_RANGE 1.0 // in [-2;2]
 #define BLOOM_MODERN_SAMPLES 1 // number of samples in the radius 
 
 // depth of field
