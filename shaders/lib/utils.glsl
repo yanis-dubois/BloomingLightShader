@@ -92,16 +92,16 @@ float bayer(vec2 uv) {
     return bayerMatrix[pixelPos.x][pixelPos.y] / 16.0;
 }
 // -- blue noise
-// blue noise texture (256x256)
+// blue noise texture
 uniform sampler2D noisetex;
 // blue noise 
 float blueNoise(vec2 uv) {
     vec2 pixelPos = uv * vec2(viewWidth, viewHeight);
 
     #if TAA_TYPE > 0
-        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight) + 32*frameMod8, 256.0) / 256.0;
+        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight) + 32*frameMod8, noiseTextureResolution) / noiseTextureResolution;
     #else
-        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight), 256.0) / 256.0;
+        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight), noiseTextureResolution) / noiseTextureResolution;
     #endif
 
     return texture2D(noisetex, pixelPos64).r;

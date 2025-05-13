@@ -16,7 +16,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     vec3 transparentWorldSpacePosition = viewToWorld(screenToView(uv, depthAll));
     float opaqueFragmentDistance = distance(cameraPosition, opaqueWorldSpacePosition);
     float transparentFragmentDistance = distance(cameraPosition, transparentWorldSpacePosition);
-    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0.001, min(endShadowDecrease, far));
+    float clampedMaxDistance = clamp(opaqueFragmentDistance, 0.001, min(shadowDistance, far));
     // direction
     vec3 worldSpaceViewDirection = normalize(opaqueWorldSpacePosition - cameraPosition);
 
@@ -83,7 +83,7 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
 
         // compute inscattered light
-        float normalizedRayDistance = min(rayDistance / (endShadowDecrease-16.0), 1.0);
+        float normalizedRayDistance = min(rayDistance / (shadowDistance-16.0), 1.0);
         float scattering = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
         vec3 inscatteredLight = shadowedLight * scatteringCoefficient * sunIntensity;
         inscatteredLight *= scattering;

@@ -26,14 +26,14 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     offsetWorldSpacePosition += normal * offsetAmplitude;
     // get shadow
     vec4 shadow = vec4(0.0);
-    if (distanceFromCamera < endShadowDecrease)
+    if (distanceFromCamera < shadowDistance)
         #if PIXELATED_SHADOW > 0
             shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent, ambientSkyLightIntensity);
         #else
             shadow = getSoftShadow(uv, offsetWorldSpacePosition);
         #endif
     // fade into the distance
-    float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, endShadowDecrease, 0.0, 1.0);
+    float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, shadowDistance, 0.0, 1.0);
     shadow *= shadow_fade;
 
     // -- lighting -- //
@@ -59,7 +59,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     #if SUBSURFACE_TYPE == 1
         // subsurface diffuse part
         if (subsurfaceScattering > 0.0) {
-            float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * endShadowDecrease, 0.0, 1.0);
+            float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
             float subsurfaceDirectSkyLightIntensity = smoothstep(0.0, 0.5, abs(lightDirectionDotNormal));
             directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
             directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
@@ -151,7 +151,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         // subsurface transmission highlight
         #if SUBSURFACE_TYPE > 0
             if (subsurfaceScattering > 0.0) {
-                float specularFade = map(distanceFromCamera, endShadowDecrease * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
+                float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
                 subsurfaceSpecular = specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
             }
         #endif
@@ -262,7 +262,7 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     vec3 color = albedo * light;
     // -- specular
     if (0.1 < smoothness) {
-        float specularFade = map(distanceFromCamera, endShadowDecrease * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
+        float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
         vec3 specular = vec3(0.0);
 
         // specular reflection
