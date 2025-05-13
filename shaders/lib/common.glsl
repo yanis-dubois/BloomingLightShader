@@ -156,6 +156,11 @@ const float darknessRange = 32.0;
 // distortion
 #define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on
 
+// players status
+#define STATUS_DYING_TYPE 1 // 0=off 1=on
+#define STATUS_STARVING_TYPE 1 // 0=off 1=on
+#define STATUS_DROWNING_TYPE 1 // 0=off 1=on
+
 // quantization
 #define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
 #define QUANTIZATION_AMOUNT 1.0 // number of color used
@@ -215,6 +220,9 @@ uniform float nightVision;
 uniform float blindness;
 uniform float darknessFactor;
 uniform float darknessLightFactor;
+uniform float currentPlayerAir;
+uniform float currentPlayerHunger;
+uniform float currentPlayerHealth;
 
 uniform int blockEntityId;
 uniform int frameCounter; // in [0;720719]

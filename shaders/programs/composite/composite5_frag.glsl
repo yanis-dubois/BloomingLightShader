@@ -33,13 +33,24 @@ void main() {
         }
     #endif
 
-    // -- chromatic aberation -- //
-    #if CHROMATIC_ABERATION_TYPE > 0
-        // direction & amplitude
+    // -- dying effect (pulsating chromatic aberation) -- //
+    #if STATUS_DYING_TYPE > 0
+
+        // direction
         vec2 direction = (uv * 2 - 1);
         float dist = length(direction);
         direction = normalize(direction);
-        float amplitude = CHROMATIC_ABERATION_AMPLITUDE * dist*dist;
+
+        // amplitude
+        float dyingFactor = pow(1.0 - abs(currentPlayerHealth), 2.0);
+        float pulseSpeed = map(1.0 - dyingFactor, 0.0, 1.0, 0.7, 1.0);
+        float pulse = mod(frameTimeCounter, pulseSpeed) / pulseSpeed;
+        pulse = pulse < 0.33
+            ? pow(map(pulse, 0.0, 0.33, 0.0, 1.0), 2.5)
+            : pow(1.0 - map(pulse, 0.33, 1.0, 0.0, 1.0), 0.75);
+        float pulseFactor = 0.5 + 0.5 * pulse;
+        float amplitude = dist * 0.02;
+        amplitude *= dyingFactor * pulseFactor;
 
         // respective offets
         vec2 offsetR = - direction * amplitude;
@@ -73,6 +84,17 @@ void main() {
         #endif
 
         color = quantizedColor;
+    #endif
+
+    // -- drowning effect (desaturate & dark pulse) -- //
+    #if STATUS_DROWNING_TYPE > 0
+        vec3 grayScale = saturate(color, 0.5) + 0.01 * interleavedGradient(uv);
+        grayScale = pow(0.5 * grayScale, vec3(1.25));
+        float drowningFactor = 1.0 - abs(currentPlayerAir);
+        float desaturateFactor = pow(map(drowningFactor, 0.0, 0.9, 0.0, 1.0), 3.0);
+        float darkenFactor = pow(map(drowningFactor, 0.9, 1.0, 0.0, 1.0), 1.5);
+        color = mix(color, grayScale, desaturateFactor);
+        color = mix(color, vec3(0.0), darkenFactor);
     #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);

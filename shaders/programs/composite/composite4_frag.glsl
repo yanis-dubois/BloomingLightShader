@@ -48,13 +48,24 @@ void main() {
             color = doTAA(uv, depth, color, colortex0, colortex2, taaColorData);
         #endif
     #endif
-    // wild effect
-    // {
-    //     vec4 taaData = texture2D(colortex2, uv);
-    //     vec3 previousColor = SRGBtoLinear(taaData.rgb);
-    //     color = mix(color, previousColor, 0.7);
-    //     taaColorData = linearToSRGB(color);
-    // }
+
+    // -- starving effect (constrast & motion blur) -- //
+    #if STATUS_STARVING_TYPE > 0
+        float starvingFactor = 1.0 - abs(currentPlayerHunger);
+        // increase contrast
+        float contrastFactor = map(starvingFactor, 0.5, 1.0, 0.0, 1.0);
+        color = mix(color, smoothstep(0.0, 0.8, color), contrastFactor);
+        // motion blur
+        if (starvingFactor >= 0.7) {
+            float motionBlurFactor = map(starvingFactor, 0.7, 1.0, 0.5, 0.7);
+
+            vec4 taaData = texture2D(colortex2, uv);
+            vec3 previousColor = SRGBtoLinear(taaData.rgb);
+            color = mix(color, previousColor, motionBlurFactor);
+
+            taaColorData = linearToSRGB(color);
+        }
+    #endif
 
     colorData = vec4(linearToSRGB(color), 1.0);
 }
