@@ -317,7 +317,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 }
             }
 
-            // current position for 2nd pass hitted : end position for other
+            // current position for 2nd pass hit : end position for other
             vec2 texelSpaceFinalPosition = hitSecondPass 
                 ? texelSpaceCurrentPosition 
                 : texelSpaceEndPosition - stepLength * noise;
@@ -374,7 +374,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 }
             }
             else {
-                // valid only if hitted the far frustum plane
+                // valid only if hit the far frustum plane
                 if (frustumPlaneIndex != 5) {
                     isValid = false;
                 }

@@ -27,6 +27,7 @@ void main() {
     float transparency = textureColor.a;
     vec3 tint = additionalColor.rgb;
     vec3 color = albedo * tint;
+    vec3 lightShaftColor = id==20000 ? tint : color;
 
     // special case
     if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
@@ -76,5 +77,5 @@ void main() {
 
     // write buffers
     shadowColor = vec4(color, transparency);
-    lightShaft = vec4(tint, lightShaftIntensity);
+    lightShaft = vec4(lightShaftColor, lightShaftIntensity);
 }

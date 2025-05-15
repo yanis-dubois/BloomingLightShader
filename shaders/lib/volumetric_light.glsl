@@ -42,10 +42,10 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
     vec3 rayWorldSpacePosition = cameraPosition;
     float rayDistance = 0.0;
     rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
-    bool transparentHit = false;
+    bool hasShadow = false;
+    bool hasColoredShadow = false;
 
     vec3 shadowColor = vec3(1.0);
-    float cpt = 0.0;
 
     // loop
     for (int i=0; i<stepsCount; ++i) {
@@ -78,9 +78,11 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
         vec4 shadow = getShadow(shadowClipPos, true);
         if (0.0 < shadow.a && shadow.a < 1.0) {
             shadowColor *= shadow.rgb;
-            cpt++;
+            hasColoredShadow = true;
         }
         vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
+
+        if (shadow.a > 0.0) hasShadow = true;
 
         // compute inscattered light
         float normalizedRayDistance = min(rayDistance / (shadowDistance-16.0), 1.0);
@@ -100,12 +102,18 @@ void volumetricLighting(vec2 uv, float depthAll, float depthOpaque, float ambien
 
     // apply attenuation
     accumulatedLight *= attenuationFactor;
-    // color adjustment & day-night blend
-    accumulatedLight *= skyLightColor * mix(1.0, 0.5, rainStrength) * getDayNightBlend();
+    // day-night & weather transition
+    accumulatedLight *= mix(1.0, 0.5, rainStrength) * getDayNightBlend();
     // enhance colored shaft
-    if (cpt > 0.0 && isEyeInWater==0) {
-        accumulatedLight *= mix(shadowColor, vec3(1.0), 0.75);
+    if (hasColoredShadow && isEyeInWater==0) {
+        accumulatedLight *= mix(shadowColor, vec3(1.0), 0.25);
     }
+    // apply light color only on non colored light shaft
+    else {
+        accumulatedLight *= skyLightColor;
+    }
+    // attenuate when no shadow hit (avoid washed out rendering)
+    accumulatedLight *= hasShadow ? 1.0 : 0.25;
 
     // write values
     color = mix(color + accumulatedLight / pow(far, 0.75), color, max(blindness, darknessFactor));

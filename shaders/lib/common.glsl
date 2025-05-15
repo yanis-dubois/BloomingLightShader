@@ -122,9 +122,9 @@ const float darknessRange = 32.0;
 #define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
 #define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
 #define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
-#define VOLUMETRIC_LIGHT_INTENSITY 1
+#define VOLUMETRIC_LIGHT_INTENSITY 1.0
 // underwater light shaft
-#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=on 2=animated
+#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=static 2=animated
 
 // bloom
 #define BLOOM_TYPE 2 // 0=off 1=old_school 2=modern

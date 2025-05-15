@@ -139,7 +139,7 @@ void main() {
         discard;
     }
 
-    // apply red flash when mob are hitted
+    // apply red flash when mob are hit
     albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
     // light data
