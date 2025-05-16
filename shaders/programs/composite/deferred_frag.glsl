@@ -46,7 +46,7 @@
         vec4 reflection = doReflection(colortex0, colortex5, depthtex0, uv, depth, color, normal, ambientSkyLightIntensity, smoothness, reflectance);
         // fog
         vec3 worldSpacePosition = screenToWorld(uv, depth);
-        float fogFactor = getFogFactor(worldSpacePosition, isEyeInWater==1);
+        float fogFactor = getFogFactor(worldSpacePosition);
         reflection.a = mix(reflection.a, 0.0, fogFactor);
         // blindness
         float blindnessFogFactor = getBlindnessFactor(worldSpacePosition, blindnessRange);

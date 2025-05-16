@@ -24,10 +24,11 @@ in vec2 uv;
 // results
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorData;   
-#if TAA_TYPE == 2
+#if TAA_TYPE > 0
     /* RENDERTARGETS: 0,2 */
     layout(location = 1) out vec3 taaColorData;
-#else
+#endif
+#if TAA_TYPE == 1
     /* RENDERTARGETS: 0,2,3 */
     layout(location = 2) out float taaDepthData;
 #endif

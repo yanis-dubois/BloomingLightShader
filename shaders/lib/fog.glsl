@@ -21,13 +21,17 @@ vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
     return getSkyColor(eyeSpacePosition, true, _);
 }
 
-const float minimumFogDensity = 0.5; // 0.5
-const float maximumFogDensity = 3.0; // 3.0
-float getFogDensity(float worldSpaceHeight, bool isInWater) {
-    if (isInWater || isEyeInWater > 1) return maximumFogDensity;
+vec3 getVolumetricFogColor() {
+    if (isEyeInWater > 1) return getLavaFogColor();
+    if (isEyeInWater == 1) return getWaterFogColor();
+    return vec3(1.0);
+}
 
-    float minFogDensity = sunAngle > 0.5 ? 2.0 * minimumFogDensity : minimumFogDensity;
-    float maxFogDensity = maximumFogDensity;
+float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) {
+    if (isEyeInWater >= 1) return 10.0;
+
+    float minFogDensity = sunAngle < 0.5 ? 0.1 : 0.22;
+    float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
 
     // higher density during morning / night / rain
     vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
@@ -36,13 +40,24 @@ float getFogDensity(float worldSpaceHeight, bool isInWater) {
     float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
     density = mix(density, maxFogDensity, rainStrength);
 
-    // reduce density as height increase
-    float surfaceHeightFactor = map(worldSpaceHeight, 62.0, 102.0, 0.0, 1.0);
-    density *= exp(- surfaceHeightFactor);
+    // increase density as the fragment is far away
+    float distanceDensityIncrease = pow(2.2, - (normalizedDistance * 3.3) * (normalizedDistance * 3.3)) * (1.0 - normalizedDistance);
+    density = mix(density, density * 2.0, distanceDensityIncrease);
+
+    // reduce density from sea level as altitude increase
+    float heightFactor = map(worldSpaceHeight, 62.0, 102.0, 0.0, 1.0);
+    float heightDensitydecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
+    density = mix(density, 0.25 * density, heightDensitydecrease);
+
+    return density;
+}
+
+float getFogDensity(float worldSpaceHeight) {
+    if (isEyeInWater >= 1) return 1.0;
 
     // higher density in caves
-    float caveHeightFactor = 1.0 - map(worldSpaceHeight, 2.0, 32.0, 0.0, 1.0);
-    density = mix(density, maximumFogDensity, caveHeightFactor);
+    float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, 62.0, 0.0, 1.0);
+    float density = mix(0.0, 0.5, caveHeightFactor);
 
     return density;
 }
@@ -71,7 +86,7 @@ float getCustomFogFactor(float t, float density) {
     return T.y;
 }
 
-float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
+float getFogFactor(vec3 worldSpacePosition) {
 
     #ifdef DISTANT_HORIZONS
         float renderDistance = dhRenderDistance;
@@ -91,12 +106,12 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
     #if FOG_TYPE == 0
         float fogFactor = 0.0;
 
-    // linear vanilla fog (tweaked when camera is under water)
+    // linear fog
     #elif FOG_TYPE == 1
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float fogFactor = map(distanceFromCameraXZ, max(renderDistance - 16.0, 0.0), renderDistance, 0.0, 1.0);
         #ifdef DISTANT_HORIZONS
-            if (isEyeInWater <= 1) {
+            if (isEyeInWater == 0) {
                 fogFactor = map(distanceFromCameraXZ, far, renderDistance, 0.0, 1.0);
             }
         #endif
@@ -107,8 +122,8 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
         float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
         float normalizedLinearDepth = distanceFromCamera / renderDistance;
 
-        float fogDensity = getFogDensity(worldSpacePosition.y, isInWater);
-        fogDensity = 1.0 - map(fogDensity, 0.5, 3.0, 0.3, 0.8);
+        float fogDensity = getFogDensity(worldSpacePosition.y);
+        fogDensity = 1.0 - map(fogDensity, 0.0, 1.0, 0.2, 0.8);
         float fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
     #endif
 
@@ -116,13 +131,13 @@ float getFogFactor(vec3 worldSpacePosition, bool isInWater) {
 }
 
 void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color, inout float emissivness) {
-    float fogFactor = getFogFactor(worldSpacePosition, isEyeInWater==1);
+    float fogFactor = getFogFactor(worldSpacePosition);
     color = mix(color, fogColor, fogFactor);
     emissivness = mix(emissivness, 0.0, fogFactor);
 }
 
 void foggify(vec3 worldSpacePosition, vec3 fogColor, inout vec3 color) {
-    float fogFactor = getFogFactor(worldSpacePosition, isEyeInWater==1);
+    float fogFactor = getFogFactor(worldSpacePosition);
     color = mix(color, fogColor, fogFactor);
 }
 

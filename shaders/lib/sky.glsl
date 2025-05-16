@@ -123,7 +123,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     }
 
     // -- underground fog -- //
-    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12);
+    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12) * 2.0;
     float heightBlend = map(cameraPosition.y, 40.0, 60.0, 0.0, 1.0);
     skyColor = mix(undergroundFogColor, skyColor, heightBlend);
 

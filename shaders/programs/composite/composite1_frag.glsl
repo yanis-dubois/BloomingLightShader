@@ -52,7 +52,7 @@ void main() {
     // -- volumetric light -- //
     #if VOLUMETRIC_LIGHT_TYPE > 0
         float ambientSkyLightIntensity = depthOpaque == 1.0 ? 1.0 : lightAndMaterialData.r;
-        volumetricLighting(uv, depthAll, depthOpaque, ambientSkyLightIntensity, color);
+        volumetricLighting(uv, depthOpaque, ambientSkyLightIntensity, color);
     #endif
 
     // gamma correct & write

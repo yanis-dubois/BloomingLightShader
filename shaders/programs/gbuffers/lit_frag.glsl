@@ -121,7 +121,6 @@ void main() {
         } else {
             textureColor = texture2D(gtexture, textureCoordinate);
         }
-        // textureColor = mix(texture2DLod(gtexture, textureCoordinate, 0), texture2D(gtexture, textureCoordinate), POMblend <= POMdither ? 0 : 1);
     #else
         vec4 textureColor = texture2D(gtexture, textureCoordinate);
     #endif
@@ -216,17 +215,7 @@ void main() {
         if (!isWater(id))
         #endif
         {
-            #if PBR_POM_TYPE > 1
-                vec4 normalMapData = vec4(0.0);
-                if (worldSpaceDistance < PBR_POM_DISTANCE) {
-                    normalMapData = texture2DLod(normals, textureCoordinate, 0);
-                } else {
-                    normalMapData = texture2D(normals, textureCoordinate);
-                }
-                normalMapData = texture2D(normals, textureCoordinate);
-            #else
-                vec4 normalMapData = texture2D(normals, textureCoordinate);
-            #endif
+            vec4 normalMapData = texture2D(normals, textureCoordinate);
 
             // only if normal texture is specified
             if (normalMapData.x + normalMapData.y > 0.001) {
@@ -303,6 +292,7 @@ void main() {
     foggify(worldSpacePosition, color.rgb, emissivness);
     // blindness
     doBlindness(worldSpacePosition, color.rgb, emissivness);
+    color.rgb += 0.001 * (dithering(uv, 1) * 2.0 - 1.0);
 
     // gamma correct
     color.rgb = linearToSRGB(color.rgb);

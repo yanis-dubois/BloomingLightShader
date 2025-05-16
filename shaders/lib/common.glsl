@@ -33,7 +33,7 @@ const float sunPathRotation = 0.0;
 const bool shadowHardwareFiltering = true;
 const int shadowMapResolution = 2048; // 1024 2048
 const float shadowDistanceRenderMul = 1.0;
-const float shadowDistance = 128.0;
+const float shadowDistance = 192.0;
 const float startShadowDecrease = 0.66 * shadowDistance;
 
 // noise
@@ -93,7 +93,7 @@ const float darknessRange = 32.0;
 
 // reflection
 #define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
-#define REFLECTION_NORMAL_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define REFLECTION_NORMAL_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_STEP_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
 #define REFLECTION_MAX_STEPS 8 // from 0=none to inf=too_much

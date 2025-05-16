@@ -51,8 +51,8 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
         }
     }
 
-    int nbLayer = lodMax - lodMin + 1;
-    totalBloom = clamp(totalBloom / (nbLayer - 1), 0.0, 1.0);
+    int nbLayer = lodMax - lodMin;
+    totalBloom = clamp(totalBloom / (nbLayer), 0.0, 1.0);
     totalSunBloom = clamp(totalSunBloom / (nbLayer), 0.0, 1.0);
     return vec4(totalBloom, totalSunBloom);
 }

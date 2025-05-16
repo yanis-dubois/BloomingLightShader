@@ -99,7 +99,7 @@ float blueNoise(vec2 uv) {
     vec2 pixelPos = uv * vec2(viewWidth, viewHeight);
 
     #if TAA_TYPE > 0
-        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight) + 32*frameMod8, noiseTextureResolution) / noiseTextureResolution;
+        vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight) + 8*frameMod8, noiseTextureResolution) / noiseTextureResolution;
     #else
         vec2 pixelPos64 = mod(uv * vec2(viewWidth, viewHeight), noiseTextureResolution) / noiseTextureResolution;
     #endif
