@@ -20,7 +20,7 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // -> avoid player shadow monster 
     vec3 worldSpaceLightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float LdotV = dot(worldSpaceViewDirection, worldSpaceLightDirection);
-    float attenuationFactor = pow(LdotV * 0.5 + 0.5, 0.75);
+    float attenuationFactor = map(pow(LdotV * 0.5 + 0.5, 0.5), 0.0, 1.0, 0.25, 1.0);
 
     // decrease volumetric light that is added on sky
     // which is even truer the further up you look
@@ -41,6 +41,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     //
     vec3 shadowColor = vec3(1.0);
 
+    float maxScattering = 0.0;
+
     // loop
     for (int i=0; i<stepsCount; ++i) {
         rayDistance = distance(cameraPosition, rayWorldSpacePosition);
@@ -54,6 +56,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         // density
         scatteringCoefficient = 0.012 * getVolumetricFogDensity(rayWorldSpacePosition.y, normalizedRayDistance);
 
+        maxScattering = max(maxScattering, scatteringCoefficient);
+
         // get shadow
         vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
         vec4 shadow = getShadow(shadowClipPos, true);
@@ -61,7 +65,7 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
 
         // compute inscattered light
         float scattering = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
-        vec3 inscatteredLight = shadowedLight * scatteringCoefficient * scattering * stepSize;
+        vec3 inscatteredLight = shadowedLight * scattering * stepSize;
 
         // add light contribution
         accumulatedLight += inscatteredLight;
@@ -69,6 +73,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         // go a step further
         rayWorldSpacePosition += worldSpaceViewDirection * stepSize;
     }
+
+    accumulatedLight *= maxScattering;
 
     // apply attenuation
     accumulatedLight *= attenuationFactor;

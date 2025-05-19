@@ -30,7 +30,7 @@ vec3 getVolumetricFogColor() {
 float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 10.0;
 
-    float minFogDensity = sunAngle < 0.5 ? 0.1 : 0.22;
+    float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.27;
     float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
 
     // higher density during morning / night / rain

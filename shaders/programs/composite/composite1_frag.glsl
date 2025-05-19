@@ -50,7 +50,7 @@ void main() {
     }
 
     // -- volumetric light -- //
-    #if VOLUMETRIC_LIGHT_TYPE > 0
+    #if SHADOW_TYPE > 0 && VOLUMETRIC_LIGHT_TYPE > 0
         float ambientSkyLightIntensity = depthOpaque == 1.0 ? 1.0 : lightAndMaterialData.r;
         volumetricLighting(uv, depthOpaque, ambientSkyLightIntensity, color);
     #endif

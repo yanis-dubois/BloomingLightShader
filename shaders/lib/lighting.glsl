@@ -56,7 +56,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
     #endif
     // subsurface scattering
-    #if SUBSURFACE_TYPE == 1
+    #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
         // subsurface diffuse part
         if (subsurfaceScattering > 0.0) {
             float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
@@ -149,7 +149,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
         vec3 subsurfaceSpecular = vec3(0.0);
 
         // subsurface transmission highlight
-        #if SUBSURFACE_TYPE > 0
+        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
             if (subsurfaceScattering > 0.0) {
                 float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
                 subsurfaceSpecular = specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);

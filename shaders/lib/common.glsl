@@ -33,7 +33,7 @@ const float sunPathRotation = 0.0;
 const bool shadowHardwareFiltering = true;
 const int shadowMapResolution = 2048; // 1024 2048
 const float shadowDistanceRenderMul = 1.0;
-const float shadowDistance = 192.0;
+const float shadowDistance = 192.0; // 192
 const float startShadowDecrease = 0.66 * shadowDistance;
 
 // noise
