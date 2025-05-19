@@ -6,8 +6,9 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
 
     // loop over multiple LODs
     const int n = BLOOM_MODERN_SAMPLES;
-    const int lodMin = 3;
-    const int lodMax = 7;
+    int log2width = int(log2(viewWidth));
+    int lodMin = max(0, log2width - 7);
+    int lodMax = max(3, log2width - 4);
     for (int lod=lodMin; lod<=lodMax; ++lod) {
         float blurSize = pow(2.0, float(lod + BLOOM_MODERN_RANGE)) / n;
 

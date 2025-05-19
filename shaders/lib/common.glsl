@@ -142,7 +142,7 @@ const float darknessRange = 32.0;
 // depth of field
 #define DOF_TYPE 0 // 0=off 1=dynamic_focus 2=static_focus
 #define DOF_RANGE 0.005 // extent of the kernel
-#define DOF_RESOLUTION 1 // in [0;1], proportion of pixel to be sampled
+#define DOF_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
 #define DOF_KERNEL 0 // 0=box 1=gaussian
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
 #define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks

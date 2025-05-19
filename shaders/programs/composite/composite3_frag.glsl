@@ -46,9 +46,10 @@ void main() {
     #elif BLOOM_TYPE == 2
         vec4 bloom = doBloom(uv, colortex4, false);
         // classic bloom
-        bloom.rgb = pow(bloom.rgb, 1.0 / vec3(1.75));
+        bloom.rgb = pow(bloom.rgb, vec3(0.55));
         // sun bloom
-        bloom.rgb += mix(bloomSunLight, saturate(bloomSunLight, 0.75), min(rainStrength + isEyeInWater, 1.0)) * pow(bloom.a, 1.0 / 1.5);
+        vec3 sunBloomColor = mix(bloomSunLight, saturate(bloomSunLight, 0.75), min(rainStrength + isEyeInWater, 1.0));
+        bloom.rgb += sunBloomColor * pow(bloom.a, 0.66);
     #endif
     #if BLOOM_TYPE > 0
         color += bloom.rgb * BLOOM_FACTOR;

@@ -228,7 +228,7 @@ float gaussian(float x, float sigma) {
 void prepareBlurLoop(float normalizedRange, float resolution, bool isFirstPass,
                     out float range, out float stepLength) {
     float ratio = viewWidth / viewHeight;
-    range  = isFirstPass ? normalizedRange / ratio : normalizedRange;
+    range = isFirstPass ? normalizedRange / ratio : normalizedRange;
     float pixels  = isFirstPass ? viewWidth * range : viewHeight * range;
     pixels = floor(pixels);
     if (pixels <= 0.0) {

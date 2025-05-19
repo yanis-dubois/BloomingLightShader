@@ -50,7 +50,7 @@ void main() {
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float cloudDistance = 1.5*far;
         float blendFactor = map(distanceFromCameraXZ, max(cloudDistance - 64.0, 0.0), cloudDistance, 0.0, 1.0);
-        transparency = 1.0 - blendFactor;
+        transparency = 0.75 * (1.0 - blendFactor);
     #endif
 
     // apply blindness effect
