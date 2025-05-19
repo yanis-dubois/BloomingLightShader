@@ -9,6 +9,8 @@ const vec3 light8000K = vec3(0.8675084288560855, 0.9011340745165255, 1.0); // ra
 const vec3 light10000K = vec3(0.7909974347833513, 0.8551792944545848, 1.0); // shadow light
 const vec3 light20000K = vec3(0.6694260712462251, 0.7779863207340414, 1.0); // dawn moon light
 
+const vec3 bloomSunLight = vec3(1.0, 0.5, 0.125);
+
 vec3 getSkyLightColor() {
     // no variations
     #if SKY_LIGHT_COLOR == 0

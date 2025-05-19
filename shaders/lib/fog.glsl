@@ -45,7 +45,7 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
     density = mix(density, density * 2.0, distanceDensityIncrease);
 
     // reduce density from sea level as altitude increase
-    float heightFactor = map(worldSpaceHeight, 62.0, 102.0, 0.0, 1.0);
+    float heightFactor = map(worldSpaceHeight, 62.0, 122.0, 0.0, 1.0);
     float heightDensitydecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
     density = mix(density, 0.25 * density, heightDensitydecrease);
 
@@ -57,7 +57,7 @@ float getFogDensity(float worldSpaceHeight) {
 
     // higher density in caves
     float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, 62.0, 0.0, 1.0);
-    float density = mix(0.0, 0.5, caveHeightFactor);
+    float density = mix(0.0, 0.66, caveHeightFactor);
 
     return density;
 }

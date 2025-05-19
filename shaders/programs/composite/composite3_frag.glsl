@@ -4,6 +4,7 @@
 #include "/lib/common.glsl"
 #include "/lib/utils.glsl"
 #include "/lib/space_conversion.glsl"
+#include "/lib/light_color.glsl"
 #include "/lib/blur.glsl"
 #include "/lib/bloom.glsl"
 #include "/lib/depth_of_field.glsl"
@@ -47,7 +48,7 @@ void main() {
         // classic bloom
         bloom.rgb = pow(bloom.rgb, 1.0 / vec3(1.75));
         // sun bloom
-        bloom.rgb += vec3(1.0, 0.5, 0.125) * pow(bloom.a, 1.0 / 1.5);
+        bloom.rgb += mix(bloomSunLight, saturate(bloomSunLight, 0.75), min(rainStrength + isEyeInWater, 1.0)) * pow(bloom.a, 1.0 / 1.5);
     #endif
     #if BLOOM_TYPE > 0
         color += bloom.rgb * BLOOM_FACTOR;

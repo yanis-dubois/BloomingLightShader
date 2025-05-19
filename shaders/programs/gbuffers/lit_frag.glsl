@@ -245,7 +245,7 @@ void main() {
 
                 // clamp non visible normal
                 if (dot(normalMap, viewDirection) < 0.0) {
-                    normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+                    // normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
                 }
             }
         }

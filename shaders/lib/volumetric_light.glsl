@@ -7,7 +7,7 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // parameters
     float absorptionCoefficient = 0.0;
     float scatteringCoefficient = 0.0;
-    float sunIntensity = VOLUMETRIC_LIGHT_INTENSITY;
+    float sunIntensity = mix(VOLUMETRIC_LIGHT_INTENSITY, VOLUMETRIC_LIGHT_INTENSITY*0.5, rainStrength);
 
     // distances
     vec3 fragmentWorldSpacePosition = viewToWorld(screenToView(uv, depth));
@@ -81,13 +81,14 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // day-night & weather transition
     accumulatedLight *= mix(1.0, 0.5, rainStrength) * getDayNightBlend() * sunIntensity;
     // sky light
-    accumulatedLight *= skyLightColor;
+    accumulatedLight *= mix(skyLightColor, saturate(skyLightColor, 0.25), rainStrength);
     // fog color
     accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
 
-    // add contrast
+    // add contrast if there is no rain
     float contrast = sunAngle < 0.5 ? 1.05 : 1.015;
-    accumulatedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
+    vec3 contrastedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
+    accumulatedLight = mix(contrastedLight, accumulatedLight, rainStrength);
 
     // write values
     color = mix(color + accumulatedLight, color, max(blindness, darknessFactor));

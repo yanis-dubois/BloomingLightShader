@@ -56,7 +56,7 @@ const float darknessRange = 32.0;
 // porosity (only few texture pack specify porosity)
 #define PBR_POROSITY 0 // 0=off 1=on
 // parallax occlusion mapping (POM)
-#define PBR_POM_TYPE 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
+#define PBR_POM_TYPE 0 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 #define PBR_POM_DEPTH 4.0/16.0 // in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
 #define PBR_POM_DISTANCE 16.0 // in [8;+inf] spherical distance in blocks
