@@ -225,11 +225,11 @@ void main() {
                 // avoid normal map to be too tilted
                 if (normalMap.z <= 0.1) {
                     normalMap.z = 0.1;
-                    normalMap = normalize(normalMap);
                 }
                 // convert to world space and combine with normal
+                normalMap = normalize(normalMap);
                 normalMap = TBN * normalMap;
-                normalMap = mix(normal, normalMap, 0.75);
+                normalMap = mix(normal, normalMap, 0.5);
 
                 // apply POM normals
                 #if PBR_POM_TYPE > 0 && PBR_POM_NORMAL > 0
@@ -238,15 +238,15 @@ void main() {
                         normalPOM = mix(normalPOM, normalMap, 0.5);
                         // fade out into the distance
                         normalMap = mix(normalPOM, normalMap, POMblend);
-                        // normalMap = normalPOM;
-                        normalMap = normalize(normalMap);
                     }
                 #endif
 
                 // clamp non visible normal
                 if (dot(normalMap, viewDirection) < 0.0) {
-                    normalMap = normalize(normalMap - viewDirection * dot(normalMap, viewDirection));
+                    normalMap = normalMap - viewDirection * dot(normalMap, viewDirection);
                 }
+
+                normalMap = normalize(normalMap);
             }
         }
     #endif
