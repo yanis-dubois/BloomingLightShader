@@ -28,6 +28,8 @@ void main() {
     if (transparency < alphaTestRef) discard;
     float emissivness = 0.0;
 
+    albedo = SRGBtoLinear(albedo);
+
     #ifdef BEACON_BEAM
         transparency = 0.5;
         emissivness = 1.0;
@@ -40,8 +42,22 @@ void main() {
 
     albedo = clamp(albedo, 0.0, 1.0);
 
+    #ifdef CLOUD
+        // blue filter
+        albedo *= light10000K * light7500K;
+
+        // apply fog
+        float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
+        float cloudDistance = 1.5*far;
+        float blendFactor = map(distanceFromCameraXZ, max(cloudDistance - 64.0, 0.0), cloudDistance, 0.0, 1.0);
+        transparency = 1.0 - blendFactor;
+    #endif
+
     // apply blindness effect
     doBlindness(worldSpacePosition, albedo, emissivness);
+
+    // gamma correct
+    albedo = linearToSRGB(albedo);
 
     colorData = vec4(albedo, transparency);
     #if defined BEACON_BEAM || defined GLOWING

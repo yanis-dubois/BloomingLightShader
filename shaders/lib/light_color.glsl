@@ -34,7 +34,8 @@ vec3 getSkyLightColor() {
         // sky light
         vec3 skyLightColor = mix(moonLightColor, sunLightColor, smoothstep(-0.1, 0.1, sunDotUp));
         // rainy sky light
-        skyLightColor = mix(skyLightColor, skyLightColor * 0.9 * light8000K, rainStrength);
+        skyLightColor = mix(skyLightColor, 0.9 * skyLightColor * light8000K, rainStrength);
+        skyLightColor = mix(skyLightColor, 0.9 * skyLightColor, thunderStrength);
 
         // under water sky light
         if (isEyeInWater==1) 

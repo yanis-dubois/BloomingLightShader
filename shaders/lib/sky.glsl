@@ -1,6 +1,6 @@
 // -- sky box color -- //
 // day colors
-const vec3 dayDownColor = vec3(0.7, 0.8, 1.0);
+const vec3 dayDownColor = vec3(0.75, 0.95, 1.0);
 const vec3 dayMiddleColor = vec3(0.48, 0.7, 1.0);
 const vec3 dayTopColor = vec3(0.25, 0.5, 1.0);
 // night colors
@@ -76,6 +76,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     // darken rainy sky during night
     rainyColor *= mix(0.3, 1.0, smoothstep(-0.15, 0.25, sunDotUp));
     skyColor = mix(skyColor, rainyColor, rainStrength);
+    skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
     // -- horizon fog -- //
     vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
