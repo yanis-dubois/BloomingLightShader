@@ -23,13 +23,13 @@ vec3 getSkyLightColor() {
         float moonDotUp = dot(eyeSpaceMoonDirection, upDirection);
 
         // sun light
-        vec3 sunLightColor = mix(light2000K, light4500K, smoothstep(0.05, 0.3, sunDotUp));
-        sunLightColor = mix(sunLightColor, light6000K, smoothstep(0.25, 0.7, sunDotUp));
+        vec3 sunLightColor = mix(light2000K, light4500K, smoothstep(0.05, 0.5, sunDotUp));
+        sunLightColor = mix(sunLightColor, light6000K, smoothstep(0.45, 0.9, sunDotUp));
 
         // moon light
         float moonPhaseBlend = getMoonPhase();
         vec3 moonMidnightColor = mix(light7500K, light20000K, moonPhaseBlend);
-        vec3 moonLightColor = 0.5 * mix(light20000K, moonMidnightColor, smoothstep(0.8, 1, moonDotUp));
+        vec3 moonLightColor = 0.5 * mix(light20000K, moonMidnightColor, smoothstep(0.8, 1.0, moonDotUp));
 
         // sky light
         vec3 skyLightColor = mix(moonLightColor, sunLightColor, smoothstep(-0.1, 0.1, sunDotUp));
