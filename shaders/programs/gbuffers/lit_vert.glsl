@@ -57,7 +57,8 @@ void main() {
     tangent = mat3(gbufferModelViewInverse) * tangent;
     bitangent = mat3(gbufferModelViewInverse) * bitangent;
     #if defined TERRAIN && !defined BLOCK_ENTITY && !defined CUTOUT
-        if (id != 20049 && id != 20048) bitangent *= at_tangent.w;
+        // TODO: we should invert the tangent of every block that are orientable (ex: wood log, barrel, deepslate, ...)
+        // bitangent *= at_tangent.w;
     #endif
     Vnormal = normal;
     Vtangent = tangent;

@@ -77,8 +77,10 @@ const float darknessRange = 32.0;
 
 // pixelated shadding
 #define TEXTURE_RESOLUTION 16 // 0=off 1=on
+#define PIXELATION_TYPE 2 // 0=all_off 1=voxelisation 2=texture_snap
 #define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
 #define PIXELATED_SPECULAR 1 // 0=off 1=on
+#define PIXELATED_BLOCKLIGHT 1 // 0=off 1=on
 #define PIXELATED_REFLECTION 0 // 0=off 1=on
 
 // custom normalmap for water

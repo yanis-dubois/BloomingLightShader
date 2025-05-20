@@ -10,6 +10,7 @@
 #include "/lib/shadow.glsl"
 #include "/lib/BRDF.glsl"
 #include "/lib/material.glsl"
+#include "/lib/pixelation.glsl"
 #include "/lib/lighting.glsl"
 #if REFLECTION_TYPE > 0 && defined TRANSPARENT
     #include "/lib/reflection.glsl"
@@ -125,6 +126,7 @@ void main() {
         vec4 textureColor = texture2D(gtexture, textureCoordinate);
     #endif
     vec3 tint = additionalColor.rgb;
+    float vanillaAmbientOcclusion = additionalColor.a;
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
 
@@ -141,15 +143,25 @@ void main() {
     // apply red flash when mob are hit
     albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
+    // 
+    #if PIXELATION_TYPE > 1
+        vec2 pixelationOffset = computeTexelOffset(gtexture, originalTextureCoordinate);
+    #else
+        vec2 pixelationOffset = vec2(0.0);
+    #endif
+
     // light data
     float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
     float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
-    float blockLightIntensity = max(lightMapCoordinate.x, heldBlockLight);
-    float ambientSkyLightIntensity = lightMapCoordinate.y;
-    // gamma correct light
-    blockLightIntensity = SRGBtoLinear(blockLightIntensity);
-    ambientSkyLightIntensity = SRGBtoLinear(ambientSkyLightIntensity);
+    vec2 lightMap = vec2(
+        max(lightMapCoordinate.x, heldBlockLight), 
+        smoothstep(0.0, 1.0, lightMapCoordinate.y)
+    );
+    // gamma correct
+    lightMap = SRGBtoLinear(lightMap);
+    // retrieve block light & ambient sky light
+    float blockLightIntensity = lightMap.x, ambientSkyLightIntensity = lightMap.y;
 
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0, porosity = 0.0;
@@ -160,8 +172,19 @@ void main() {
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);
 
-    // gamma correct albedo
-    albedo = SRGBtoLinear(albedo);
+    // pixelated block light
+    #if PIXELATION_TYPE > 1 && PIXELATED_BLOCKLIGHT > 0
+        vec4 texelLight = texelSnap(vec4(blockLightIntensity, ambientSkyLightIntensity, vanillaAmbientOcclusion, ambientOcclusion), pixelationOffset);
+        blockLightIntensity = texelLight.x;
+        ambientSkyLightIntensity = texelLight.y;
+        vanillaAmbientOcclusion = texelLight.z;
+        ambientOcclusion = texelLight.w;
+    #endif
+
+    // ambient occlusion
+    ambientOcclusion *= vanillaAmbientOcclusion;
+    // gamma correct albedo & apply vanilla ambient occlusion 
+    albedo = SRGBtoLinear(albedo) * vanillaAmbientOcclusion;
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
@@ -268,7 +291,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

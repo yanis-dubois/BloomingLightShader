@@ -1,4 +1,4 @@
-vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+vec4 doLighting(vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
                 float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float subsurfaceScattering, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
@@ -7,19 +7,28 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normalMap);
     float ambientLightDirectionDotNormal = dot(normal, normalMap);
-    #if PIXELATED_SPECULAR > 0
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition, normal));
+    #if PIXELATION_TYPE > 0 && PIXELATED_SPECULAR > 0
+        #if PIXELATION_TYPE > 1
+            vec3 specularWorldPosition = texelSnap(unanimatedWorldPosition, pixelationOffset);
+        #else
+            vec3 specularWorldPosition = voxelize(unanimatedWorldPosition, normal);
+        #endif
     #else
-        vec3 worldSpaceViewDirection = normalize(cameraPosition - unanimatedWorldPosition);
+        vec3 specularWorldPosition = unanimatedWorldPosition;
     #endif
+    vec3 worldSpaceViewDirection = normalize(cameraPosition - specularWorldPosition);
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
 
     // -- shadow -- //
     // apply offset in normal direction to avoid self shadowing
     vec3 offsetWorldSpacePosition = unanimatedWorldPosition + normal * 0.2;
     // pixelize if needed
-    #if PIXELATED_SHADOW > 0
-        offsetWorldSpacePosition = voxelize(offsetWorldSpacePosition, normal);
+    #if PIXELATION_TYPE > 0 && PIXELATED_SHADOW > 0
+        #if PIXELATION_TYPE > 1
+            offsetWorldSpacePosition = texelSnap(offsetWorldSpacePosition, pixelationOffset);
+        #else
+            offsetWorldSpacePosition = voxelize(offsetWorldSpacePosition, normal);
+        #endif
     #endif
     // add increasing offset in normal direction when further from player (avoid shadow acne)
     float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
@@ -27,7 +36,7 @@ vec4 doLighting(vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tang
     // get shadow
     vec4 shadow = vec4(0.0);
     if (distanceFromCamera < shadowDistance)
-        #if PIXELATED_SHADOW > 0
+        #if PIXELATION_TYPE > 0 && PIXELATED_SHADOW > 0
             shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent, ambientSkyLightIntensity);
         #else
             shadow = getSoftShadow(uv, offsetWorldSpacePosition);
