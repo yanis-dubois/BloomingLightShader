@@ -62,23 +62,11 @@ void main() {
 
     // -- bloom buffer -- //
     #if BLOOM_TYPE > 0
-        // no jitter when TAA is off
-        #if TAA_TYPE == 0
-            vec3 bloom = color;
-            float lightness = getLightness(bloom);
-            bloom = bloom * max(pow(lightness, 5.0) * 0.5, emissivness);
 
-        // apply jitter to avoid bloom glittering
-        #else
-            vec2 seed = uv + frameTimeCounter / 3600.0;
-            float zeta1 = dithering(seed, BLOOM_DITHERING_TYPE);
-            float zeta2 = dithering(seed + 0.5, BLOOM_DITHERING_TYPE);
-            vec2 offset = sampleDiskArea(zeta1, zeta2);
-            vec3 bloom = texture2D(colortex0, uv + 0.015 * offset).rgb;
-            float lightness = getLightness(bloom);
-            bloom = bloom * max(pow(lightness, 10.0) * 0.125, emissivness);
-            bloom = saturate(bloom, 1.66);
-        #endif
+        // extract bloom from color
+        vec3 bloom = color;
+        float lightness = getLightness(bloom);
+        bloom = bloom * max(pow(lightness, 10.0) * 0.125, emissivness);
 
         // sun bloom
         float sunMask = 0.0;
