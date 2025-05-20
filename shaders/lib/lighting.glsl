@@ -1,5 +1,5 @@
 vec4 doLighting(vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float subsurfaceScattering, float emissivness) {
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -133,18 +133,17 @@ vec4 doLighting(vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency,
     }
 
     // -- ambient occlusion
-    #if PBR_TYPE > 0
-        directSkyLight *= ambientOcclusion;
-        blockLight *= ambientOcclusion;
-        ambientSkyLight *= ambientOcclusion;
-        ambientLight *= ambientOcclusion;
-    #else
-        ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
-        directSkyLight *= ambientOcclusion * 0.75 + 0.25;
-        blockLight *= ambientOcclusion * 0.75 + 0.25;
-        ambientSkyLight *= ambientOcclusion * 0.25 + 0.75;
-        ambientLight *= ambientOcclusion * 0.25 + 0.75;
-    #endif
+    // PBR ao
+    directSkyLight *= ambientOcclusionPBR;
+    blockLight *= ambientOcclusionPBR;
+    ambientSkyLight *= ambientOcclusionPBR;
+    ambientLight *= ambientOcclusionPBR;
+    // custom ao
+    ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
+    directSkyLight *= ambientOcclusion * 0.75 + 0.25;
+    blockLight *= ambientOcclusion * 0.75 + 0.25;
+    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
+    ambientLight *= ambientOcclusion * 0.5 + 0.5;
 
     // -- BRDF -- //
     // -- diffuse

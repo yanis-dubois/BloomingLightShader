@@ -164,27 +164,35 @@ void main() {
     float blockLightIntensity = lightMap.x, ambientSkyLightIntensity = lightMap.y;
 
     // material data
-    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, subsurfaceScattering = 0.0, porosity = 0.0;
+    float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0, ambientOcclusion = 1.0, ambientOcclusionPBR = 1.0, subsurfaceScattering = 0.0, porosity = 0.0;
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
     getCustomMaterialData(id, normal, midBlock, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     // modify these PBR values if PBR textures are enable
-    getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);
+    getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusionPBR, subsurfaceScattering, porosity);
+
+    // gamma correct
+    albedo = SRGBtoLinear(albedo);
 
     // pixelated block light
-    #if PIXELATION_TYPE > 1 && PIXELATED_BLOCKLIGHT > 0
-        vec4 texelLight = texelSnap(vec4(blockLightIntensity, ambientSkyLightIntensity, vanillaAmbientOcclusion, ambientOcclusion), pixelationOffset);
+    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_BLOCKLIGHT > 0
+        vec2 texelLight = texelSnap(vec2(blockLightIntensity, ambientSkyLightIntensity), pixelationOffset);
         blockLightIntensity = texelLight.x;
         ambientSkyLightIntensity = texelLight.y;
-        vanillaAmbientOcclusion = texelLight.z;
-        ambientOcclusion = texelLight.w;
     #endif
 
-    // ambient occlusion
-    ambientOcclusion *= vanillaAmbientOcclusion;
-    // gamma correct albedo & apply vanilla ambient occlusion 
-    albedo = SRGBtoLinear(albedo) * vanillaAmbientOcclusion;
+    // pixelated ambient occlusion
+    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_AMBIENT_OCCLUSION > 0
+        vec2 texelAmbientOcclusion = texelSnap(vec2(vanillaAmbientOcclusion, ambientOcclusion), pixelationOffset);
+        vanillaAmbientOcclusion = texelAmbientOcclusion.x;
+        ambientOcclusion = texelAmbientOcclusion.y;
+    #endif
+
+    // vanilla ambient occlusion
+    #ifdef TERRAIN
+        albedo *= vanillaAmbientOcclusion;
+    #endif
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
@@ -291,7 +299,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

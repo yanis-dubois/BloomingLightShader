@@ -24,6 +24,7 @@ vec2 computeTexelOffset(sampler2D tex, vec2 uv) {
     return dST;
 }
 
+// apply offset to a certain value (position, light intensity, ...)
 vec4 texelSnap(vec4 value, vec2 texelOffset) {
     if (texelOffset == vec2(0.0)) return value;
     vec4 dx = dFdx(value);
@@ -34,8 +35,6 @@ vec4 texelSnap(vec4 value, vec2 texelOffset) {
 
     return value + valueOffset;
 }
-
-// apply offset to a certain value (position, light intensity, ...)
 vec3 texelSnap(vec3 value, vec2 texelOffset) {
     if (texelOffset == vec2(0.0)) return value;
     vec3 dx = dFdx(value);
@@ -46,5 +45,13 @@ vec3 texelSnap(vec3 value, vec2 texelOffset) {
 
     return value + valueOffset;
 }
+vec2 texelSnap(vec2 value, vec2 texelOffset) {
+    if (texelOffset == vec2(0.0)) return value;
+    vec2 dx = dFdx(value);
+    vec2 dy = dFdy(value);
 
+    vec2 valueOffset = dx * texelOffset.x + dy * texelOffset.y;
+    valueOffset = clamp(valueOffset, -1.0, 1.0);
 
+    return value + valueOffset;
+}

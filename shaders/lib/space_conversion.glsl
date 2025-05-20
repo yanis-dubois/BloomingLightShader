@@ -71,7 +71,11 @@ vec3 worldToView(vec3 worldPosition) {
 }
 
 vec3 screenToNDC(vec2 uv, float depth) {
-    return vec3(uv, depth) * 2.0 - 1.0;
+    #ifdef HAND
+        return (vec3(uv, depth) * 2.0 - 1.0) / MC_HAND_DEPTH;
+    #else
+        return vec3(uv, depth) * 2.0 - 1.0;
+    #endif
 }
 
 vec3 NDCToScreen(vec3 NDCPosition) {
