@@ -326,6 +326,10 @@ bool isSolidFoliage(int id) {
 bool isUnderGrowth(int id) {
     return 10000 <= id && id < 20000 && !isFoliage(id);
 }
+// undergrowth with a fixed position (no randomization)
+bool isCrop(int id) {
+    return id == 10005;
+}
 bool isRooted(int id) {
     return isUnderGrowth(id) && id != 10021 && id != 10022;
 }
@@ -357,6 +361,9 @@ bool isPicherCropLower(int id) {
 bool isPicherCropUpper(int id) {
     return id == 10009;
 }
+bool isPicherCrop(int id) {
+    return isPicherCropLower(id) || isPicherCropUpper(id);
+}
 // ---------------------- //
 // ----- subsurface ----- //
 // ---------------------- //
@@ -364,13 +371,16 @@ bool hasNoAmbiantOcclusion(int id) {
     return isFoliage(id) || isSolidFoliage(id) || isTeensy(id) || id == 10022;
 }
 bool hasSubsurface(int id) {
-    return 10000 <= id && id < 20000;
+    return 10000 <= id && id < 10100;
 }
 bool isColumnSubsurface(int id) {
     return id == 10021 || id == 10055 || id == 10060;
 }
 bool isCobweb(int id) {
     return id == 10070;
+}
+bool isEnviroProps(int id) {
+    return 10000 <= id && id < 20000;
 }
 // ---------------------- //
 // --- animated light --- //
@@ -383,15 +393,29 @@ bool hasNormalJittering(int id) {
     return id == 20000;
 }
 
-// offset midBlock coordinate to make the root of foliage the origin
+// offset midBlock coordinate to make the root of foliage the origin (used for vertex animation)
 vec3 midBlockToRoot(int id, vec3 midBlock) {
     if (isSmall(id)) midBlock.y *= 2.0;
     else if (isTiny(id)) midBlock.y *= 4.0;
     else if (isCeilingRooted(id)) midBlock.y = 1.0 - midBlock.y;
     else if (isTallLower(id)) midBlock.y *= 0.5;
     else if (isTallUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5;
-    else if (isPicherCropLower(id)) midBlock.y = max(midBlock.y * 0.6875 - 0.3125, 0.0);
-    else if (isPicherCropUpper(id)) midBlock.y = midBlock.y * 0.6875 + 0.6875 - 0.3125;
+    else if (isPicherCropLower(id)) midBlock.y = 0.5 * midBlock.y - 0.1875;
+    else if (isPicherCropUpper(id)) midBlock.y = 0.5 * midBlock.y + 0.5 - 0.1875;
 
     return midBlock;
+}
+// offset local UV coordinate to make the root of foliage the origin (used for ambient occlusion)
+vec2 offsetUV(int id, vec2 uv) {
+    uv.x = uv.x * 2.0 - 1.0;
+
+    if (isCeilingRooted(id)) return uv;
+
+    uv.y = 1.0 - uv.y;
+    if (isSmall(id)) uv.y * 2.0;
+    else if (isTiny(id)) uv.y *= 4.0;
+    else if (isTallLower(id)) uv.y *= 0.5;
+    else if (isTallUpper(id)) uv.y = uv.y * 0.5 + 0.5;
+
+    return uv;
 }

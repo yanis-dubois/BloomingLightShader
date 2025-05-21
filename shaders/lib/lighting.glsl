@@ -1,4 +1,4 @@
-vec4 doLighting(vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
                 float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
@@ -71,9 +71,11 @@ vec4 doLighting(vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency,
             float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
             float subsurfaceDirectSkyLightIntensity = smoothstep(0.0, 0.5, abs(lightDirectionDotNormal));
             directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
-            directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
         }
     #endif
+    if (isEnviroProps(id)) {
+        directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
+    }
     // tweak for south and north facing fragment
     directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
     // reduce contribution if no ambiant sky light (avoid cave leak)

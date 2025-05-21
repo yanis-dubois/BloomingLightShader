@@ -88,17 +88,16 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
             }
         }
 
-        // transparency is not supported for particles ...
-        // // all type of transparent particles
-        // bool isRain = isEqual(texture, vec3(72.0, 106.0, 204.0) / 255.0, 2.0/255.0)
-        //     || isEqual(texture, vec3(23.0, 72.0, 204.0) / 255.0, 6.0/255.0)
-        //     || isEqual(texture, vec3(0.0, 54.0, 204.0) / 255.0, 2.0/255.0);
+        // all type of transparent particles
+        bool isRain = isEqual(texture, vec3(72.0, 106.0, 204.0) / 255.0, 2.0/255.0)
+            || isEqual(texture, vec3(23.0, 72.0, 204.0) / 255.0, 6.0/255.0)
+            || isEqual(texture, vec3(0.0, 54.0, 204.0) / 255.0, 2.0/255.0);
 
-        // // transparent
-        // if (isRain) {
-        //     transparency *= rainStrength;
-        //     transparency = min(transparency, 0.2);
-        // }
+        // transparent
+        if (isRain) {
+            transparency *= rainStrength;
+            transparency = min(transparency, 0.2);
+        }
     #endif
 
     // weather particles
@@ -113,7 +112,7 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
     #endif
 }
 
-void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 texture, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
+void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTextureCoordinate, vec3 texture, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
     #ifndef PARTICLE
 
@@ -192,27 +191,37 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec3 texture, vec
             reflectance = getReflectance(n1, 2.5);
             subsurfaceScattering = 1.0;
 
-            // leaves
-            if (hasNoAmbiantOcclusion(id)) {
-                
-            }
-            // flowers
-            else if (isThin(id)) {
-                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-                ambientOcclusion = distance(0.0, objectSpacePosition.y);
-                ambientOcclusion = min(ambientOcclusion, 1.0);
-            }
-            // sugar cane
-            else if (isColumnSubsurface(id)) {
-                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-                ambientOcclusion = distance(vec2(0.0), objectSpacePosition.xz);
-                ambientOcclusion = min(ambientOcclusion * 5.0, 1.0);
-            }
-            // other foliage
-            else {
-                vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
-                ambientOcclusion = distance(vec3(0.0), objectSpacePosition);
-            }
+            #if AMBIENT_OCCLUSION_TYPE > 0
+                // leaves
+                if (hasNoAmbiantOcclusion(id)) {
+                    
+                }
+                // pithcer crop
+                else if (isPicherCrop(id) || isCrop(id)) {
+                    vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+                    if (objectSpacePosition.y > 0.0) {
+                        ambientOcclusion = distance(0.0, objectSpacePosition.y);
+                        ambientOcclusion = min(ambientOcclusion, 1.0);
+                    }
+                }
+                // flowers
+                else if (isThin(id)) {
+                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+                    ambientOcclusion = distance(0.0, objectSpacePosition.y);
+                    ambientOcclusion = min(ambientOcclusion, 1.0);
+                }
+                // sugar cane
+                else if (isColumnSubsurface(id)) {
+                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+                    ambientOcclusion = distance(0.0, objectSpacePosition.x);
+                    ambientOcclusion = min(2.0 * ambientOcclusion, 1.0);
+                }
+                // other foliage
+                else {
+                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+                    ambientOcclusion = distance(vec2(0.0), objectSpacePosition);
+                }
+            #endif
         }
         // reflective & subsurface
         if (id == 20013) {

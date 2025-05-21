@@ -60,6 +60,8 @@ void main() {
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
 
+    // colorData = vec4(localTextureCoordinate, 0, 1); return;
+
     // blending transition between classic terrain & DH terrain
     #ifdef DISTANT_HORIZONS
         vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
@@ -168,7 +170,7 @@ void main() {
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
-    getCustomMaterialData(id, normal, midBlock, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
+    getCustomMaterialData(id, normal, midBlock, localTextureCoordinate, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusionPBR, subsurfaceScattering, porosity);
 
@@ -299,7 +301,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
