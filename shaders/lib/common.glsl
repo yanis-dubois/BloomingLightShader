@@ -157,8 +157,9 @@ const float darknessRange = 32.0;
 // water caustics
 #define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
 
-// distortion
-#define DISTORTION_WATER_REFRACTION 1 // 0=off 1=on
+// light refraction effect
+#define REFRACTION_UNDERWATER 1 // 0=off 1=on
+#define REFRACTION_NETHER 1 // 0=off 1=on
 
 // players status
 #define STATUS_DYING_TYPE 1 // 0=off 1=on

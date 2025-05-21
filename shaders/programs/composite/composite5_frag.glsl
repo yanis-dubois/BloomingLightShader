@@ -24,13 +24,19 @@ layout(location = 0) out vec4 colorData;
 void main() {
     vec2 UV = uv;
 
-    // -- water refraction -- //
-    #if DISTORTION_WATER_REFRACTION > 0
+    // -- light refraction -- //
+    // underwater
+    #if REFRACTION_UNDERWATER > 0 && !defined NETHER
         if (isEyeInWater == 1) {
             float depth = texture2D(depthtex0, uv).r;
             vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
             UV = uv + doWaterRefraction(frameTimeCounter, uv, eyeSpaceDirection);
         }
+    // nether
+    #elif REFRACTION_NETHER > 0 && defined NETHER
+        float depth = texture2D(depthtex0, uv).r;
+        vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
+        UV = uv + doHeatRefraction(frameTimeCounter, uv, eyeSpaceDirection);
     #endif
 
     // -- dying effect (pulsating chromatic aberation) -- //

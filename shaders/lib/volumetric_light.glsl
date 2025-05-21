@@ -55,17 +55,22 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
 
         // density
         scatteringCoefficient = 0.012 * getVolumetricFogDensity(rayWorldSpacePosition.y, normalizedRayDistance);
-
         maxScattering = max(maxScattering, scatteringCoefficient);
 
         // get shadow
-        vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
-        vec4 shadow = getShadow(shadowClipPos, true);
-        vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
+        #ifndef NETHER
+            vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
+            vec4 shadow = getShadow(shadowClipPos, true);
+            vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
+        #endif
 
         // compute inscattered light
-        float scattering = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
-        vec3 inscatteredLight = shadowedLight * scattering * stepSize;
+        float scatteringAbsorption = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
+        #ifndef NETHER
+            vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
+        #else
+            float inscatteredLight = scatteringAbsorption * stepSize;
+        #endif
 
         // add light contribution
         accumulatedLight += inscatteredLight;

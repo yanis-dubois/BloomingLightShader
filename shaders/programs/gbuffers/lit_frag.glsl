@@ -55,12 +55,12 @@ layout(location = 3) out vec4 lightAndMaterialData;
 
 void main() {
 
+    // colorData = vec4(lightMapCoordinate, 0, 1); return;
+
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
-
-    // colorData = vec4(localTextureCoordinate, 0, 1); return;
 
     // blending transition between classic terrain & DH terrain
     #ifdef DISTANT_HORIZONS

@@ -15,7 +15,11 @@ vec2 getWind() {
     return getWind(_);
 }
 
-float getVerticalNoise(vec3 seed, float amplitude) {
+float getCalmNoise(vec3 seed, float amplitude) {
+    float noise = snoise_3D(seed);
+    return amplitude * noise;
+}
+float getContrastedNoise(vec3 seed, float amplitude) {
     float noise = snoise_3D(seed);
 
     // base
@@ -25,8 +29,7 @@ float getVerticalNoise(vec3 seed, float amplitude) {
 
     return amplitude * noise;
 }
-
-float getHorizontalNoise(vec3 seed, float amplitude) {
+float getSpikyNoise(vec3 seed, float amplitude) {
     float noise = snoise_3D(seed);
 
     // spike
@@ -37,6 +40,17 @@ float getHorizontalNoise(vec3 seed, float amplitude) {
     return amplitude * noise;
 }
 
+vec2 doHeatRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
+    float amplitude = 0.00165;
+    time = time * 0.3;
+    vec3 seed = vec3(eyeSpaceDirection * 5.25);
+    eyeSpaceDirection.y *= 0.33;
+    seed.y -= time;
+
+    uv.x = amplitude * snoise_3D(seed);
+    uv.y = amplitude * snoise_3D(seed + 1.0);
+    return uv;
+}
 vec2 doWaterRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
     float amplitude = 0.005;
     time = time * 0.15;
@@ -94,9 +108,12 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
 }
 
 vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientSkyLightIntensity) {
+    // setup amplitude
     float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 6.0;
     // attenuate wind in caves
-    amplitude *= ambientSkyLightIntensity;
+    #ifndef NETHER
+        amplitude *= ambientSkyLightIntensity;
+    #endif
     if (amplitude <= 0.01) return worldSpacePosition;
     time *= 0.2;
 
@@ -108,15 +125,27 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;
 
-    vec3 horizontalSeed = vec3(
-        coord.x/20.0 - time, 
-        coord.y/180.0, 
-        worldSpacePosition.y/50.0 + 0.1 * time
-    );
-    vec3 verticalSeed = vec3(worldSpacePosition.xz/15.0 - time * normalize(wind), worldSpacePosition.y/50.0 + 0.1 * time);
+    #ifndef NETHER
+        vec3 seed1 = vec3(
+            coord.x/20.0 - time, 
+            coord.y/180.0, 
+            worldSpacePosition.y/50.0 + 0.1 * time
+        );
+        vec3 seed2 = vec3(worldSpacePosition.xz/15.0 - time * normalize(wind), worldSpacePosition.y/50.0 + 0.1 * time);
+    #else 
+        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.1 * time);
+    #endif
 
-    worldSpacePosition.xz += wind * vec2(getHorizontalNoise(horizontalSeed, amplitude));
-    worldSpacePosition.y += getVerticalNoise(verticalSeed, amplitude);
+    #ifndef NETHER
+        worldSpacePosition.xz += wind * vec2(getSpikyNoise(seed1, amplitude));
+        worldSpacePosition.y += getContrastedNoise(seed2, amplitude);
+    #else
+        amplitude *= 0.25;
+        worldSpacePosition.x += getCalmNoise(seed, amplitude);
+        worldSpacePosition.y += getCalmNoise(seed + 15.0, amplitude);
+        worldSpacePosition.z += getCalmNoise(seed + 45.0, amplitude);
+    #endif
+
     return worldSpacePosition;
 }
 
@@ -124,7 +153,9 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
 vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
     float amplitude = 1.0 / 3.0;
     // attenuate wind in caves
-    amplitude *= ambientSkyLightIntensity;
+    #ifndef NETHER
+        amplitude *= ambientSkyLightIntensity;
+    #endif
     if (amplitude <= 0.01) return worldSpacePosition;
     time *= 0.2;
 
@@ -136,12 +167,16 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;
 
-    vec3 seed = vec3(
-        coord.x/20.0 - time, 
-        coord.y/180.0, 
-        worldSpacePosition.y/50.0 + 0.1 * time
-    );
-    vec3 verticalSeed = vec3(worldSpacePosition.xz/10.0 - time, worldSpacePosition.y/50.0 + 0.1 * time);
+    #ifndef NETHER
+        vec3 seed1 = vec3(
+            coord.x/20.0 - time, 
+            coord.y/180.0, 
+            worldSpacePosition.y/50.0 + 0.1 * time
+        );
+        vec3 seed2 = vec3(worldSpacePosition.xz/10.0 - time, worldSpacePosition.y/50.0 + 0.1 * time);
+    #else 
+        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.1 * time);
+    #endif
 
     // attuenuate amplitude at the root if rooted
     if (isRooted(id)) {
@@ -149,8 +184,16 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
         amplitude *= rootOrigin.y;
     }
 
-    worldSpacePosition.xz += wind * vec2(getHorizontalNoise(seed, amplitude));
-    worldSpacePosition.xz += getVerticalNoise(verticalSeed, 0.25 * amplitude);
+    #ifndef NETHER
+        worldSpacePosition.xz += wind * vec2(getSpikyNoise(seed1, amplitude));
+        worldSpacePosition.x += getContrastedNoise(seed2, 0.25 * amplitude);
+        worldSpacePosition.z += getContrastedNoise(seed2 + 15.0, 0.25 * amplitude);
+    #else
+        amplitude *= 0.25;
+        worldSpacePosition.x += getCalmNoise(seed, amplitude);
+        worldSpacePosition.z += getCalmNoise(seed + 15.0, amplitude);
+    #endif
+    
     return worldSpacePosition;
 }
 

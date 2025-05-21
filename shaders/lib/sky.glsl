@@ -31,112 +31,116 @@ vec3 getVanillaSkyColor(vec3 eyeSpacePosition) {
 
 // custom
 vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {
-    emissivness = 0.0;
+    #ifdef OVERWORLD
+        emissivness = 0.0;
 
-    // directions 
-    vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-    vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
+        // directions 
+        vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+        vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
 
-    // angles
-    float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
-    float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
-    float viewDotSun = dot(eyeSpaceViewDirection, eyeSpaceSunDirection);
+        // angles
+        float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
+        float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
+        float viewDotSun = dot(eyeSpaceViewDirection, eyeSpaceSunDirection);
 
-    // sky light color
-    vec3 skylightColor = getSkyLightColor();
+        // sky light color
+        vec3 skylightColor = getSkyLightColor();
 
-    // -- base color -- //
-    // day gradient
-    vec3 dayColor = mix(dayDownColor, dayMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
-    dayColor = mix(dayColor, dayTopColor, smoothstep(0.25, 1.0, viewDotUp));
-    // night gradient
-    vec3 nightColor = mix(nightDownColor, nightMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
-    nightColor = mix(nightColor, nightTopColor, smoothstep(0.25, 1.0, viewDotUp));
-    nightColor *= 0.5;
-    // blend between night, day
-    vec3 skyColor = mix(nightColor, dayColor, smoothstep(-0.15, 0.25, sunDotUp));
+        // -- base color -- //
+        // day gradient
+        vec3 dayColor = mix(dayDownColor, dayMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
+        dayColor = mix(dayColor, dayTopColor, smoothstep(0.25, 1.0, viewDotUp));
+        // night gradient
+        vec3 nightColor = mix(nightDownColor, nightMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
+        nightColor = mix(nightColor, nightTopColor, smoothstep(0.25, 1.0, viewDotUp));
+        nightColor *= 0.5;
+        // blend between night, day
+        vec3 skyColor = mix(nightColor, dayColor, smoothstep(-0.15, 0.25, sunDotUp));
 
-    // -- sunset -- //
-    // day gradient
-    vec3 sunsetColor = mix(sunsetDownColor, sunsetMiddleColor, smoothstep(-0.25, 0.3, viewDotUp));
-    sunsetColor = mix(sunsetColor, sunsetTopColor, smoothstep(0.0, 0.5, viewDotUp));
-    sunsetColor = mix(sunsetColor, sunsetHighColor, smoothstep(0.3, 1.0, viewDotUp));
-    // blend
-    float sunsetFactor = min(smoothstep(-0.1, 0.0, sunDotUp), 1.0 - smoothstep(0.0, 0.25, sunDotUp));
-    skyColor = mix(skyColor, sunsetColor, sunsetFactor);
-    // add reddish color near the sun
-    float redSunsetFactor = 1.0 - smoothstep(0.0, 0.2, abs(viewDotUp));
-    redSunsetFactor = mix(0.0, redSunsetFactor, max(viewDotSun, 0.0));
-    skyColor = mix(skyColor, sunsetNearColor, sunsetFactor * redSunsetFactor * 0.75);
+        // -- sunset -- //
+        // day gradient
+        vec3 sunsetColor = mix(sunsetDownColor, sunsetMiddleColor, smoothstep(-0.25, 0.3, viewDotUp));
+        sunsetColor = mix(sunsetColor, sunsetTopColor, smoothstep(0.0, 0.5, viewDotUp));
+        sunsetColor = mix(sunsetColor, sunsetHighColor, smoothstep(0.3, 1.0, viewDotUp));
+        // blend
+        float sunsetFactor = min(smoothstep(-0.1, 0.0, sunDotUp), 1.0 - smoothstep(0.0, 0.25, sunDotUp));
+        skyColor = mix(skyColor, sunsetColor, sunsetFactor);
+        // add reddish color near the sun
+        float redSunsetFactor = 1.0 - smoothstep(0.0, 0.2, abs(viewDotUp));
+        redSunsetFactor = mix(0.0, redSunsetFactor, max(viewDotSun, 0.0));
+        skyColor = mix(skyColor, sunsetNearColor, sunsetFactor * redSunsetFactor * 0.75);
 
-    // -- rain -- //
-    // rainy gradient
-    vec3 rainyColor = mix(rainyDownColor, rainyMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
-    rainyColor = mix(rainyColor, rainyTopColor, smoothstep(0.25, 1.0, viewDotUp));
-    // darken rainy sky during night
-    rainyColor *= mix(0.3, 1.0, smoothstep(-0.15, 0.25, sunDotUp));
-    skyColor = mix(skyColor, rainyColor, rainStrength);
-    skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
+        // -- rain -- //
+        // rainy gradient
+        vec3 rainyColor = mix(rainyDownColor, rainyMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
+        rainyColor = mix(rainyColor, rainyTopColor, smoothstep(0.25, 1.0, viewDotUp));
+        // darken rainy sky during night
+        rainyColor *= mix(0.3, 1.0, smoothstep(-0.15, 0.25, sunDotUp));
+        skyColor = mix(skyColor, rainyColor, rainStrength);
+        skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
-    // -- horizon fog -- //
-    vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
-    fogColor = vec3(getLightness(skylightColor));
-    float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
-    skyColor = mix(skyColor, fogColor, horizonFactor);
+        // -- horizon fog -- //
+        vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
+        fogColor = vec3(getLightness(skylightColor));
+        float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
+        skyColor = mix(skyColor, fogColor, horizonFactor);
 
-    // -- glare -- //
-    float glareFactor = 0.0;
-    // sun glare
-    if (viewDotSun > 0.0) {
-        glareFactor = 0.5 * exp(- 5.0 * abs(viewDotSun - 1.0)) * (1.0 - abs(viewDotSun - 1.0));
-        glareFactor *= smoothstep(-0.15, 0.0, sunDotUp); // remove glare if under horizon
-    }
-    // moon glare
-    else {
-        glareFactor = map(getMoonPhase(), 0.0, 1.0, 0.05, 0.15) * exp(- 40.0 * abs(viewDotSun + 1.0));
-        glareFactor *= smoothstep(-0.15, 0.0, - sunDotUp); // remove glare if under horizon
-    }
-    // attenuate as it rains
-    glareFactor = mix(glareFactor, glareFactor * 0.5, rainStrength);
-    // apply glare
-    skyColor = mix(skyColor, skyColor*0.6 + glareColor, glareFactor);
+        // -- glare -- //
+        float glareFactor = 0.0;
+        // sun glare
+        if (viewDotSun > 0.0) {
+            glareFactor = 0.5 * exp(- 5.0 * abs(viewDotSun - 1.0)) * (1.0 - abs(viewDotSun - 1.0));
+            glareFactor *= smoothstep(-0.15, 0.0, sunDotUp); // remove glare if under horizon
+        }
+        // moon glare
+        else {
+            glareFactor = map(getMoonPhase(), 0.0, 1.0, 0.05, 0.15) * exp(- 40.0 * abs(viewDotSun + 1.0));
+            glareFactor *= smoothstep(-0.15, 0.0, - sunDotUp); // remove glare if under horizon
+        }
+        // attenuate as it rains
+        glareFactor = mix(glareFactor, glareFactor * 0.5, rainStrength);
+        // apply glare
+        skyColor = mix(skyColor, skyColor*0.6 + glareColor, glareFactor);
 
-    if (!isFog) {
-        // -- stars -- //
-        if (sunDotUp < 0.15) {
-            const float sacleFactor = 350.0;
-            const float threshold = 0.995;
-            eyeSpaceViewDirection.y += 0.75; // offset to avoid pole streching
-            vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpaceViewDirection);
-            vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
+        if (!isFog) {
+            // -- stars -- //
+            if (sunDotUp < 0.15) {
+                const float sacleFactor = 350.0;
+                const float threshold = 0.995;
+                eyeSpaceViewDirection.y += 0.75; // offset to avoid pole streching
+                vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpaceViewDirection);
+                vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
 
-            // add star
-            if (interleavedGradient(seed) > threshold) {
-                float noise_ = interleavedGradient(seed+1.5);
-                float intensity = noise_*noise_;
-                intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
-                intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
-                intensity = min(max(intensity, 0.0), (1 - rainStrength));
-                skyColor = mix(skyColor, vec3(1.0), intensity);
-                emissivness = intensity;
+                // add star
+                if (interleavedGradient(seed) > threshold) {
+                    float noise_ = interleavedGradient(seed+1.5);
+                    float intensity = noise_*noise_;
+                    intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
+                    intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
+                    intensity = min(max(intensity, 0.0), (1 - rainStrength));
+                    skyColor = mix(skyColor, vec3(1.0), intensity);
+                    emissivness = intensity;
+                }
             }
         }
-    }
 
-    // -- underground fog -- //
-    vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12) * 2.0;
-    float heightBlend = map(cameraPosition.y, 40.0, 60.0, 0.0, 1.0);
-    skyColor = mix(undergroundFogColor, skyColor, heightBlend);
+        // -- underground fog -- //
+        vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12) * 2.0;
+        float heightBlend = map(cameraPosition.y, 40.0, 60.0, 0.0, 1.0);
+        skyColor = mix(undergroundFogColor, skyColor, heightBlend);
 
-    // -- noise to avoid color bending -- //
-    vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
-    float dither = 0.015 * interleavedGradient(polarWorldSpaceViewDirection.yz);
-    skyColor += dither;
+        // -- noise to avoid color bending -- //
+        vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
+        float dither = 0.015 * interleavedGradient(polarWorldSpaceViewDirection.yz);
+        skyColor += dither;
 
-    // apply blindness & darkness
-    skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));
+        // apply blindness & darkness
+        skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));
 
-    return skyColor;
+        return skyColor;
+    #else
+        return fogColor;
+    #endif
 }
 
 vec3 getSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {

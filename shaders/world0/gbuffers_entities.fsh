@@ -1,5 +1,0 @@
-#version 140
-
-#define ENTITY
-
-#include "/programs/gbuffers/lit_frag.glsl"

@@ -12,10 +12,8 @@ const vec3 light20000K = vec3(0.6694260712462251, 0.7779863207340414, 1.0); // d
 const vec3 bloomSunLight = vec3(1.0, 0.5, 0.125);
 
 vec3 getSkyLightColor() {
-    // no variations
-    #if SKY_LIGHT_COLOR == 0
-        return vec3(1.0);
-    #else
+    // overworld
+    #if SKY_LIGHT_COLOR > 0 && defined OVERWORLD
         // day time
         vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
         vec3 eyeSpaceMoonDirection = normalize(mat3(gbufferModelViewInverse) * moonPosition);
@@ -43,6 +41,9 @@ vec3 getSkyLightColor() {
 
         skyLightColor = SRGBtoLinear(skyLightColor);
         return skyLightColor;
+
+    #else
+        return vec3(1.0);
     #endif
 }
 

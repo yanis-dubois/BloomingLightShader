@@ -22,44 +22,67 @@ vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
 }
 
 vec3 getVolumetricFogColor() {
-    if (isEyeInWater > 1) return getLavaFogColor();
-    if (isEyeInWater == 1) return getWaterFogColor();
-    return vec3(1.0);
+    #ifdef OVERWORLD
+        if (isEyeInWater > 1) return getLavaFogColor();
+        if (isEyeInWater == 1) return getWaterFogColor();
+        return vec3(1.0);
+    #else
+        return saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+    #endif
 }
+
+#if defined OVERWORLD
+    const float seaLevel = 62.0;
+#elif defined NETHER
+    const float seaLevel = 30.0;
+#else
+    const float seaLevel = 0.0; // ???
+#endif
 
 float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 10.0;
 
-    float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.27;
-    float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
+    #ifdef OVERWORLD
+        float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.27;
+        float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
 
-    // higher density during morning / night / rain
-    vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
-    float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
-    if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
-    float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
-    density = mix(density, maxFogDensity, rainStrength);
+        // higher density during morning / night / rain
+        vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
+        float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
+        if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
+        float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
+        density = mix(density, maxFogDensity, rainStrength);
+    #else
+        float density = 0.5;
+    #endif
 
     // increase density as the fragment is far away
     float distanceDensityIncrease = pow(2.2, - (normalizedDistance * 3.3) * (normalizedDistance * 3.3)) * (1.0 - normalizedDistance);
     density = mix(density, density * 2.0, distanceDensityIncrease);
 
     // reduce density from sea level as altitude increase
-    float heightFactor = map(worldSpaceHeight, 62.0, 122.0, 0.0, 1.0);
-    float heightDensitydecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
-    density = mix(density, 0.25 * density, heightDensitydecrease);
+    float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+40.0, 0.0, 1.0);
+    float heightDensityDecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
+    #ifdef OVERWORLD
+        float heightDensityDecreaseFactor = 0.25;
+    #else
+        float heightDensityDecreaseFactor = 0.125;
+    #endif
+    density = mix(density, heightDensityDecreaseFactor * density, heightDensityDecrease);
 
     return density;
 }
 
-float getFogDensity(float worldSpaceHeight) {
+float getFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 1.0;
 
-    // higher density in caves
-    float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, 62.0, 0.0, 1.0);
-    float density = mix(0.0, 0.66, caveHeightFactor);
-
-    return density;
+    #ifdef NETHER
+        return 0.25;
+    #else
+        // higher density in overworld caves
+        float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, seaLevel, 0.0, 1.0);
+        return mix(0.0, 0.66, caveHeightFactor);
+    #endif
 }
 
 // density [0.1;0.9]
@@ -122,7 +145,7 @@ float getFogFactor(vec3 worldSpacePosition) {
         float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
         float normalizedLinearDepth = distanceFromCamera / renderDistance;
 
-        float fogDensity = getFogDensity(worldSpacePosition.y);
+        float fogDensity = getFogDensity(worldSpacePosition.y, normalizedLinearDepth);
         fogDensity = 1.0 - map(fogDensity, 0.0, 1.0, 0.2, 0.8);
         float fogFactor = getCustomFogFactor(normalizedLinearDepth, fogDensity);
     #endif

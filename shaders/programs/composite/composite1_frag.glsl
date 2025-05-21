@@ -50,7 +50,7 @@ void main() {
     }
 
     // -- volumetric light -- //
-    #if SHADOW_TYPE > 0 && VOLUMETRIC_LIGHT_TYPE > 0
+    #if SHADOW_TYPE > 0 && VOLUMETRIC_LIGHT_TYPE > 0 && defined OVERWORLD
         float ambientSkyLightIntensity = depthOpaque == 1.0 ? 1.0 : lightAndMaterialData.r;
         volumetricLighting(uv, depthOpaque, ambientSkyLightIntensity, color);
     #endif
@@ -77,13 +77,15 @@ void main() {
         vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
         vec3 polarSunPosition = cartesianToPolar(eyeSpaceSunPosition);
         float radius = 0.075;
-        // cut sun & moon glare
-        if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) < radius) {
-            sunMask = emissivness;
-            #if BLOOM_TYPE > 1
-                bloom *= 1.0 - sunMask;
-            #endif
-        }
+        // add a special bloom fir the sun
+        #ifdef OVERWORLD
+            if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) < radius) {
+                sunMask = emissivness;
+                #if BLOOM_TYPE > 1
+                    bloom *= 1.0 - sunMask;
+                #endif
+            }
+        #endif
 
         bloomData = vec4(linearToSRGB(bloom), sunMask);
     #else
