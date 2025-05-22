@@ -12,7 +12,7 @@
 #include "/lib/material.glsl"
 #include "/lib/pixelation.glsl"
 #include "/lib/lighting.glsl"
-#if REFLECTION_TYPE > 0 && defined TRANSPARENT
+#if REFLECTION_TYPE > 0 && defined REFLECTIVE
     #include "/lib/reflection.glsl"
 #endif
 #if PBR_POM_TYPE > 0
@@ -26,7 +26,7 @@ uniform sampler2D gtexture;
 uniform sampler2D normals;
 uniform sampler2D specular;
 
-#if REFLECTION_TYPE > 0 && defined TRANSPARENT
+#if REFLECTION_TYPE > 0 && defined REFLECTIVE
     uniform sampler2D colortex4; // opaque color
     uniform sampler2D colortex5; // opaque light & material (ambientSkyLightIntensity, emissivness, smoothness, reflectance)
     uniform sampler2D depthtex1; // opaque depth
@@ -54,8 +54,6 @@ layout(location = 2) out vec4 reflectionData;
 layout(location = 3) out vec4 lightAndMaterialData;
 
 void main() {
-
-    // colorData = vec4(lightMapCoordinate, 0, 1); return;
 
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
