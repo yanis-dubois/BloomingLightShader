@@ -40,6 +40,18 @@ float getSpikyNoise(vec3 seed, float amplitude) {
     return amplitude * noise;
 }
 
+float getNetherVolumetricFog(float time, vec3 seed) {
+    seed.y *= 0.045;
+    seed.xz *= 0.15;
+
+    time = time * 0.33;
+    seed.y -= time;
+
+    float noise = snoise_4D(vec4(seed, 0.5*time)) * 0.5 + 0.5;
+    noise = smoothstep(0.7, 1.0, noise);
+    return noise;
+}
+
 vec2 doHeatRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
     float amplitude = 0.00165;
     time = time * 0.3;
@@ -133,7 +145,7 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
         );
         vec3 seed2 = vec3(worldSpacePosition.xz/15.0 - time * normalize(wind), worldSpacePosition.y/50.0 + 0.1 * time);
     #else 
-        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.1 * time);
+        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.15 * time);
     #endif
 
     #ifndef NETHER
@@ -175,7 +187,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
         );
         vec3 seed2 = vec3(worldSpacePosition.xz/10.0 - time, worldSpacePosition.y/50.0 + 0.1 * time);
     #else 
-        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.1 * time);
+        vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.15 * time);
     #endif
 
     // attuenuate amplitude at the root if rooted

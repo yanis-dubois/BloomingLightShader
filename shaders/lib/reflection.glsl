@@ -200,13 +200,18 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
     float reflectedDirectionDotZ = dot(reflectedDirection, vec3(0.0, 0.0, -1.0));
 
     // background color
-    float backgroundEmissivness; // useless here
-    vec3 outdoorBackground = isEyeInWater==0 
-        ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
-        : SRGBtoLinear(getWaterFogColor());
-    if (normal.y < -0.1) outdoorBackground *= 0.5;
-    vec3 indoorBackGround = vec3(0.0);
-    vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
+    #ifdef OVERWORLD
+        float backgroundEmissivness; // useless here
+        vec3 outdoorBackground = isEyeInWater==0 
+            ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
+            : SRGBtoLinear(getWaterFogColor());
+        if (normal.y < -0.1) outdoorBackground *= 0.5;
+        vec3 indoorBackGround = vec3(0.0);
+        vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
+    #else
+        float backgroundEmissivness; // useless here
+        vec3 backgroundColor = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
+    #endif
 
     // lite version (only fresnel)
     vec3 reflection = backgroundColor;

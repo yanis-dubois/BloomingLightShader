@@ -58,19 +58,20 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         maxScattering = max(maxScattering, scatteringCoefficient);
 
         // get shadow
-        #ifndef NETHER
+        #ifdef OVERWORLD
             vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
             vec4 shadow = getShadow(shadowClipPos, true);
             vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
+        #elif defined NETHER
+            float shadowTransparency = getNetherVolumetricFog(frameTimeCounter, rayWorldSpacePosition);
+            vec3 shadowColor = vec3(1.0);
+            vec3 shadowedLight = mix(vec3(0.0), shadowColor, shadowTransparency);
         #endif
 
         // compute inscattered light
         float scatteringAbsorption = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
-        #ifndef NETHER
-            vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
-        #else
-            float inscatteredLight = scatteringAbsorption * stepSize;
-        #endif
+        vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
+        inscatteredLight *= scatteringCoefficient;
 
         // add light contribution
         accumulatedLight += inscatteredLight;
@@ -79,21 +80,30 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         rayWorldSpacePosition += worldSpaceViewDirection * stepSize;
     }
 
-    accumulatedLight *= maxScattering;
+    // accumulatedLight *= maxScattering;
 
-    // apply attenuation
-    accumulatedLight *= attenuationFactor;
-    // day-night & weather transition
-    accumulatedLight *= mix(1.0, 0.5, rainStrength) * getDayNightBlend() * sunIntensity;
-    // sky light
-    accumulatedLight *= mix(skyLightColor, saturate(skyLightColor, 0.25), rainStrength);
-    // fog color
-    accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
+    #if defined OVERWORLD
+        // apply attenuation
+        accumulatedLight *= attenuationFactor;
+        // day-night & weather transition
+        accumulatedLight *= mix(1.0, 0.5, rainStrength) * getDayNightBlend() * sunIntensity;
+        // sky light
+        accumulatedLight *= mix(skyLightColor, saturate(skyLightColor, 0.25), rainStrength);
+        // fog color
+        accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
 
-    // add contrast if there is no rain
-    float contrast = sunAngle < 0.5 ? 1.05 : 1.015;
-    vec3 contrastedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
-    accumulatedLight = mix(contrastedLight, accumulatedLight, rainStrength);
+        // add contrast if there is no rain
+        float contrast = sunAngle < 0.5 ? 1.05 : 1.015;
+        vec3 contrastedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
+        accumulatedLight = mix(contrastedLight, accumulatedLight, rainStrength);
+    #elif defined NETHER
+        // fog color
+        accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
+
+        // add contrast
+        float contrast = 1.0;
+        accumulatedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
+    #endif
 
     // write values
     color = mix(color + accumulatedLight, color, max(blindness, darknessFactor));

@@ -58,7 +58,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         vec3 skyColor = mix(nightColor, dayColor, smoothstep(-0.15, 0.25, sunDotUp));
 
         // -- sunset -- //
-        // day gradient
+        // sunset gradient
         vec3 sunsetColor = mix(sunsetDownColor, sunsetMiddleColor, smoothstep(-0.25, 0.3, viewDotUp));
         sunsetColor = mix(sunsetColor, sunsetTopColor, smoothstep(0.0, 0.5, viewDotUp));
         sunsetColor = mix(sunsetColor, sunsetHighColor, smoothstep(0.3, 1.0, viewDotUp));
@@ -139,7 +139,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
 
         return skyColor;
     #else
-        return fogColor;
+        return saturate(pow(fogColor, vec3(1.0/2.2)), 2.0);
     #endif
 }
 

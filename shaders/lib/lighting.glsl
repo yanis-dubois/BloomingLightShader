@@ -131,7 +131,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         float ambientLightFactor = 0.0125;
         vec3 ambiantLightColor = light10000K;
     #else
-        float ambientLightFactor = 0.125;
+        float ambientLightFactor = 0.33;
         vec3 ambiantLightColor = saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
     #endif
     // apply normalmap

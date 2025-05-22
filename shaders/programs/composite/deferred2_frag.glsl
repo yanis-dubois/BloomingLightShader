@@ -56,6 +56,16 @@ void main() {
         color = mix(color, reflection.rgb, reflection.a);
     #endif
 
+    #ifdef NETHER
+        if (depth == 1.0) {
+            #if REFLECTION_TYPE == 0
+                vec3 worldSpacePosition = screenToWorld(uv, depthAll);
+            #endif
+            float _;
+            foggify(worldSpacePosition, color, _);
+        }
+    #endif
+
     // gamma correct
     color = linearToSRGB(color);
 

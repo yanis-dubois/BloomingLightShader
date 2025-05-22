@@ -27,7 +27,11 @@ vec3 getVolumetricFogColor() {
         if (isEyeInWater == 1) return getWaterFogColor();
         return vec3(1.0);
     #else
-        return saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+        vec3 volumetricFogColor = rgbToHsv(clamp(5.0 * fogColor, 0.0, 1.0));
+        volumetricFogColor.y -= 0.3; // saturation
+        volumetricFogColor.z = 1.0; // value
+        volumetricFogColor = hsvToRgb(volumetricFogColor);
+        return volumetricFogColor;
     #endif
 }
 
@@ -53,7 +57,7 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
         float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
         density = mix(density, maxFogDensity, rainStrength);
     #else
-        float density = 0.5;
+        float density = 0.33;
     #endif
 
     // increase density as the fragment is far away
@@ -61,13 +65,14 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
     density = mix(density, density * 2.0, distanceDensityIncrease);
 
     // reduce density from sea level as altitude increase
-    float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+40.0, 0.0, 1.0);
-    float heightDensityDecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
     #ifdef OVERWORLD
         float heightDensityDecreaseFactor = 0.25;
+        float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+40.0, 0.0, 1.0);
     #else
-        float heightDensityDecreaseFactor = 0.125;
+        float heightDensityDecreaseFactor = 0.05;
+        float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+60.0, 0.0, 1.0);
     #endif
+    float heightDensityDecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
     density = mix(density, heightDensityDecreaseFactor * density, heightDensityDecrease);
 
     return density;

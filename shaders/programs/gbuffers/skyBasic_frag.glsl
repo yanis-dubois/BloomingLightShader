@@ -17,7 +17,7 @@ layout(location = 0) out vec4 colorData;
 layout(location = 1) out vec4 lightAndMaterialData;
 
 void main() {
-	vec3 albedo = vec3(0);
+	vec3 albedo = vec3(0.0);
 	float transparency = 0.0;
 	float emissivness = 0.0;
 

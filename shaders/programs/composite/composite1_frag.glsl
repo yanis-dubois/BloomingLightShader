@@ -16,6 +16,7 @@ in vec2 uv;
 #include "/lib/sky.glsl"
 #include "/lib/fog.glsl"
 #include "/lib/shadow.glsl"
+#include "/lib/animation.glsl"
 #include "/lib/volumetric_light.glsl"
 
 // results
@@ -50,7 +51,7 @@ void main() {
     }
 
     // -- volumetric light -- //
-    #if SHADOW_TYPE > 0 && VOLUMETRIC_LIGHT_TYPE > 0 && defined OVERWORLD
+    #if SHADOW_TYPE > 0 && VOLUMETRIC_LIGHT_TYPE > 0
         float ambientSkyLightIntensity = depthOpaque == 1.0 ? 1.0 : lightAndMaterialData.r;
         volumetricLighting(uv, depthOpaque, ambientSkyLightIntensity, color);
     #endif
