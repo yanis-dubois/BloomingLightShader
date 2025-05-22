@@ -12,7 +12,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // distances
     vec3 fragmentWorldSpacePosition = viewToWorld(screenToView(uv, depth));
     float fragmentDistance = distance(cameraPosition, fragmentWorldSpacePosition);
-    float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(shadowDistance, far));
+    // float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(shadowDistance, far));
+    float clampedMaxDistance = clamp(fragmentDistance, 0.001, far);
     // direction
     vec3 worldSpaceViewDirection = normalize(fragmentWorldSpacePosition - cameraPosition);
 
@@ -39,9 +40,10 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     float rayDistance = 0.0;
 
     //
-    vec3 shadowColor = vec3(1.0);
-
+    vec3 shadowColor = vec3(0.0);
     float maxScattering = 0.0;
+    bool hasColoredShadow = false;
+    float coloredShadowCpt = 0.0;
 
     // loop
     for (int i=0; i<stepsCount; ++i) {
@@ -62,16 +64,23 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
             vec4 shadowClipPos = playerToShadowClip(worldToPlayer(rayWorldSpacePosition));
             vec4 shadow = getShadow(shadowClipPos, true);
             vec3 shadowedLight = mix(shadow.rgb, vec3(0.0), shadow.a);
+
+            if (0.0 < shadow.a && shadow.a < 1.0) {
+                hasColoredShadow = true;
+                shadowColor += shadow.rgb;
+                coloredShadowCpt++;
+            }
         #elif defined NETHER
             float shadowTransparency = getNetherVolumetricFog(frameTimeCounter, rayWorldSpacePosition);
-            vec3 shadowColor = vec3(1.0);
-            vec3 shadowedLight = mix(vec3(0.0), shadowColor, shadowTransparency);
+            vec3 shadowedLight = mix(vec3(0.0), vec3(1.0), shadowTransparency);
         #endif
 
         // compute inscattered light
         float scatteringAbsorption = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
         vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
-        inscatteredLight *= scatteringCoefficient;
+        #ifndef OVERWORLD
+            inscatteredLight *= scatteringCoefficient;
+        #endif
 
         // add light contribution
         accumulatedLight += inscatteredLight;
@@ -80,9 +89,13 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         rayWorldSpacePosition += worldSpaceViewDirection * stepSize;
     }
 
-    // accumulatedLight *= maxScattering;
-
     #if defined OVERWORLD
+        if (hasColoredShadow && isEyeInWater==0) {
+            accumulatedLight *= shadowColor/coloredShadowCpt;
+        }
+
+        // scattering tricks
+        accumulatedLight *= maxScattering;
         // apply attenuation
         accumulatedLight *= attenuationFactor;
         // day-night & weather transition
