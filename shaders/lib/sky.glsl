@@ -75,7 +75,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         vec3 rainyColor = mix(rainyDownColor, rainyMiddleColor, smoothstep(-0.25, 0.5, viewDotUp));
         rainyColor = mix(rainyColor, rainyTopColor, smoothstep(0.25, 1.0, viewDotUp));
         // darken rainy sky during night
-        rainyColor *= mix(0.3, 1.0, smoothstep(-0.15, 0.25, sunDotUp));
+        rainyColor *= mix(0.075, 1.0, smoothstep(-0.15, 0.25, sunDotUp));
         skyColor = mix(skyColor, rainyColor, rainStrength);
         skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
