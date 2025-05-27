@@ -129,6 +129,10 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
             accumulatedLight *= shadowColor/coloredShadowCpt;
         }
 
+        accumulatedLight = rgbToHsv(accumulatedLight);
+        accumulatedLight.z = clamp(accumulatedLight.z, 0.0, 0.66);
+        accumulatedLight = hsvToRgb(accumulatedLight);
+
     #elif defined NETHER
         // fog color
         accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());

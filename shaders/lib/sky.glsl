@@ -17,12 +17,8 @@ const vec3 sunsetDownColor = vec3(1.0, 0.5, 0.2);
 const vec3 sunsetMiddleColor = vec3(0.8, 0.4, 0.6);
 const vec3 sunsetTopColor = vec3(0.28, 0.32, 0.55);
 const vec3 sunsetHighColor = vec3(0.15, 0.2, 0.5);
-// glare
-const vec3 glareColor = vec3(0.75);
 // end colors
-const vec3 endDownColor = vec3(0.2, 0.0, 0.25);
-const vec3 endMiddleColor = vec3(0.125, 0.0, 0.15);
-const vec3 endTopColor = vec3(0.005, 0.0, 0.01);
+const vec3 endColor = vec3(0.06, 0.045, 0.08);
 // blindness 
 const vec3 blindnessColor = vec3(0.0);
 
@@ -86,7 +82,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     float viewDotSun = dot(eyeSpaceViewDirection, eyeSpaceSunDirection);
 
     // sky light color
-    vec3 skylightColor = getSkyLightColor();
+    vec3 skyLightColor = getSkyLightColor();
 
     // OVERWORLD
     #if defined OVERWORLD
@@ -108,7 +104,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         sunsetColor = mix(sunsetColor, sunsetTopColor, smoothstep(0.0, 0.5, viewDotUp));
         sunsetColor = mix(sunsetColor, sunsetHighColor, smoothstep(0.3, 1.0, viewDotUp));
         // blend
-        float sunsetFactor = min(smoothstep(-0.1, 0.0, sunDotUp), 1.0 - smoothstep(0.0, 0.25, sunDotUp));
+        float sunsetFactor = min(smoothstep(-0.1, 0.0, sunDotUp), 1.0 - smoothstep(0.0, 0.45, sunDotUp));
         skyColor = mix(skyColor, sunsetColor, sunsetFactor);
         // add reddish color near the sun
         float redSunsetFactor = 1.0 - smoothstep(0.0, 0.2, abs(viewDotUp));
@@ -125,7 +121,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
         // -- horizon fog -- //
-        vec3 fogColor = vec3(getLightness(skylightColor));
+        vec3 fogColor = vec3(getLightness(skyLightColor));
         float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
         skyColor = mix(skyColor, fogColor, horizonFactor);
 
@@ -134,17 +130,20 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         // sun glare
         if (viewDotSun > 0.0) {
             glareFactor = 0.5 * exp(- 5.0 * abs(viewDotSun - 1.0)) * (1.0 - abs(viewDotSun - 1.0));
+            glareFactor = clamp(glareFactor, 0.0, 1.0);
             glareFactor *= smoothstep(-0.15, 0.0, sunDotUp); // remove glare if under horizon
+            glareFactor *= abs(sunDotUp);
         }
         // moon glare
         else {
             glareFactor = map(getMoonPhase(), 0.0, 1.0, 0.05, 0.15) * exp(- 40.0 * abs(viewDotSun + 1.0));
+            glareFactor = clamp(glareFactor, 0.0, 1.0);
             glareFactor *= smoothstep(-0.15, 0.0, - sunDotUp); // remove glare if under horizon
         }
         // attenuate as it rains
         glareFactor = mix(glareFactor, glareFactor * 0.5, rainStrength);
         // apply glare
-        skyColor = mix(skyColor, skyColor*0.6 + glareColor, glareFactor);
+        skyColor = mix(skyColor, vec3(1.0), glareFactor);
 
         // -- add stars -- //
         addStars(eyeSpaceViewDirection, sunDotUp, horizonFactor, isFog, skyColor, emissivness);
@@ -161,7 +160,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
     // END
     #else
         // -- base color -- //
-        skyColor = vec3(0.06, 0.045, 0.08);
+        skyColor = endColor;
 
         // no horizon
         float horizonFactor = 0.0;
