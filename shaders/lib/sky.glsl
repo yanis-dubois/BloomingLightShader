@@ -11,7 +11,7 @@ const vec3 nightTopColor = vec3(0.005, 0.005, 0.05);
 const vec3 rainyDownColor = vec3(0.55, 0.6, 0.7);
 const vec3 rainyMiddleColor = vec3(0.35, 0.4, 0.45);
 const vec3 rainyTopColor = vec3(0.2, 0.25, 0.3);
-// sunset color
+// sunset colors
 const vec3 sunsetNearColor = vec3(1.0, 0.35, 0.1);
 const vec3 sunsetDownColor = vec3(1.0, 0.5, 0.2);
 const vec3 sunsetMiddleColor = vec3(0.8, 0.4, 0.6);
@@ -19,32 +19,77 @@ const vec3 sunsetTopColor = vec3(0.28, 0.32, 0.55);
 const vec3 sunsetHighColor = vec3(0.15, 0.2, 0.5);
 // glare
 const vec3 glareColor = vec3(0.75);
+// end colors
+const vec3 endDownColor = vec3(0.2, 0.0, 0.25);
+const vec3 endMiddleColor = vec3(0.125, 0.0, 0.15);
+const vec3 endTopColor = vec3(0.005, 0.0, 0.01);
 // blindness 
 const vec3 blindnessColor = vec3(0.0);
 
 // vanilla 
 vec3 getVanillaSkyColor(vec3 eyeSpacePosition) {
-    vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
-	float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
-	return mix(skyColor, fogColor, 1.0 - smoothstep(0.1, 0.25, max(viewDotUp, 0.0)));
+    #if defined OVERWORLD
+        vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
+        float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
+        return mix(skyColor, fogColor, 1.0 - smoothstep(0.1, 0.25, max(viewDotUp, 0.0)));
+    #else
+        return fogColor;
+    #endif
+}
+
+void addStars(vec3 eyeSpaceViewDirection, float sunDotUp, float horizonFactor, bool isFog, inout vec3 skyColor, inout float emissivness) {
+    if (!isFog) {
+        // only during night in the overworld
+        #if defined OVERWORLD
+            if (sunDotUp < 0.15)
+        #endif
+        {
+            // inverse vector if in south hemisphere (avoid stretching)
+            if (eyeSpaceViewDirection.y < 0.0) eyeSpaceViewDirection *= -1.0;
+
+            const float sacleFactor = 350.0;
+            const float threshold = 0.995;
+            eyeSpaceViewDirection.y += 0.75; // offset to avoid pole streching
+
+            vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpaceViewDirection);
+            vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
+
+            // add star
+            if (interleavedGradient(seed) > threshold) {
+                float noise = interleavedGradient(seed+1.5);
+                float intensity = noise * noise;
+                // only during night in the overworld
+                #if defined OVERWORLD
+                    intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
+                #endif
+                intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
+                intensity = min(max(intensity, 0.0), (1 - rainStrength));
+                skyColor = mix(skyColor, vec3(1.0), intensity);
+                emissivness = intensity;
+            }
+        }
+    }
 }
 
 // custom
 vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {
-    #ifdef OVERWORLD
-        emissivness = 0.0;
+    emissivness = 0.0;
+    vec3 skyColor = vec3(0.0);
 
-        // directions 
-        vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-        vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
+    // directions 
+    vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+    vec3 eyeSpaceViewDirection = normalize(eyeSpacePosition);
 
-        // angles
-        float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
-        float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
-        float viewDotSun = dot(eyeSpaceViewDirection, eyeSpaceSunDirection);
+    // angles
+    float sunDotUp = dot(eyeSpaceSunDirection, upDirection);
+    float viewDotUp = dot(eyeSpaceViewDirection, upDirection);
+    float viewDotSun = dot(eyeSpaceViewDirection, eyeSpaceSunDirection);
 
-        // sky light color
-        vec3 skylightColor = getSkyLightColor();
+    // sky light color
+    vec3 skylightColor = getSkyLightColor();
+
+    // OVERWORLD
+    #if defined OVERWORLD
 
         // -- base color -- //
         // day gradient
@@ -55,7 +100,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         nightColor = mix(nightColor, nightTopColor, smoothstep(0.25, 1.0, viewDotUp));
         nightColor *= 0.5;
         // blend between night, day
-        vec3 skyColor = mix(nightColor, dayColor, smoothstep(-0.15, 0.25, sunDotUp));
+        skyColor = mix(nightColor, dayColor, smoothstep(-0.15, 0.25, sunDotUp));
 
         // -- sunset -- //
         // sunset gradient
@@ -80,8 +125,7 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
         // -- horizon fog -- //
-        vec3 fogColor = mix(vec3(0.5), skylightColor, 0.75);
-        fogColor = vec3(getLightness(skylightColor));
+        vec3 fogColor = vec3(getLightness(skylightColor));
         float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
         skyColor = mix(skyColor, fogColor, horizonFactor);
 
@@ -102,45 +146,39 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         // apply glare
         skyColor = mix(skyColor, skyColor*0.6 + glareColor, glareFactor);
 
-        if (!isFog) {
-            // -- stars -- //
-            if (sunDotUp < 0.15) {
-                const float sacleFactor = 350.0;
-                const float threshold = 0.995;
-                eyeSpaceViewDirection.y += 0.75; // offset to avoid pole streching
-                vec3 polarEyeSpacePosition = cartesianToPolar(eyeSpaceViewDirection);
-                vec2 seed = vec2(floor(polarEyeSpacePosition.x * sacleFactor), floor(polarEyeSpacePosition.y * sacleFactor));
-
-                // add star
-                if (interleavedGradient(seed) > threshold) {
-                    float noise_ = interleavedGradient(seed+1.5);
-                    float intensity = noise_*noise_;
-                    intensity = mix(intensity, 0.0, smoothstep(-0.15, 0.15, sunDotUp));
-                    intensity = mix(intensity, 0.0, max(horizonFactor * 1.5, 0.0));
-                    intensity = min(max(intensity, 0.0), (1 - rainStrength));
-                    skyColor = mix(skyColor, vec3(1.0), intensity);
-                    emissivness = intensity;
-                }
-            }
-        }
+        // -- add stars -- //
+        addStars(eyeSpaceViewDirection, sunDotUp, horizonFactor, isFog, skyColor, emissivness);
 
         // -- underground fog -- //
         vec3 undergroundFogColor = vec3(0.08, 0.09, 0.12) * 2.0;
         float heightBlend = map(cameraPosition.y, 40.0, 60.0, 0.0, 1.0);
         skyColor = mix(undergroundFogColor, skyColor, heightBlend);
 
-        // -- noise to avoid color bending -- //
-        vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
-        float dither = 0.015 * interleavedGradient(polarWorldSpaceViewDirection.yz);
-        skyColor += dither;
+    // NETHER
+    #elif defined NETHER
+        skyColor = saturate(pow(fogColor, vec3(1.0/2.2)), 2.0);
 
-        // apply blindness & darkness
-        skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));
-
-        return skyColor;
+    // END
     #else
-        return saturate(pow(fogColor, vec3(1.0/2.2)), 2.0);
+        // -- base color -- //
+        skyColor = vec3(0.06, 0.045, 0.08);
+
+        // no horizon
+        float horizonFactor = 0.0;
+
+        // -- add stars -- //
+        addStars(eyeSpaceViewDirection, sunDotUp, horizonFactor, isFog, skyColor, emissivness);
     #endif
+
+    // -- noise to avoid color bending -- //
+    vec3 polarWorldSpaceViewDirection = cartesianToPolar(eyeSpaceViewDirection);
+    float dither = 0.015 * interleavedGradient(polarWorldSpaceViewDirection.yz);
+    skyColor += dither;
+
+    // apply blindness & darkness
+    skyColor = mix(skyColor, linearToSRGB(blindnessColor), max(blindness, darknessFactor));
+
+    return skyColor;
 }
 
 vec3 getSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness) {

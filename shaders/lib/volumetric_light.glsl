@@ -12,7 +12,6 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // distances
     vec3 fragmentWorldSpacePosition = viewToWorld(screenToView(uv, depth));
     float fragmentDistance = distance(cameraPosition, fragmentWorldSpacePosition);
-    // float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(shadowDistance, far));
     float clampedMaxDistance = clamp(fragmentDistance, 0.001, far);
     // direction
     vec3 worldSpaceViewDirection = normalize(fragmentWorldSpacePosition - cameraPosition);
@@ -31,11 +30,24 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
 
     // init loop
     vec3 accumulatedLight = vec3(0.0);
-    float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps
-    float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
+    vec3 rayWorldSpacePosition = cameraPosition;
+    #ifdef END
+        rayWorldSpacePosition += worldSpaceViewDirection * min(0.5*far, 128.0);
+
+        if (clampedMaxDistance < min(0.5*far, 128.0)) {
+            return;
+        }
+
+        float travelLength = clamp(distance(rayWorldSpacePosition, fragmentWorldSpacePosition), 0.001, min(0.5*far, 192.0));
+
+        float stepsCount = clamp(travelLength * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps
+        float stepSize = travelLength / stepsCount; // clamp max distance and divide by step count
+    #else
+        float stepsCount = clamp(clampedMaxDistance * VOLUMETRIC_LIGHT_RESOLUTION, VOLUMETRIC_LIGHT_MIN_SAMPLE, VOLUMETRIC_LIGHT_MAX_SAMPLE); // nb steps
+        float stepSize = clampedMaxDistance / stepsCount; // clamp max distance and divide by step count
+    #endif
     float dither = dithering(uv, VOLUMETRIC_LIGHT_DITHERING_TYPE);
     float randomizedStepSize = stepSize * dither;
-    vec3 rayWorldSpacePosition = cameraPosition;
     rayWorldSpacePosition += worldSpaceViewDirection * randomizedStepSize;
     float rayDistance = 0.0;
 
@@ -51,7 +63,7 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         float normalizedRayDistance = min(rayDistance / shadowDistance, 1.0);
 
         // ray goes beneath block
-        if (rayDistance > fragmentDistance) {
+        if (rayDistance > clampedMaxDistance) {
             break;
         }
 
@@ -70,13 +82,20 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
                 shadowColor += shadow.rgb;
                 coloredShadowCpt++;
             }
+
         #elif defined NETHER
             float shadowTransparency = getNetherVolumetricFog(frameTimeCounter, rayWorldSpacePosition);
             vec3 shadowedLight = mix(vec3(0.0), vec3(1.0), shadowTransparency);
+
+        #else
+            vec3 color = vec3(0.0);
+            float shadowTransparency = getEndVolumetricFog(frameTimeCounter, rayWorldSpacePosition, color);
+            vec3 shadowedLight = mix(vec3(0.0), color, shadowTransparency);
         #endif
 
         // compute inscattered light
         float scatteringAbsorption = exp(-absorptionCoefficient * normalizedRayDistance) * (1.0 - normalizedRayDistance);
+        scatteringAbsorption = 1.0;
         vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
         #ifndef OVERWORLD
             inscatteredLight *= scatteringCoefficient;
@@ -90,10 +109,6 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     }
 
     #if defined OVERWORLD
-        if (hasColoredShadow && isEyeInWater==0) {
-            accumulatedLight *= shadowColor/coloredShadowCpt;
-        }
-
         // scattering tricks
         accumulatedLight *= maxScattering;
         // apply attenuation
@@ -109,13 +124,14 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         float contrast = sunAngle < 0.5 ? 1.05 : 1.015;
         vec3 contrastedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
         accumulatedLight = mix(contrastedLight, accumulatedLight, rainStrength);
+
+        if (hasColoredShadow && isEyeInWater==0) {
+            accumulatedLight *= shadowColor/coloredShadowCpt;
+        }
+
     #elif defined NETHER
         // fog color
         accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
-
-        // add contrast
-        float contrast = 1.0;
-        accumulatedLight = clamp((accumulatedLight - 0.5) * contrast + 0.5, 0.0, 1.0);
     #endif
 
     // write values

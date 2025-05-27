@@ -22,16 +22,18 @@ vec3 getFogColor(bool isInWater, vec3 eyeSpacePosition) {
 }
 
 vec3 getVolumetricFogColor() {
-    #ifdef OVERWORLD
+    #if defined OVERWORLD
         if (isEyeInWater > 1) return getLavaFogColor();
         if (isEyeInWater == 1) return getWaterFogColor();
         return vec3(1.0);
-    #else
+    #elif defined NETHER
         vec3 volumetricFogColor = rgbToHsv(clamp(5.0 * fogColor, 0.0, 1.0));
         volumetricFogColor.y -= 0.3; // saturation
         volumetricFogColor.z = 1.0; // value
         volumetricFogColor = hsvToRgb(volumetricFogColor);
         return volumetricFogColor;
+    #else
+        return vec3(1.0);
     #endif
 }
 
@@ -40,13 +42,13 @@ vec3 getVolumetricFogColor() {
 #elif defined NETHER
     const float seaLevel = 30.0;
 #else
-    const float seaLevel = 0.0; // ???
+    const float seaLevel = 52.0;
 #endif
 
 float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 10.0;
 
-    #ifdef OVERWORLD
+    #if defined OVERWORLD
         float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.3;
         float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
 
@@ -56,21 +58,37 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
         if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
         float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
         density = mix(density, maxFogDensity, rainStrength);
-    #else
+    #elif defined NETHER
         float density = 0.33;
+    #else
+        float density = 0.5;
     #endif
 
     // increase density as the fragment is far away
     float distanceDensityIncrease = pow(2.2, - (normalizedDistance * 3.3) * (normalizedDistance * 3.3)) * (1.0 - normalizedDistance);
     density = mix(density, density * 2.0, distanceDensityIncrease);
+    // progressivly decrease distance as the fog is near the player
+    #ifdef END
+        float distanceDensityDecrease = max(
+            map(normalizedDistance, 0.5, 0.75, 0.0, 1.0),
+            map(normalizedDistance * far, 128.0, 256.0, 0.0, 1.0)
+        );
+        density = mix(0.0, density, distanceDensityDecrease);
+    #endif
 
     // reduce density from sea level as altitude increase
-    #ifdef OVERWORLD
+    #if defined OVERWORLD
         float heightDensityDecreaseFactor = 0.25;
         float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+40.0, 0.0, 1.0);
-    #else
+    #elif defined NETHER
         float heightDensityDecreaseFactor = 0.05;
         float heightFactor = map(worldSpaceHeight, seaLevel, seaLevel+60.0, 0.0, 1.0);
+    #else
+        float heightDensityDecreaseFactor = 0.0;
+        float heightFactor = max(
+            map(worldSpaceHeight, seaLevel, seaLevel+120.0, 0.0, 1.0),
+            map(worldSpaceHeight, seaLevel, seaLevel-120.0, 0.0, 1.0)
+        );
     #endif
     float heightDensityDecrease = 1.0 - pow(2.2, - (heightFactor * 1.0) * (heightFactor * 1.0)) * (1.0 - heightFactor);
     density = mix(density, heightDensityDecreaseFactor * density, heightDensityDecrease);
@@ -81,12 +99,12 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
 float getFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 1.0;
 
-    #ifdef NETHER
-        return 0.25;
-    #else
+    #ifdef OVERWORLD
         // higher density in overworld caves
         float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, seaLevel, 0.0, 1.0);
         return mix(0.0, 0.66, caveHeightFactor);
+    #else
+        return 0.25;
     #endif
 }
 
@@ -126,6 +144,7 @@ float getFogFactor(vec3 worldSpacePosition) {
     if (isEyeInWater == 2) {
         renderDistance = 16.0;
     }
+    // in snowpowder
     else if (isEyeInWater == 3) {
         renderDistance = 8.0;
     }

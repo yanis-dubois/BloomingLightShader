@@ -27,32 +27,46 @@ void main() {
     float transparency = mix(1.0, 0.1, rainStrength);
     if (transparency < alphaTestRef) discard;
 
-    // frag position
+    float emissivness = 0.0;
+
     vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0);
-    vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
-    vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-    vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
-    float VdotS = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition);
-    float VdotX = dot(eyeSpaceFragmentPosition, eastDirection);
 
-    #if SKY_TYPE == 1
-        // polar coord of sun, moon & frag
-        vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
-        vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
-        float radius = VdotS > 0.0 ? 0.075 : 0.05;
+    // overworld sun & moon
+    #if defined OVERWORLD
+        // frag position
+        vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
+        vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+        vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
+        float VdotS = dot(eyeSpaceFragmentPosition, eyeSpaceSunPosition);
+        float VdotX = dot(eyeSpaceFragmentPosition, eastDirection);
 
-        // cut sun & moon glare
-        if (distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) > radius) {
-            discard;
-        }
-        // avoid drawing of sun & moon in the bottom of the sky
-        if (VdotX < 0.9 && eyeSpaceFragmentPosition.y < 0.08) {
-            discard;
-        }
+        #if SKY_TYPE > 0
+            // polar coord of sun, moon & frag
+            vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
+            vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
+            float radius = VdotS > 0.0 ? 0.075 : 0.05;
 
-        float emissivness = 1.0;
-    #else
-        float emissivness = getLightness(albedo);
+            // cut sun & moon glare
+            if (distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) > radius) {
+                discard;
+            }
+            // avoid drawing of sun & moon in the bottom of the sky
+            if (VdotX < 0.9 && eyeSpaceFragmentPosition.y < 0.08) {
+                discard;
+            }
+
+            emissivness = 1.0;
+        #else
+            emissivness = getLightness(albedo);
+        #endif
+
+    // end sky texture (only in vanilla style)
+    #elif defined END
+        #if SKY_TYPE > 0
+            albedo = getSkyColor(viewToEye(normalize(viewSpacePosition)), false, emissivness);
+        #else
+            albedo *= 0.15;
+        #endif
     #endif
 
     // apply blindness effect

@@ -45,15 +45,22 @@ void main() {
 
         // underwater light shaft animation
         float lightShaftIntensity = transparency;
-        #if VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0
-            #if UNDERWATER_LIGHTSHAFT_TYPE == 1
-                float noise = doWaterLightShaftAnimation(0.0, worldSpacePosition);
-            #else
-                float noise = doWaterLightShaftAnimation(frameTimeCounter, worldSpacePosition);
-            #endif
+        if (id == 20000) {
+            if (isEyeInWater==0) {
+                lightShaftIntensity = 0.0;
+            }
+            else {
+                #if VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0
+                    #if UNDERWATER_LIGHTSHAFT_TYPE == 1
+                        float noise = doWaterLightShaftAnimation(0.0, worldSpacePosition);
+                    #else
+                        float noise = doWaterLightShaftAnimation(frameTimeCounter, worldSpacePosition);
+                    #endif
 
-            lightShaftIntensity += noise;
-        #endif
+                    lightShaftIntensity += noise;
+                #endif
+            }
+        }
 
         #if WATER_CAUSTIC_TYPE > 0
             if (id==20000) {

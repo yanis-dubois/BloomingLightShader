@@ -21,7 +21,7 @@ void main() {
 	float transparency = 0.0;
 	float emissivness = 0.0;
 
-	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0); // 0.99999
+	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0);
 	vec3 eyeSpacePosition = viewToEye(normalize(viewSpacePosition));
 
 	#if SKY_TYPE == 1

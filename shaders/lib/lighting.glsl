@@ -91,9 +91,12 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // face tweak
         directSkyLightIntensity *= faceTweak;
         // split toning
-        #if SPLIT_TONING > 0
+        #if SPLIT_TONING > 0 && defined OVERWORLD
             vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
             skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity * (1 - shadow.a)));
+        #endif
+        #if defined END
+            directSkyLightIntensity = clamp(directSkyLightIntensity * 3.0, 0.0, 1.0);
         #endif
         // apply darkness
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
@@ -104,16 +107,17 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     #endif
 
     // -- ambient sky light
-    #ifdef NETHER
-        ambientSkyLightIntensity = 0.0;
-        vec3 ambientSkyLight = vec3(0.0);
-    #else
+    #if defined OVERWORLD
         // apply normalmap
         ambientSkyLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
         // apply darkness
         ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
         // get light color
         vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
+    // no ambient sky light neither in NETHER and END
+    #else
+        ambientSkyLightIntensity = 0.0;
+        vec3 ambientSkyLight = vec3(0.0);
     #endif
 
     // -- block light
@@ -127,12 +131,15 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
 
     // -- ambient light
-    #ifdef OVERWORLD
+    #if defined OVERWORLD
         float ambientLightFactor = 0.0125;
         vec3 ambiantLightColor = light10000K;
-    #else
+    #elif defined NETHER
         float ambientLightFactor = 0.33;
         vec3 ambiantLightColor = saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+    #else
+        float ambientLightFactor = 0.33;
+        vec3 ambiantLightColor = skyLightColor;
     #endif
     // apply normalmap
     ambientLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
@@ -171,7 +178,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     // diffuse model
     vec3 color = albedo * light;
     // -- specular
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         if (smoothness > 0.1) {
             vec3 subsurfaceSpecular = vec3(0.0);
 
@@ -216,7 +223,6 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
 
     // -- light factors
     float ambientSkyLightFactor = 0.6;
-    float ambientLightFactor = 0.0125;
     float faceTweak = 1.0;
     float dayNightBlend = getDayNightBlend();
     float darknessExponent = 10.0;
@@ -227,35 +233,48 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
 
     // -- direct sky light
-    float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
-    #ifdef TRANSPARENT
-        directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
+    #ifdef NETHER
+        vec3 directSkyLight = vec3(0.0);
+    #else
+        float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
+        #ifdef TRANSPARENT
+            directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
+        #endif
+        // tweak for south and north facing fragment
+        directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
+        // reduce contribution if no ambiant sky light (avoid cave leak)
+        directSkyLightIntensity *= map(smoothstep(0.0, 0.33, ambientSkyLightIntensity), 0.0, 1.0, 0.1, 1.0);
+        // reduce contribution as it rains
+        directSkyLightIntensity *= mix(1.0, 0.2, rainStrength);
+        // reduce contribution during day-night transition
+        directSkyLightIntensity *= dayNightBlend;
+        // face tweak
+        directSkyLightIntensity *= faceTweak;
+        // split toning
+        #if SPLIT_TONING > 0 && defined OVERWORLD
+            vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
+            skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity));
+        #endif
+        #if defined END
+            directSkyLightIntensity = clamp(directSkyLightIntensity * 3.0, 0.0, 1.0);
+        #endif
+        // apply darkness
+        directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
+        // apply sky light color
+        vec3 directSkyLight = directSkyLightIntensity * skyLightColor;
     #endif
-    // tweak for south and north facing fragment
-    directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normal, southDirection)));
-    // reduce contribution if no ambiant sky light (avoid cave leak)
-    directSkyLightIntensity *= map(smoothstep(0.0, 0.33, ambientSkyLightIntensity), 0.0, 1.0, 0.1, 1.0);
-    // reduce contribution as it rains
-    directSkyLightIntensity *= mix(1.0, 0.2, rainStrength);
-    // reduce contribution during day-night transition
-    directSkyLightIntensity *= dayNightBlend;
-    // face tweak
-    directSkyLightIntensity *= faceTweak;
-    // split toning
-    #if SPLIT_TONING > 0
-        vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
-        skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity));
-    #endif
-    // apply darkness
-    directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
-    // apply sky light color
-    vec3 directSkyLight = directSkyLightIntensity * skyLightColor;
 
     // -- ambient sky light
-    // apply darkness
-    ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
-    // get light color
-    vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
+    #if defined OVERWORLD
+        // apply darkness
+        ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
+        // get light color
+        vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
+    // no ambient sky light neither in NETHER and END
+    #else
+        ambientSkyLightIntensity = 0.0;
+        vec3 ambientSkyLight = vec3(0.0);
+    #endif
 
     // -- block light
     // apply darkness
@@ -266,7 +285,16 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
 
     // -- ambient light
-    vec3 ambiantLightColor = light10000K;
+    #if defined OVERWORLD
+        float ambientLightFactor = 0.0125;
+        vec3 ambiantLightColor = light10000K;
+    #elif defined NETHER
+        float ambientLightFactor = 0.33;
+        vec3 ambiantLightColor = saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+    #else
+        float ambientLightFactor = 0.33;
+        vec3 ambiantLightColor = skyLightColor;
+    #endif
     // apply darkness
     ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
     // get light color
@@ -289,16 +317,18 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     // diffuse model
     vec3 color = albedo * light;
     // -- specular
-    if (0.1 < smoothness) {
-        float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
-        vec3 specular = vec3(0.0);
+    #if !defined NETHER && !defined END
+        if (0.1 < smoothness) {
+            float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
+            vec3 specular = vec3(0.0);
 
-        // specular reflection
-        specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
+            // specular reflection
+            specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
-        // add specular contribution
-        color += directSkyLight * specular;
-    }
+            // add specular contribution
+            color += directSkyLight * specular;
+        }
+    #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
         float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);

@@ -47,8 +47,32 @@ float getNetherVolumetricFog(float time, vec3 seed) {
     time = time * 0.33;
     seed.y -= time;
 
-    float noise = snoise_4D(vec4(seed, 0.5*time)) * 0.5 + 0.5;
+    float noise = snoise_4D(vec4(seed, 0.5 * time)) * 0.5 + 0.5;
     noise = smoothstep(0.7, 1.0, noise);
+    return noise;
+}
+vec3 beamGradient[5] = vec3[](
+    vec3(0.20, 0.85, 0.78),  // deep purple
+    vec3(0.38, 0.42, 0.95),  // electric indigo
+    vec3(0.35, 0.00, 0.52),  // rich violet
+    vec3(0.45, 0.12, 0.72),  // amethyst glow
+    vec3(0.20, 0.65, 1.00)   // ethereal blue
+);
+float getEndVolumetricFog(float time, vec3 seed, inout vec3 color) {
+
+    // color
+    float noise = snoise_3D(vec3(seed.xz * 0.0125, 0.15 * time)) * 0.5 + 0.5;
+    noise = mod(noise + 0.05 * time, 1.0);
+    color = mix(beamGradient[0], beamGradient[1], map(noise, 0.0, 0.2, 0.0, 1.0));
+    color = mix(color, beamGradient[2], map(noise, 0.2, 0.4, 0.0, 1.0));
+    color = mix(color, beamGradient[3], map(noise, 0.4, 0.6, 0.0, 1.0));
+    color = mix(color, beamGradient[4], map(noise, 0.6, 0.8, 0.0, 1.0));
+    color = mix(color, beamGradient[0], map(noise, 0.8, 1.0, 0.0, 1.0));
+
+    // intensity
+    noise = snoise_3D(vec3(seed.xz * 0.0125, 0.05 * time)) * 0.5 + 0.5;
+    noise = smoothstep(0.5, 1.0, noise);
+
     return noise;
 }
 
@@ -113,7 +137,11 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     float amplitude = 1.0 / 32.0;
     time *= 0.25;
 
-    vec3 seed = vec3(worldSpacePosition.xz/10.0 - time * wind, time);
+    #if !defined NETHER && !defined END
+        vec3 seed = vec3(worldSpacePosition.xz/10.0 - time * wind, time);
+    #else
+        vec3 seed = vec3(worldSpacePosition.xz/5.0, 0.75 * time);
+    #endif
     
     worldSpacePosition.y += amplitude * snoise_3D(seed);
     return worldSpacePosition;
@@ -123,11 +151,15 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
     // setup amplitude
     float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 6.0;
     // attenuate wind in caves
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         amplitude *= ambientSkyLightIntensity;
     #endif
     if (amplitude <= 0.01) return worldSpacePosition;
-    time *= 0.2;
+    #if defined END
+        time *= 0.15;
+    #else
+        time *= 0.2;
+    #endif
 
     float theta;
     vec2 wind = getWind(theta);
@@ -137,7 +169,7 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;
 
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         vec3 seed1 = vec3(
             coord.x/20.0 - time, 
             coord.y/180.0, 
@@ -148,7 +180,7 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
         vec3 seed = vec3(worldSpacePosition.xz/5.0 - time, worldSpacePosition.y/10.0 + 0.15 * time);
     #endif
 
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         worldSpacePosition.xz += wind * vec2(getSpikyNoise(seed1, amplitude));
         worldSpacePosition.y += getContrastedNoise(seed2, amplitude);
     #else
@@ -165,11 +197,15 @@ vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientS
 vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
     float amplitude = 1.0 / 3.0;
     // attenuate wind in caves
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         amplitude *= ambientSkyLightIntensity;
     #endif
     if (amplitude <= 0.01) return worldSpacePosition;
-    time *= 0.2;
+    #if defined END
+        time *= 0.15;
+    #else
+        time *= 0.2;
+    #endif
 
     float theta;
     vec2 wind = getWind(theta);
@@ -179,7 +215,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
     vec2 coord = worldSpacePosition.xz;
     coord = rotation * coord;
 
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         vec3 seed1 = vec3(
             coord.x/20.0 - time, 
             coord.y/180.0, 
@@ -196,7 +232,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
         amplitude *= rootOrigin.y;
     }
 
-    #ifndef NETHER
+    #if !defined NETHER && !defined END
         worldSpacePosition.xz += wind * vec2(getSpikyNoise(seed1, amplitude));
         worldSpacePosition.x += getContrastedNoise(seed2, 0.25 * amplitude);
         worldSpacePosition.z += getContrastedNoise(seed2 + 15.0, 0.25 * amplitude);

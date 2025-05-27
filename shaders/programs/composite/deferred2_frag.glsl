@@ -17,6 +17,9 @@ uniform sampler2D depthtex0; // all depth
 #if REFLECTION_TYPE > 0
     uniform sampler2D colortex4; // opaque reflection
 #endif
+#ifdef DISTANT_HORIZONS
+    uniform sampler2D dhDepthTex0; // DH all depth
+#endif
 
 in vec2 uv;
 
@@ -57,7 +60,13 @@ void main() {
     #endif
 
     #ifdef NETHER
-        if (depth == 1.0) {
+        #ifdef DISTANT_HORIZONS
+            float DHdepth = texture2D(dhDepthTex0, uv).r;
+        if (depth == 1.0 && DHdepth == 1.0)
+        #else
+        if (depth == 1.0)
+        #endif
+        {
             #if REFLECTION_TYPE == 0
                 vec3 worldSpacePosition = screenToWorld(uv, depthAll);
             #endif

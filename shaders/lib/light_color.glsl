@@ -10,37 +10,43 @@ const vec3 light10000K = vec3(0.7909974347833513, 0.8551792944545848, 1.0); // s
 const vec3 light20000K = vec3(0.6694260712462251, 0.7779863207340414, 1.0); // dawn moon light
 
 const vec3 bloomSunLight = vec3(1.0, 0.5, 0.125);
+const vec3 endLight = vec3(0.4, 0.2, 1.0);
 
 vec3 getSkyLightColor() {
+
     // overworld
     #if SKY_LIGHT_COLOR > 0 && defined OVERWORLD
-        // day time
-        vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-        vec3 eyeSpaceMoonDirection = normalize(mat3(gbufferModelViewInverse) * moonPosition);
-        float sunDotUp = dot(eyeSpaceSunDirection, upDirection); // highly redundant !!!!!!!!!!!!!!!!!!!!!!!!!!
-        float moonDotUp = dot(eyeSpaceMoonDirection, upDirection);
+            // day time
+            vec3 eyeSpaceSunDirection = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+            vec3 eyeSpaceMoonDirection = normalize(mat3(gbufferModelViewInverse) * moonPosition);
+            float sunDotUp = dot(eyeSpaceSunDirection, upDirection); // highly redundant !!!!!!!!!!!!!!!!!!!!!!!!!!
+            float moonDotUp = dot(eyeSpaceMoonDirection, upDirection);
 
-        // sun light
-        vec3 sunLightColor = mix(light2000K, light4500K, smoothstep(0.05, 0.5, sunDotUp));
-        sunLightColor = mix(sunLightColor, light6000K, smoothstep(0.45, 0.9, sunDotUp));
+            // sun light
+            vec3 sunLightColor = mix(light2000K, light4500K, smoothstep(0.05, 0.5, sunDotUp));
+            sunLightColor = mix(sunLightColor, light6000K, smoothstep(0.45, 0.9, sunDotUp));
 
-        // moon light
-        float moonPhaseBlend = getMoonPhase();
-        vec3 moonMidnightColor = mix(light7500K, light20000K, moonPhaseBlend);
-        vec3 moonLightColor = 0.5 * mix(light20000K, moonMidnightColor, smoothstep(0.8, 1.0, moonDotUp));
+            // moon light
+            float moonPhaseBlend = getMoonPhase();
+            vec3 moonMidnightColor = mix(light7500K, light20000K, moonPhaseBlend);
+            vec3 moonLightColor = 0.5 * mix(light20000K, moonMidnightColor, smoothstep(0.8, 1.0, moonDotUp));
 
-        // sky light
-        vec3 skyLightColor = mix(moonLightColor, sunLightColor, smoothstep(-0.1, 0.1, sunDotUp));
-        // rainy sky light
-        skyLightColor = mix(skyLightColor, 0.9 * skyLightColor * light8000K, rainStrength);
-        skyLightColor = mix(skyLightColor, 0.9 * skyLightColor, thunderStrength);
+            // sky light
+            vec3 skyLightColor = mix(moonLightColor, sunLightColor, smoothstep(-0.1, 0.1, sunDotUp));
+            // rainy sky light
+            skyLightColor = mix(skyLightColor, 0.9 * skyLightColor * light8000K, rainStrength);
+            skyLightColor = mix(skyLightColor, 0.9 * skyLightColor, thunderStrength);
 
-        // under water sky light
-        if (isEyeInWater==1) 
-            skyLightColor = vec3(getLightness(skyLightColor));
+            // under water sky light
+            if (isEyeInWater==1) 
+                skyLightColor = vec3(getLightness(skyLightColor));
 
-        skyLightColor = SRGBtoLinear(skyLightColor);
-        return skyLightColor;
+            skyLightColor = SRGBtoLinear(skyLightColor);
+            return skyLightColor;
+
+    // end
+    #elif SKY_LIGHT_COLOR > 0 && defined END
+        return endLight;
 
     #else
         return vec3(1.0);

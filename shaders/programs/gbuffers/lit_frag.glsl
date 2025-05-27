@@ -153,7 +153,7 @@ void main() {
     // light data
     float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
-    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)), 0.0) : 0.0;
+    float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)) - (1.0/15.0), 0.0) : 0.0;
     vec2 lightMap = vec2(
         max(lightMapCoordinate.x, heldBlockLight), 
         smoothstep(0.0, 1.0, lightMapCoordinate.y)

@@ -77,7 +77,6 @@ void main() {
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         vec3 screenSpacePosition = vec3(uv, depth);
-        // vec4 reflection = doDHReflection(uv, depth, normal, ambientSkyLightIntensity, smoothness, reflectance);
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
 
         // tweak reflection on water
