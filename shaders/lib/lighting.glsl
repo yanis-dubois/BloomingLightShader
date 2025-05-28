@@ -110,7 +110,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             skyLightColor = mix(splitToningColor, skyLightColor, smoothstep(0.0, 0.5, directSkyLightIntensity * (1 - shadow.a)));
         #endif
         #if defined END
-            directSkyLightIntensity = clamp(directSkyLightIntensity * 3.0, 0.0, 1.0);
+            directSkyLightIntensity = clamp(directSkyLightIntensity * 1.5, 0.0, 1.0);
         #endif
         // apply darkness
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
