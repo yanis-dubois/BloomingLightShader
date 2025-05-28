@@ -69,6 +69,13 @@ void main() {
         if (dhBlend > dither) discard;
     #endif
 
+    // used for pixelation lighting
+    #if PIXELATION_TYPE > 1
+        vec2 pixelationOffset = computeTexelOffset(gtexture, originalTextureCoordinate);
+    #else
+        vec2 pixelationOffset = vec2(0.0);
+    #endif
+
     mat3 TBN = mat3(
         normalize(Vtangent),
         normalize(Vbitangent),
@@ -143,13 +150,6 @@ void main() {
     // apply red flash when mob are hit
     albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
-    // 
-    #if PIXELATION_TYPE > 1
-        vec2 pixelationOffset = computeTexelOffset(gtexture, originalTextureCoordinate);
-    #else
-        vec2 pixelationOffset = vec2(0.0);
-    #endif
-
     // light data
     float distanceFromEye = distance(eyePosition, worldSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
@@ -174,25 +174,6 @@ void main() {
 
     // gamma correct
     albedo = SRGBtoLinear(albedo);
-
-    // pixelated block light
-    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_BLOCKLIGHT > 0
-        vec2 texelLight = texelSnap(vec2(blockLightIntensity, ambientSkyLightIntensity), pixelationOffset);
-        blockLightIntensity = texelLight.x;
-        ambientSkyLightIntensity = texelLight.y;
-    #endif
-
-    // pixelated ambient occlusion
-    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_AMBIENT_OCCLUSION > 0
-        vec2 texelAmbientOcclusion = texelSnap(vec2(vanillaAmbientOcclusion, ambientOcclusion), pixelationOffset);
-        vanillaAmbientOcclusion = texelAmbientOcclusion.x;
-        ambientOcclusion = texelAmbientOcclusion.y;
-    #endif
-
-    // vanilla ambient occlusion
-    #ifdef TERRAIN
-        albedo *= vanillaAmbientOcclusion;
-    #endif
 
     // animated normal
     #if ANIMATED_POSITION == 2 && defined REFLECTIVE
@@ -299,7 +280,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

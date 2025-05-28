@@ -1,7 +1,21 @@
 vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, float emissivness) {
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
+
+    // pixelated block light
+    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_BLOCKLIGHT > 0
+        vec2 texelLight = texelSnap(vec2(blockLightIntensity, ambientSkyLightIntensity), pixelationOffset);
+        blockLightIntensity = texelLight.x;
+        ambientSkyLightIntensity = texelLight.y;
+    #endif
+
+    // pixelated ambient occlusion
+    #if defined TERRAIN && PIXELATION_TYPE > 1 && PIXELATED_AMBIENT_OCCLUSION > 0
+        vec2 texelAmbientOcclusion = texelSnap(vec2(vanillaAmbientOcclusion, ambientOcclusion), pixelationOffset);
+        vanillaAmbientOcclusion = texelAmbientOcclusion.x;
+        ambientOcclusion = texelAmbientOcclusion.y;
+    #endif
 
     // directions and angles 
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
@@ -101,9 +115,10 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // apply darkness
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
         // apply sky light color
-        vec3 directSkyLight = directSkyLightIntensity * skyLightColor;
+        vec3 directSkyLight = directSkyLightIntensity * skyLightColor * 1.5;
         // apply shadow
         directSkyLight = mix(directSkyLight, directSkyLight * shadow.rgb, shadow.a);
+        directSkyLightIntensity *= getLightness(directSkyLight);
     #endif
 
     // -- ambient sky light
@@ -113,7 +128,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // apply darkness
         ambientSkyLightIntensity = mix(ambientSkyLightIntensity, 0.0, darknessFactor);
         // get light color
-        vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity;
+        vec3 ambientSkyLight = faceTweak * ambientSkyLightFactor * skyLightColor * ambientSkyLightIntensity * (1.0 - directSkyLightIntensity);
     // no ambient sky light neither in NETHER and END
     #else
         ambientSkyLightIntensity = 0.0;
@@ -157,6 +172,11 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         ambientLight = ambientLight * waterColor;
     }
 
+    // vanilla ambient occlusion
+    #ifdef TERRAIN
+        ambientOcclusionPBR *= vanillaAmbientOcclusion * vanillaAmbientOcclusion;
+    #endif
+
     // -- ambient occlusion
     // PBR ao
     directSkyLight *= ambientOcclusionPBR;
@@ -172,7 +192,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
 
     // -- BRDF -- //
     // -- diffuse
-    vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
+    vec3 light = directSkyLight + blockLight + ambientSkyLight + ambientLight;
     // apply night vision
     light = mix(light, pow(light, vec3(0.33)), nightVision);
     // diffuse model

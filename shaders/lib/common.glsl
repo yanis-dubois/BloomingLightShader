@@ -52,7 +52,7 @@ const float darknessRange = 32.0;
 
 // PBR texture
 // only support labPBR
-#define PBR_TYPE 1 // 0=off 1=on
+#define PBR_TYPE 0 // 0=off 1=on
 // porosity (only few texture pack specify porosity)
 #define PBR_POROSITY 0 // 0=off 1=on
 // parallax occlusion mapping (POM)

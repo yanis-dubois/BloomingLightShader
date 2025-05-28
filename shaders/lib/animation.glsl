@@ -142,7 +142,7 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
     #else
         vec3 seed = vec3(worldSpacePosition.xz/5.0, 0.75 * time);
     #endif
-    
+
     worldSpacePosition.y += amplitude * snoise_3D(seed);
     return worldSpacePosition;
 }
@@ -241,7 +241,7 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
         worldSpacePosition.x += getCalmNoise(seed, amplitude);
         worldSpacePosition.z += getCalmNoise(seed + 15.0, amplitude);
     #endif
-    
+
     return worldSpacePosition;
 }
 
@@ -252,6 +252,6 @@ vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, flo
         return doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
     if (isUnderGrowth(id))
         return doGrassAnimation(id, time, worldSpacePosition, midBlock, ambientSkyLightIntensity);
-    
+
     return worldSpacePosition;
 }
