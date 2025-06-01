@@ -135,6 +135,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
         else if (id == 20020) {
             smoothness = 0.75;
             reflectance = getReflectance(n1, 3.0);
+            reflectance = 0.5;
         }
         // polished
         else if (id == 20030 || id == 20031) {
