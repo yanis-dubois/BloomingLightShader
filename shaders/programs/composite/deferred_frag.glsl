@@ -39,7 +39,6 @@
         float ambientSkyLightIntensity = lightAndMaterialData.x;
         float smoothness = lightAndMaterialData.z;
         float reflectance = 1.0 - lightAndMaterialData.w;
-        // reflectance = reflectance > 0.95 ? 0.0 : reflectance;
         float depth = texture2D(depthtex0, uv).r;
 
         // apply reflection
@@ -56,7 +55,7 @@
         reflection.a = mix(reflection.a, 0.0, darknessFogFactor * darknessFactor);
 
         // metallic material
-        reflection.rgb *= color / max(color.r + 0.01, max(color.g, color.b));    
+        reflection.rgb *= color / max(color.r + 0.01, max(color.g, color.b));
 
         // gamma correct
         reflection.rgb = linearToSRGB(reflection.rgb);
