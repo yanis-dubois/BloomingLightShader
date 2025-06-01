@@ -87,7 +87,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             // subsurface diffuse part
             if (subsurfaceScattering > 0.0) {
                 float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
-                float subsurfaceDirectSkyLightIntensity = smoothstep(0.0, 0.5, abs(lightDirectionDotNormal));
+                float subsurfaceDirectSkyLightIntensity = abs(lightDirectionDotNormal);
                 directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
             }
         #endif
@@ -115,7 +115,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // apply darkness
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
         // apply sky light color
-        vec3 directSkyLight = directSkyLightIntensity * skyLightColor * 1.5;
+        vec3 directSkyLight = directSkyLightIntensity * skyLightColor; // * 1.5;
         // apply shadow
         directSkyLight = mix(directSkyLight, directSkyLight * shadow.rgb, shadow.a);
         directSkyLightIntensity *= getLightness(directSkyLight);
@@ -214,7 +214,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             vec3 specular = CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
             // add specular contribution
-            color += directSkyLight * (specular + subsurfaceSpecular);
+            // color += directSkyLight * (specular + subsurfaceSpecular);
         }
     #endif
     // -- fresnel

@@ -380,7 +380,7 @@ bool isCobweb(int id) {
     return id == 10070;
 }
 bool isEnviroProps(int id) {
-    return 10000 <= id && id < 20000;
+    return (10000 <= id && id < 20000) && id != 10081 && id != 10030;
 }
 // ---------------------- //
 // --- animated light --- //
