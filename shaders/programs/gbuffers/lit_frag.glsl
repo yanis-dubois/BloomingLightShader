@@ -199,7 +199,7 @@ void main() {
         }
     #endif
 
-    // custom normal map for water
+    // custom normal map for water (override PBR)
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
         if (isWater(id)) {
             vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
@@ -218,6 +218,21 @@ void main() {
 
             normalMap = mix(normalMap, animatedTBN * sampledNormal, map(seed.r - 0.35, 124.0/255.0, 191.0/255.0, 0.0, 1.0));
         }
+    #endif
+    // custom normalmap for all other blocks (if no PBR)
+    #if defined TERRAIN && CUSTOM_NORMALMAP > 0 && PBR_TYPE == 0
+    if (!isWater(id)) {
+        vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
+        float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
+
+        vec3 customNormal = polarToCartesian(vec3(zeta1 * PI/128.0, zeta2 * 2.0*PI, 1.0));
+        customNormal = TBN * customNormal;
+
+        // use the new normal if it's visible
+        if (dot(viewDirection, customNormal) > 0.0) {
+            normalMap = customNormal;
+        }
+    }
     #endif
 
     // -- normal map -- //
