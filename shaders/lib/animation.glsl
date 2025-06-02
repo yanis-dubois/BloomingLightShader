@@ -228,8 +228,8 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
 
     // attuenuate amplitude at the root if rooted
     if (isRooted(id)) {
-        vec3 rootOrigin = midBlockToRoot(id, midBlock);
-        amplitude *= rootOrigin.y;
+        vec3 rootOrigin = midBlockToRoot_animation(id, midBlock);
+        amplitude *= clamp(rootOrigin.y, 0.0, 1.0);
     }
 
     #if !defined NETHER && !defined END

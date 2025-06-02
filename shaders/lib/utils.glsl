@@ -393,9 +393,20 @@ bool hasNormalJittering(int id) {
     return id == 20000;
 }
 
-// offset midBlock coordinate to make the root of foliage the origin (used for vertex animation)
-vec3 midBlockToRoot(int id, vec3 midBlock) {
+// offset midBlock coordinate to make the foliage's root the origin (used for vertex animation)
+vec3 midBlockToRoot_animation(int id, vec3 midBlock) {
+    if (isCeilingRooted(id)) midBlock.y = 1.0 - midBlock.y;
+    else if (isTallLower(id)) midBlock.y *= 0.5;
+    else if (isTallUpper(id)) midBlock.y = midBlock.y * 0.5 + 0.5;
+    else if (isPicherCropLower(id)) midBlock.y = 0.5 * midBlock.y - 0.1875;
+    else if (isPicherCropUpper(id)) midBlock.y = 0.5 * midBlock.y + 0.5 - 0.1875;
+
+    return midBlock;
+}
+// offset midBlock coordinate to make the foliage's root the origin (used for custom ambient occlusion)
+vec3 midBlockToRoot_ao(int id, vec3 midBlock) {
     if (isSmall(id)) midBlock.y *= 2.0;
+    else if (isTeensy(id)) midBlock.y *= 8.0;
     else if (isTiny(id)) midBlock.y *= 4.0;
     else if (isCeilingRooted(id)) midBlock.y = 1.0 - midBlock.y;
     else if (isTallLower(id)) midBlock.y *= 0.5;

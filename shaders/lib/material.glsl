@@ -199,7 +199,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
                 }
                 // pithcer crop
                 else if (isPicherCrop(id) || isCrop(id)) {
-                    vec3 objectSpacePosition = midBlockToRoot(id, midBlock);
+                    vec3 objectSpacePosition = midBlockToRoot_ao(id, midBlock);
                     if (objectSpacePosition.y > 0.0) {
                         ambientOcclusion = distance(0.0, objectSpacePosition.y);
                         ambientOcclusion = min(ambientOcclusion, 1.0);
