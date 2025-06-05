@@ -71,7 +71,7 @@ vec3 specularSubsurfaceBRDF(vec3 V, vec3 L, vec3 albedo) {
     vec3 transmittedColor = saturate(albedo, VdotL * 1.4);
     transmittedColor = mix(transmittedColor, vec3(1.0), 0.05);
 
-    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 2.0;
+    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 5.0;
     return specular;
 }
 

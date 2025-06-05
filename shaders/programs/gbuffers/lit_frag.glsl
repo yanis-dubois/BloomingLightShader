@@ -286,6 +286,9 @@ void main() {
         // retrieve water material data
         float waterSmoothness, waterReflectance;
         getWaterMaterialData(waterSmoothness, waterReflectance);
+        // can't reduce reflectivity
+        waterSmoothness = max(waterSmoothness, smoothness);
+        waterReflectance = max(waterReflectance, reflectance);
 
         float wetnessFactor = inRainyBiome * wetness * smoothstep(0.5, 1.0, ambientSkyLightIntensity);
 
@@ -293,7 +296,7 @@ void main() {
         smoothness = mix(smoothness, waterSmoothness, porosity * wetnessFactor);
         reflectance = mix(reflectance, waterReflectance, porosity * wetnessFactor);
 
-        // darken all material
+        // darken material
         albedo = mix(albedo, 0.45 * albedo, sqrt(porosity) * wetnessFactor);
     #endif
 

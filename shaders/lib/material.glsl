@@ -120,18 +120,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
     }
     else {
         // -- smoothness -- //
-        if (hasGrass(id)) {
-            // up face
-            if (normal.y > 0.5) {
-                smoothness = 0.4;
-                porosity = 0.4;
-            }
-            // other faces
-            else {
-                porosity = 0.6;
-            }
-        }
-        else if (isVerySmooth(id)) {
+        if (isVerySmooth(id)) {
             smoothness = 0.95;
         }
         else if (isSmooth(id)) {
@@ -147,6 +136,11 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             smoothness = 0.2;
         }
         // else is very rough : smoothness = 0.0
+
+        // change smoothness on top of blocks that have grass
+        if (hasGrass(id) && normal.y > 0.5) {
+            smoothness = 0.45;
+        }
 
         // -- reflectance -- //
         // index of refraction of the actual medium
@@ -214,7 +208,14 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
     #endif
 
     // -- porosity -- //
-    
+    #if POROSITY_TYPE > 0
+        if (hasHighPorosity(id)) {
+            porosity = 0.6;
+        }
+        else if (hasLowPorosity(id)) {
+            porosity = 0.3;
+        }
+    #endif
 }
 
 // handle labPBR format

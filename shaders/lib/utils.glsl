@@ -356,7 +356,6 @@ bool isSmooth(int id) {
 bool isSlightlySmooth(int id) {
     return id == 20
         || (800 <= id && id < 1100)
-        || id == 1701
         || id == 1704
         || (2400 <= id && id < 2500)
         || (3000 <= id && id < 3100)
@@ -368,7 +367,6 @@ bool isSlightlyRough(int id) {
         || (700 <= id && id < 800)
         || (1200 <= id && id < 1300)
         || (1900 <= id && id < 2100)
-        || id == 2200
         || (2600 <= id && id <= 2701)
         || (3100 <= id && id < 3200)
         || id == 3700
@@ -390,8 +388,7 @@ bool isRough(int id) {
     return (200 <= id && id < 300)
         || (600 <= id && id < 700)
         || (1400 <= id && id < 1700)
-        || id == 1800
-        || (2100 <= id && id < 2200)
+        || (2100 <= id && id < 2300)
         || (2300 <= id && id < 2400)
         || (3200 <= id && id < 3300)
         || id == 3401;
@@ -446,7 +443,8 @@ bool hasMediumReflectance(int id) {
 bool isFullyEmissive(int id) {
     return id == 1100 
         || id == 2701
-        || id == 29000;
+        || id == 29000
+        || id == 30000;
 }
 bool isSemiEmissive(int id) {
     return id == 2
@@ -465,6 +463,7 @@ bool isSemiEmissive(int id) {
         || id == 4000
         || id == 4004
         || id == 4201
+        || id == 10007
         || (10500 <= id && id < 10600)
         || id == 20009
         || id == 20016
@@ -476,16 +475,19 @@ bool isSemiEmissive(int id) {
         || id == 20203
         || id == 20303
         || id == 20304
-        || id == 20402;
+        || id == 20402
+        || id == 30001;
 }
 
 // --- subsurface --- //
 bool hasSubsurface(int id) {
-    return (10000 <= id && id < 10600) || (3700 <= id && id < 4300);
+    return (20 <= id && id < 30)
+        || (3600 <= id && id < 4300)
+        || (10000 <= id && id < 10600);
 }
 // like grass, pointed dripstone or cobweb
-bool isCrossedPlanes(int id) {
-    return hasSubsurface(id);
+bool isProps(int id) {
+    return (10000 <= id && id < 20000) ;
 }
 
 // --- ambient occlusion --- //
@@ -519,6 +521,27 @@ bool hasHorizontalAmbientOcclusion(int id) {
         || id == 10017
         || id == 10019
         || (10200 <= id && id < 10300);
+}
+
+// --- porosity --- //
+bool hasHighPorosity(int id) {
+    return (1300 <= id && id < 1400)
+        || (1700 <= id && id < 1900)
+        || id == 3400
+        || (3600 <= id && id < 3700)
+        || id == 3801
+        || id == 3802;
+}
+bool hasLowPorosity(int id) {
+    return (100 <= id && id < 600)
+        || (1400 <= id && id < 1700)
+        || id == 1900
+        || id == 2100
+        || (2200 <= id && id < 2400)
+        || id == 3401
+        || id == 3702
+        || id == 3703
+        || (20400 <= id && id < 20500);
 }
 
 // root type

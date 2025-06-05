@@ -48,6 +48,12 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // add increasing offset in normal direction when further from player (avoid shadow acne)
         float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
         offsetWorldSpacePosition += normal * offsetAmplitude;
+        // lowers shadows a bit for subsurface on props
+        #if SUBSURFACE_TYPE > 0
+            if (subsurfaceScattering > 0.0 && isProps(id)) {
+                offsetWorldSpacePosition.y += 0.25;
+            }
+        #endif
         // get shadow
         vec4 shadow = vec4(0.0);
         if (distanceFromCamera < shadowDistance)

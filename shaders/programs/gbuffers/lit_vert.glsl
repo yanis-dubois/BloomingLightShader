@@ -43,8 +43,10 @@ void main() {
     textureCoordinateOffset.zw = min(originalTextureCoordinate, midCoord - (atlasMidToCorner)); // coordinates in atlas space of the corner that have the (0,0) local uv coordinate
 
     id = int(mc_Entity.x);
-    #ifdef TERRAIN
+    #if defined TERRAIN
         if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
+    #elif defined ENTITY
+        if (0 < entityId && entityId < 65535) id = entityId;
     #endif
 
     /* geometry infos */
