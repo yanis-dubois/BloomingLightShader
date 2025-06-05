@@ -50,7 +50,42 @@ const float darknessRange = 32.0;
 //////////////////// parameters ////////////////////
 ////////////////////////////////////////////////////
 
-// PBR texture
+// --- lighting --- //
+
+// light
+#define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
+#define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
+#define SPLIT_TONING 1 // 0=off 1=on (give a blueish tint to shadows)
+
+// shadows
+#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
+#define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define SHADOW_RANGE 3 // radius of the sample area in shadowmap pixels
+#define SHADOW_SAMPLES 4 // number of samples (in total for stochastic / in radius for classic)
+#define SHADOW_KERNEL 0 // 0=box 1=gaussian
+
+// light shaft
+#define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
+#define VOLUMETRIC_LIGHT_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
+#define VOLUMETRIC_LIGHT_INTENSITY 1.0
+// underwater light shaft
+#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=static 2=animated
+
+// pixelated shadding
+#define TEXTURE_RESOLUTION 16 // 0=off 1=on
+#define PIXELATION_TYPE 2 // 0=all_off 1=voxelisation 2=texture_snap
+#define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
+#define PIXELATED_SPECULAR 1 // 0=off 1=on
+#define PIXELATED_BLOCKLIGHT 1 // 0=off 1=on
+#define PIXELATED_AMBIENT_OCCLUSION 1 // 0=off 1=on
+#define PIXELATED_REFLECTION 0 // 0=off 1=on
+
+// --- material --- //
+
+// PBR texture pack
 // only support labPBR
 #define PBR_TYPE 0 // 0=off 1=on
 // porosity (only few texture pack specify porosity)
@@ -63,37 +98,18 @@ const float darknessRange = 32.0;
 #define PBR_POM_LAYERS 128 // 32 64 128 256 (only available with PBR_POM=1)
 #define PBR_POM_NORMAL 1 // 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
 
-// sky
-#define SKY_TYPE 1 // 0=vanilla 1=custom
-#define SKY_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-
-// light
-#define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
-#define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
-#define SPLIT_TONING 1 // 0=off 1=on (give a blueish tint to shadows)
-
-// fog
-#define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
-
-// pixelated shadding
-#define TEXTURE_RESOLUTION 16 // 0=off 1=on
-#define PIXELATION_TYPE 2 // 0=all_off 1=voxelisation 2=texture_snap
-#define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
-#define PIXELATED_SPECULAR 1 // 0=off 1=on
-#define PIXELATED_BLOCKLIGHT 1 // 0=off 1=on
-#define PIXELATED_AMBIENT_OCCLUSION 1 // 0=off 1=on
-#define PIXELATED_REFLECTION 0 // 0=off 1=on
-
 // custom normalmap
 #define CUSTOM_NORMALMAP 1 // 0=off 1=on (procedurally generate normalmap : PBR override it)
 #define WATER_CUSTOM_NORMALMAP 1 // 0=off 1=on (custom normalmap for water : override PBR)
 
-// shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define SHADOW_RANGE 3 // radius of the sample area in shadowmap pixels
-#define SHADOW_SAMPLES 4 // number of samples (in total for stochastic / in radius for classic)
-#define SHADOW_KERNEL 0 // 0=box 1=gaussian
+// subsurface scattering
+#define SUBSURFACE_TYPE 1 // 0=off 1=on
+
+// porority
+#define POROSITY_TYPE 1 // 0=off 1=on
+
+// custom ambient occlusion
+#define AMBIENT_OCCLUSION_TYPE 1 // 0=off 1=on
 
 // reflection
 #define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
@@ -111,25 +127,24 @@ const float darknessRange = 32.0;
 #define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
 #define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 
+// --- atmospheric --- //
+
+// sky
+#define SKY_TYPE 1 // 0=vanilla 1=custom
+#define SKY_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+
+// fog
+#define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
+
+// water caustics
+#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
+
+// --- animation --- //
+
 // animation
 #define ANIMATED_POSITION 2 // 0=off 1=only_vertex 2=vertex_and_normal
 
-// subsurface scattering
-#define SUBSURFACE_TYPE 1 // 0=off 1=on
-// porority
-#define POROSITY_TYPE 1 // 0=off 1=on
-// custom ambient occlusion
-#define AMBIENT_OCCLUSION_TYPE 1 // 0=off 1=on
-
-// light shaft
-#define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
-#define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
-#define VOLUMETRIC_LIGHT_INTENSITY 1.0
-// underwater light shaft
-#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=static 2=animated
+// --- post process --- //
 
 // bloom
 #define BLOOM_TYPE 2 // 0=off 1=old_school 2=modern
@@ -155,9 +170,6 @@ const float darknessRange = 32.0;
 // temporal anti aliasing
 #define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
 
-// water caustics
-#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
-
 // light refraction effect
 #define REFRACTION_UNDERWATER 1 // 0=off 1=on
 #define REFRACTION_NETHER 1 // 0=off 1=on
@@ -174,6 +186,8 @@ const float darknessRange = 32.0;
 // chromatic aberation
 #define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
 #define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.02=too_much
+
+// --- distant horizon --- //
 
 #define DH_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 

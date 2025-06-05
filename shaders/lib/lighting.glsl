@@ -91,7 +91,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
                 directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
             }
         #endif
-        if (isEnviroProps(id)) {
+        if (subsurfaceScattering > 0.0) {
             directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
         }
         // tweak for south and north facing fragment
@@ -214,7 +214,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             vec3 specular = CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
             // add specular contribution
-            // color += directSkyLight * (specular + subsurfaceSpecular);
+            color += directSkyLight * (specular + subsurfaceSpecular);
         }
     #endif
     // -- fresnel

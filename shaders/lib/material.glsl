@@ -11,18 +11,16 @@ const vec3[7] endPortalColors = vec3[](
 
 void getWaterMaterialData(inout float smoothness, inout float reflectance) {
     smoothness = 0.9;
-    if (isEyeInWater == 0) {
-        reflectance = getReflectance(1.0, 1.33);
-    } else {
-        reflectance = getReflectance(1.33, 1.0);
-    }
+    reflectance = isEyeInWater == 0 
+        ? getReflectance(1.0, 1.33)
+        : getReflectance(1.33, 1.0);
 }
 
 void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, inout vec3 albedo, inout float transparency, inout float emissivness, inout float subsurfaceScattering) {
 
     // end portal & end gates
     #ifdef TERRAIN
-        if (id == 31000) {
+        if (isEndPortal(id)) {
             albedo = vec3(0.0);
             vec3 screenPos = vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), gl_FragCoord.z);
             float speed = frameTimeCounter * 0.005;
@@ -114,126 +112,109 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
 
 void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTextureCoordinate, vec3 texture, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
-    #ifndef PARTICLE
-
-        // index of refraction of the actual medium
-        float n1 = isEyeInWater > 0 ? 1.33 : 1.0;
-
+    // -- water smoothness & reflectance -- //
+    if (isWater(id)) {
+        getWaterMaterialData(smoothness, reflectance);
+        smoothness -= 0.3 - map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.3);
+        reflectance += map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.05);
+    }
+    else {
         // -- smoothness -- //
-        // water
-        if (id == 20000) {
-            getWaterMaterialData(smoothness, reflectance);
-            smoothness -= 0.3 - map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.3);
-            reflectance += map(texture.r, 124.0/255.0, 191.0/255.0, 0.0, 0.05);
-        }
-        // glass 
-        else if (id == 20010 || id == 20011 || id == 20012 || id == 20013 || id == 20014) {
-            smoothness = 0.95;
-            reflectance = getReflectance(n1, 1.5);
-        }
-        // metal
-        else if (id == 20020) {
-            smoothness = 0.75;
-            reflectance = getReflectance(n1, 3.0);
-            reflectance = 0.5;
-        }
-        // polished
-        else if (id == 20030 || id == 20031) {
-            smoothness = 0.6;
-            reflectance = getReflectance(n1, 1.4);
-        }
-        // specular
-        else if (id == 20040 || id == 10081) {
-            // grass block
-            if (id == 20040) {
-                // up face
-                if (normal.y > 0.5) {
-                    smoothness = 0.4;
-                    reflectance = getReflectance(n1, 1.3);
-                    porosity = 0.4;
-                }
-                // other faces
-                else {
-                    porosity = 0.6;
-                }
-            }
-            // snow
-            else if (id == 10081) {
+        if (hasGrass(id)) {
+            // up face
+            if (normal.y > 0.5) {
                 smoothness = 0.4;
-                reflectance = getReflectance(n1, 1.3);
+                porosity = 0.4;
+            }
+            // other faces
+            else {
                 porosity = 0.6;
             }
         }
-        // rough
-        else if (id == 20050) {
-            smoothness = 0.2;
-            reflectance = getReflectance(n1, 1.0);
-        }
-        // emmissive and smooth
-        else if (id == 30030 || id == 30031 || id == 30040) {
+        else if (isVerySmooth(id)) {
             smoothness = 0.95;
+        }
+        else if (isSmooth(id)) {
+            smoothness = 0.75;
+        }
+        else if (isSlightlySmooth(id)) {
+            smoothness = 0.55;
+        }
+        else if (isSlightlyRough(id)) {
+            smoothness = 0.45;
+        }
+        else if (isRough(id)) {
+            smoothness = 0.2;
+        }
+        // else is very rough : smoothness = 0.0
+
+        // -- reflectance -- //
+        // index of refraction of the actual medium
+        float n1 = isEyeInWater > 0 ? 1.33 : 1.0;
+        if (hasMetallicReflectance(id)) {
+            reflectance = 0.3;
+        }
+        else if (hasHighReflectance(id)) {
             reflectance = getReflectance(n1, 1.5);
         }
-
-        // -- emmissive -- //
-        if (id >= 30000) {
-            if (id < 30040) {
-                emissivness = getLightness(albedo);
-                emissivness = smoothstep(0.25, 0.75, emissivness);
-            }
-            else if (id == 30040) {
-                emissivness = 1.0;
-            }
+        else if (hasMediumReflectance(id)) {
+            reflectance = getReflectance(n1, 1.4);
         }
+        else { // default reflectance
+            reflectance = getReflectance(n1, 1.3);
+        }
+    }
 
-        // -- subsurface & ao -- //
-        if (10000 <= id && id < 20000) {
-            smoothness = 0.25;
-            reflectance = getReflectance(n1, 2.5);
-            subsurfaceScattering = 1.0;
+    // -- emissivness -- //
+    if (isFullyEmissive(id)) {
+        emissivness = 1.0;
+    }
+    else if (isSemiEmissive(id)) {
+        emissivness = getLightness(albedo);
+        emissivness = smoothstep(0.25, 0.75, emissivness);
+    }
 
-            #if AMBIENT_OCCLUSION_TYPE > 0
-                // leaves
-                if (hasNoAmbiantOcclusion(id)) {
-                    
-                }
-                // pithcer crop
-                else if (isPicherCrop(id) || isCrop(id)) {
-                    vec3 objectSpacePosition = midBlockToRoot_ao(id, midBlock);
-                    if (objectSpacePosition.y > 0.0) {
-                        ambientOcclusion = distance(0.0, objectSpacePosition.y);
-                        ambientOcclusion = min(ambientOcclusion, 1.0);
-                    }
-                }
-                // flowers
-                else if (isThin(id)) {
-                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+    // -- ambient occlusion -- //
+    #if AMBIENT_OCCLUSION_TYPE > 0
+        if (hasAmbientOcclusion(id)) {
+            // calculate AO via midBlock
+            if (hasFixedPosition(id)) {
+                vec3 objectSpacePosition = midBlockToRoot_ao(id, midBlock);
+                if (objectSpacePosition.y > 0.0) {
                     ambientOcclusion = distance(0.0, objectSpacePosition.y);
                     ambientOcclusion = min(ambientOcclusion, 1.0);
                 }
-                // sugar cane
-                else if (isColumnSubsurface(id)) {
-                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+            }
+            // calculate AO via UV
+            else {
+                vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
+                // vertically from root to top
+                if (hasVerticalAmbientOcclusion(id)) {
+                    ambientOcclusion = distance(0.0, objectSpacePosition.y);
+                    ambientOcclusion = min(ambientOcclusion, 1.0);
+                }
+                // horizontally from center to extremity
+                else if (hasHorizontalAmbientOcclusion(id)) {
                     ambientOcclusion = distance(0.0, objectSpacePosition.x);
                     ambientOcclusion = min(2.0 * ambientOcclusion, 1.0);
                 }
-                // other foliage
+                // vertically & horizontally from root to extremities
                 else {
-                    vec2 objectSpacePosition = offsetUV(id, localTextureCoordinate);
                     ambientOcclusion = distance(vec2(0.0), objectSpacePosition);
                 }
-            #endif
-        }
-        // reflective & subsurface
-        if (id == 20013) {
-            subsurfaceScattering = 1.0;
-        }
-
-        // -- porosity -- // 
-        if (id == 20060) {
-            porosity = 0.6;
+            }
         }
     #endif
+
+    // -- subsurfaceScattering -- //
+    #if SUBSURFACE_TYPE > 0
+        if (hasSubsurface(id)) {
+            subsurfaceScattering = 1.0;
+        }
+    #endif
+
+    // -- porosity -- //
+    
 }
 
 // handle labPBR format

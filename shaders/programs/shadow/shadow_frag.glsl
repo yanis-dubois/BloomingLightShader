@@ -26,17 +26,19 @@ void main() {
         discard;
     #else
 
+        bool isWater_ = isWater(id);
+
         // retrieve data
         vec4 textureColor = texture2D(gtexture, textureCoordinate);
         vec3 albedo = textureColor.rgb;
         float transparency = textureColor.a;
         vec3 tint = additionalColor.rgb;
         vec3 color = albedo * tint;
-        vec3 lightShaftColor = id==20000 ? tint : color;
+        vec3 lightShaftColor = isWater_ ? tint : color;
 
-        // special case
-        if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
-        if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
+        // tweak transparency
+        if (isUncoloredGlass(id)) transparency = clamp(transparency, 0.2, 0.75);
+        else if (isBeacon(id)) transparency = clamp(transparency, 0.36, 1.0);
         if (transparency < alphaTestRef) discard;
 
         #if (VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0) || WATER_CAUSTIC_TYPE > 0
@@ -45,7 +47,7 @@ void main() {
 
         // underwater light shaft animation
         float lightShaftIntensity = transparency;
-        if (id == 20000) {
+        if (isWater_) {
             if (isEyeInWater==0) {
                 lightShaftIntensity = 0.0;
             }
@@ -63,7 +65,7 @@ void main() {
         }
 
         #if WATER_CAUSTIC_TYPE > 0
-            if (id==20000) {
+            if (isWater_) {
                 // calculate the caustic factor
                 #if WATER_CAUSTIC_TYPE == 1
                     float causticFactor = getLightness(albedo);

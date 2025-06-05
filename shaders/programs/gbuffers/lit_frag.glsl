@@ -59,6 +59,7 @@ void main() {
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
     vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
+    bool isWater_ = isWater(id);
 
     // blending transition between classic terrain & DH terrain
     #ifdef DISTANT_HORIZONS
@@ -138,12 +139,12 @@ void main() {
     float transparency = textureColor.a;
 
     // tweak transparency
-    if (id == 20010) transparency = clamp(transparency, 0.2, 0.75); // uncolored glass
-    if (id == 20011) transparency = clamp(transparency, 0.36, 1.0); // beacon glass
+    if (isUncoloredGlass(id)) transparency = clamp(transparency, 0.2, 0.75);
+    else if (isBeacon(id)) transparency = clamp(transparency, 0.36, 1.0);
     if (transparency < alphaTestRef) discard;
 
     // avoid seeing water top surface when underwater
-    if (isEyeInWater == 1 && id == 20000 && normal.y > 0.1) {
+    if (isEyeInWater == 1 && isWater_ && normal.y > 0.1) {
         discard;
     }
 
@@ -168,7 +169,9 @@ void main() {
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
-    getCustomMaterialData(id, normal, midBlock, localTextureCoordinate, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
+    #if !defined PARTICLE && !defined WEATHER
+        getCustomMaterialData(id, normal, midBlock, localTextureCoordinate, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
+    #endif
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusionPBR, subsurfaceScattering, porosity);
 
@@ -308,7 +311,7 @@ void main() {
         vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normalMap, ambientSkyLightIntensity, smoothness, reflectance);
 
         // tweak reflection for water
-        if (id == 20000)
+        if (isWater_)
             reflection.a = smoothstep(0.0, 1.0, reflection.a);
 
         // apply reflection

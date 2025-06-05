@@ -149,7 +149,7 @@ vec3 doWaterAnimation(float time, vec3 worldSpacePosition) {
 
 vec3 doLeafAnimation(int id, float time, vec3 worldSpacePosition, float ambientSkyLightIntensity) {
     // setup amplitude
-    float amplitude = isVines(id) ? 1.0 / 16.0 : 1.0 / 6.0;
+    float amplitude = isVine(id) ? 1.0 / 16.0 : 1.0 / 6.0;
     // attenuate wind in caves
     #if !defined NETHER && !defined END
         amplitude *= ambientSkyLightIntensity;
@@ -246,11 +246,11 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
 }
 
 vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
-    if (isLiquid(id))
+    if (hasWaterAnimation(id))
         return doWaterAnimation(time, worldSpacePosition);
-    if (isFoliage(id))
+    if (hasLeavesAnimation(id))
         return doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
-    if (isUnderGrowth(id))
+    if (hasGrassAnimation(id))
         return doGrassAnimation(id, time, worldSpacePosition, midBlock, ambientSkyLightIntensity);
 
     return worldSpacePosition;
