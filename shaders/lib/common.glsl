@@ -127,6 +127,9 @@ const float darknessRange = 32.0;
 #define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
 #define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 
+// emissive ores
+#define EMISSIVE_ORES 0 // 0=off 1=on
+
 // --- atmospheric --- //
 
 // sky

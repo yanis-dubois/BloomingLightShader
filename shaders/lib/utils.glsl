@@ -349,9 +349,11 @@ bool isSmooth(int id) {
         || id == 20032 
         || id == 20033
         || id == 20042
+        || id == 20046
         || id == 20100
-        || id == 20101
-        || (20300 <= id && id <= 20400);
+        || id == 20200
+        || id == 20205
+        || (20400 <= id && id < 20500);
 }
 bool isSlightlySmooth(int id) {
     return id == 20
@@ -400,7 +402,8 @@ bool hasMetallicReflectance(int id) {
         || (10500 <= id && id <= 10503)
         || id == 20007
         || id == 20042
-        || (20300 <= id && id < 20400);
+        || id == 20046
+        || (20400 <= id && id < 20500);
 }
 bool hasHighReflectance(int id) {
     return id == 20
@@ -414,8 +417,8 @@ bool hasHighReflectance(int id) {
         || id == 20032
         || id == 20033
         || id == 20100
-        || id == 20101
-        || id == 20111
+        || id == 20200
+        || id == 20205
         || (29000 <= id && id < 29100);
 }
 bool hasMediumReflectance(int id) {
@@ -442,6 +445,9 @@ bool hasMediumReflectance(int id) {
 // --- emissivness --- //
 bool isFullyEmissive(int id) {
     return id == 1100 
+        #if EMISSIVE_ORES > 0
+            || id == 2603
+        #endif
         || id == 2701
         || id == 29000
         || id == 30000;
@@ -451,8 +457,6 @@ bool isSemiEmissive(int id) {
         || id == 10
         || id == 11
         || (1100 < id && id < 1200)
-        || id == 1205
-        || id == 1214
         || id == 2101
         || id == 2906
         || id == 3006
@@ -469,14 +473,20 @@ bool isSemiEmissive(int id) {
         || id == 20016
         || id == 20029
         || id == 20033
-        || id == 20046
-        || ((20100 < id && id < 20200) && id != 20102 && id != 20105 && id != 20107 && id != 20109)
-        || id == 20201
-        || id == 20203
-        || id == 20303
-        || id == 20304
-        || id == 20402
+        || (20200 <= id && id < 20300)
+        || id == 20403
+        || id == 20404
+        || id == 20502
         || id == 30001;
+}
+bool isLitRedstone(int id) {
+    return id == 1205
+        || id == 1214
+        || (20300 <= id && id < 20400);
+}
+bool isOre(int id) {
+    return (1200 <= id && id < 1300)
+        || (2300 <= id && id < 2400);
 }
 
 // --- subsurface --- //
@@ -492,10 +502,9 @@ bool isProps(int id) {
 
 // --- ambient occlusion --- //
 bool hasAmbientOcclusion(int id) {
-    return (10000 <= id && id < 10600) 
+    return (10000 <= id && id < 20000) 
         && id != 10013 
         && id != 10014 
-        && id != 10018 
         && id != 10020 
         && id != 10021 
         && id != 10400 
@@ -508,7 +517,6 @@ bool hasFixedPosition(int id) {
         || id == 10003
         || id == 10004 
         || id == 10005 
-        || id == 10008 
         || id == 10010 
         || id == 10015
         || (10300 <= id && id < 10400);
@@ -541,7 +549,7 @@ bool hasLowPorosity(int id) {
         || id == 3401
         || id == 3702
         || id == 3703
-        || (20400 <= id && id < 20500);
+        || (20500 <= id && id < 20600);
 }
 
 // root type
