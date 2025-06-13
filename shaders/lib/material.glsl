@@ -127,7 +127,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             smoothness = 0.75;
         }
         else if (isSlightlySmooth(id)) {
-            smoothness = 0.5;
+            smoothness = 0.525;
         }
         else if (isSlightlyRough(id)) {
             smoothness = 0.4;
@@ -165,7 +165,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
     }
     else if (isSemiEmissive(id)) {
         emissivness = max(getLightness(albedo), max(albedo.r, max(albedo.g, albedo.b)));
-        emissivness = smoothstep(0.25, 0.75, emissivness);
+        emissivness = smoothstep(0.33, 0.75, emissivness);
     }
     else if (isLitRedstone(id)) {
         if (albedo.r > 90.0/255.0 && (albedo.r - max(albedo.g, albedo.b) > 64.0/255.0 || albedo.r > 245.0/255.0) && (albedo.b < 5.0/255.0 || abs(albedo.b - albedo.g) < 5.0/255.0)) {
@@ -244,7 +244,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
     #if AMBIENT_OCCLUSION_TYPE > 0
         if (hasAmbientOcclusion(id)) {
             // calculate AO via midBlock
-            if (hasFixedPosition(id)) {
+            if (hasComplexeGeometry(id)) {
                 vec3 objectSpacePosition = midBlockToRoot_ao(id, midBlock);
                 if (objectSpacePosition.y > 0.0) {
                     ambientOcclusion = distance(0.0, objectSpacePosition.y);

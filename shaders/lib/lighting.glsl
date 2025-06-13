@@ -205,7 +205,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     vec3 color = albedo * light;
     // -- specular
     #if !defined NETHER && !defined END
-        if (smoothness > 0.1) {
+        // if (smoothness > 0.1) {
             vec3 subsurfaceSpecular = vec3(0.0);
 
             // subsurface transmission highlight
@@ -221,7 +221,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
 
             // add specular contribution
             color += directSkyLight * (specular + subsurfaceSpecular);
-        }
+        // }
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT

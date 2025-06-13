@@ -308,7 +308,7 @@ bool isEndPortal(int id) {
     return id == 29001;
 }
 bool isVine(int id) {
-    return id == 10020;
+    return id == 11201;
 }
 bool hasGrass(int id) {
     return id == 1701 || id == 1800 || id == 2200;
@@ -316,19 +316,19 @@ bool hasGrass(int id) {
 
 // --- animation --- //
 bool hasWaterAnimation(int id) {
-    return isWater(id) || id == 10021;
+    return isWater(id) || id == 11300;
 }
 bool hasLeavesAnimation(int id) {
-    return id == 3700 || isVine(id);
+    return id == 3700 || id == 11200 || isVine(id);
 }
 bool hasGrassAnimation(int id) {
-    return 10000 <= id && id <= 10018;
+    return 10000 <= id && id < 11200;
 }
 bool isAnimated(int id) {
     return hasWaterAnimation(id) || hasLeavesAnimation(id) || hasGrassAnimation(id);
 }
 bool isRooted(int id) {
-    return 10000 <= id && id <= 10015;
+    return 10000 <= id && id < 11000;
 }
 
 // --- smoothness --- //
@@ -345,7 +345,7 @@ bool isSmooth(int id) {
         || (3702 <= id && id < 3800)
         || id == 3803
         || id == 3901
-        || (10500 <= id && id <= 10503)
+        || (11800 <= id && id <= 11803)
         || id == 20032 
         || id == 20033
         || id == 20042
@@ -399,7 +399,7 @@ bool isRough(int id) {
 // --- reflectance --- //
 bool hasMetallicReflectance(int id) {
     return (2600 <= id && id < 3400)
-        || (10500 <= id && id <= 10503)
+        || (11800 <= id && id <= 11803)
         || id == 20007
         || id == 20042
         || id == 20046
@@ -456,6 +456,8 @@ bool isSemiEmissive(int id) {
     return id == 2
         || id == 10
         || id == 11
+        || id == 109
+        || id == 110
         || (1100 < id && id < 1200)
         || id == 2101
         || id == 2906
@@ -467,8 +469,13 @@ bool isSemiEmissive(int id) {
         || id == 4000
         || id == 4004
         || id == 4201
-        || id == 10007
-        || (10500 <= id && id < 10600)
+        || id == 10002
+        || id == 10003
+        || id == 10301
+        || id == 10401
+        || id == 10601
+        || id == 11001
+        || (11800 <= id && id < 11900)
         || id == 20009
         || id == 20016
         || id == 20029
@@ -493,7 +500,7 @@ bool isOre(int id) {
 bool hasSubsurface(int id) {
     return (20 <= id && id < 30)
         || (3600 <= id && id < 4300)
-        || (10000 <= id && id < 10600);
+        || (10000 <= id && id < 11900);
 }
 // like grass, pointed dripstone or cobweb
 bool isProps(int id) {
@@ -503,32 +510,31 @@ bool isProps(int id) {
 // --- ambient occlusion --- //
 bool hasAmbientOcclusion(int id) {
     return (10000 <= id && id < 20000) 
-        && id != 10013 
-        && id != 10014 
-        && id != 10020 
-        && id != 10021 
-        && id != 10400 
-        && id != 10504;
+        && id != 10500
+        && !(10800 <= id && id < 10900)
+        && id != 10901
+        && id != 11201 
+        && !(11300 <= id && id < 11400)
+        && !(11700 <= id && id < 11800);
 }
-// models that are more complex than two crossed plane 
+// models that are more complex than two crossed planes
 // force us to calculate ambient occlusion via midBlock other than UV
-bool hasFixedPosition(int id) {
-    return id == 10002
-        || id == 10003
-        || id == 10004 
-        || id == 10005 
-        || id == 10010 
-        || id == 10015
-        || (10300 <= id && id < 10400);
+bool hasComplexeGeometry(int id) {
+    return id == 10100
+        || id == 10101
+        || id == 10200
+        || id == 10201
+        || id == 10402 
+        || id == 10901;
 }
 bool hasVerticalAmbientOcclusion(int id) {
-    return id == 10009;
+    return (10100 <= id && id < 10200)
+        || (10400 <= id && id < 10500);
 }
 bool hasHorizontalAmbientOcclusion(int id) {
-    return id == 10016
-        || id == 10017
-        || id == 10019
-        || (10200 <= id && id < 10300);
+    return (11000 <= id && id < 11100)
+        || id == 11200
+        || (11500 <= id && id < 11600);
 }
 
 // --- porosity --- //
@@ -554,25 +560,25 @@ bool hasLowPorosity(int id) {
 
 // root type
 bool isSmall(int id) {
-    return id == 10011;
+    return (10600 <= id && id < 10700);
 }
 bool isTiny(int id) {
-    return id == 10012;
+    return (10700 <= id && id < 10800);
 }
 bool isCeilingRooted(int id) {
-    return id == 10015;
-}
-bool isTallLower(int id) {
-    return id == 10001 || id == 10003 || id == 10101;
+    return (10900 <= id && id < 11000);
 }
 bool isTallUpper(int id) {
-    return id == 10000 || id == 10002 || id == 10102;
+    return id == 10000 || id == 10002 || id == 10100 || id == 11401;
 }
-bool isPicherCropLower(int id) {
-    return id == 10004;
+bool isTallLower(int id) {
+    return id == 10001 || id == 10003 || id == 10101 || id == 11402;
 }
 bool isPicherCropUpper(int id) {
-    return id == 10005;
+    return id == 10200;
+}
+bool isPicherCropLower(int id) {
+    return id == 10201;
 }
 
 // offset midBlock coordinate to make the foliage's root the origin (used for vertex animation)
