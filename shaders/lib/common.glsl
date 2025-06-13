@@ -22,6 +22,153 @@ const bool colortex3Clear = false;
 const bool colortex4Clear = true;
 const bool colortex5Clear = true;
 
+////////////////////////////////////////////////////
+//////////////////// parameters ////////////////////
+////////////////////////////////////////////////////
+
+// --- lighting --- //
+
+// light
+#define SKY_LIGHT_COLOR 1 //[0 1] 0=constant 1=tweaked
+#define BLOCK_LIGHT_COLOR 1 //[0 1] 0=constant 1=tweaked
+#define SPLIT_TONING 1 //[0 1] 0=off 1=on (give a blueish tint to shadows)
+
+// shadows
+#define SHADOW_TYPE 1 //[0 1 2] 0=off 1=stochastic 2=classic+rotation 3=classic
+#define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define SHADOW_RANGE 3 //[1 2 3 4 5 6 7 8 9] radius of the sample area in shadowmap pixels
+#define SHADOW_SAMPLES 8 //[1 2 4 6 8 12 16] number of samples (in total for stochastic / in radius for classic)
+#define SHADOW_KERNEL 0 //[0 1] 0=box 1=gaussian
+
+// light shaft
+#define VOLUMETRIC_LIGHT_TYPE 1 //[0 1] 0=off 1=on
+#define VOLUMETRIC_LIGHT_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define VOLUMETRIC_LIGHT_RESOLUTION 1.5 //[0.25 0.5 1.0 1.5 2.0 4.0] in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
+#define VOLUMETRIC_LIGHT_MIN_SAMPLE 4 //[1 2 4 8 16]
+#define VOLUMETRIC_LIGHT_MAX_SAMPLE 8 //[2 4 8 16 32 64]
+#define VOLUMETRIC_LIGHT_INTENSITY 1.0 //[0.25 0.5 1.0 1.5 2.0]
+// underwater light shaft
+#define UNDERWATER_LIGHTSHAFT_TYPE 2 //[0 1 2] 0=off 1=static 2=animated
+
+// pixelated shadding
+#define TEXTURE_RESOLUTION 16 // [1 2 4 8 16 32 64 128 256 512 1024 2048]
+#define PIXELATION_TYPE 2 //[0 1 2] 0=off 1=voxelisation 2=texture_snap
+#define PIXELATED_SHADOW 2 //[0 1 2] 0=off 1=hard 2=smooth
+#define PIXELATED_SPECULAR 1 //[0 1] 0=off 1=on
+#define PIXELATED_BLOCKLIGHT 1 //[0 1] 0=off 1=on
+#define PIXELATED_AMBIENT_OCCLUSION 1 //[0 1] 0=off 1=on
+#define PIXELATED_REFLECTION 0 //[0 1] 0=off 1=on
+
+// --- material --- //
+
+// PBR texture pack
+// only support labPBR
+#define PBR_TYPE 0 //[0 1] 0=off 1=on
+// porosity (only few texture pack specify porosity)
+#define PBR_POROSITY 0 //[0 1] 0=off 1=on
+// parallax occlusion mapping (POM)
+#define PBR_POM_TYPE 2 //[0 1 2] 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
+#define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define PBR_POM_DEPTH 0.25 //[0.0625 0.125 0.1875 0.25 0.3125 0.375 0.4375 0.5 0.5625 0.625 0.6875 0.75 0.8125 0.875 0.9375 1.0] in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
+#define PBR_POM_DISTANCE 16.0 //[8.0 16.0 32.0 64.0] in [8;+inf] spherical distance in blocks
+#define PBR_POM_LAYERS 128 //[32 64 128 256] (only available with PBR_POM=1)
+#define PBR_POM_NORMAL 1 //[0 1] 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
+
+// custom normalmap
+#define CUSTOM_NORMALMAP 1 //[0 1] 0=off 1=on (procedurally generate normalmap : PBR override it)
+#define WATER_CUSTOM_NORMALMAP 1 //[0 1] 0=off 1=on (custom normalmap for water : override PBR)
+
+// subsurface scattering
+#define SUBSURFACE_TYPE 1 //[0 1] 0=off 1=on
+
+// porority
+#define POROSITY_TYPE 1 //[0 1] 0=off 1=on
+
+// custom ambient occlusion
+#define AMBIENT_OCCLUSION_TYPE 1 //[0 1] 0=off 1=on
+
+// reflection
+#define REFLECTION_TYPE 3 //[0 1 2 3] 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
+#define REFLECTION_NORMAL_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define REFLECTION_STEP_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define REFLECTION_RESOLUTION 1.0 //[0.1 0.25 0.5 0.75 1.0] from 0=low to 1=high
+#define REFLECTION_MAX_STEPS 12 //[2 4 8 12 16 32 64] from 0=none to inf=too_much
+#define REFLECTION_THICKNESS 5 //[3 5 7 11 17 31] from 0=too_precise to inf=awful
+#define REFLECTION_LAST_BLUR_SAMPLES 1 // [0;inf]
+// blur reflections of opaque materials
+#define REFLECTION_BLUR_TYPE 0 // 0=off 1=on
+#define REFLECTION_BLUR_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define REFLECTION_BLUR_RANGE 0.001 // extent of the kernel
+#define REFLECTION_BLUR_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
+#define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
+#define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
+
+// emissive ores
+#define EMISSIVE_ORES 0 //[0 1] 0=off 1=on
+
+// --- atmospheric --- //
+
+// sky
+#define SKY_TYPE 1 //[0 1] 0=vanilla 1=custom
+#define SKY_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+
+// fog
+#define FOG_TYPE 2 //[0 1 2] 0=off 1=vanilla 2=custom
+
+// water caustics
+#define WATER_CAUSTIC_TYPE 1 //[0 1 2] 0=off 1=vanilla+ 2=realistic
+
+// animation
+#define ANIMATED_POSITION 2 //[0 1 2] 0=off 1=only_vertex 2=vertex_and_normal
+
+// --- post process --- //
+
+// bloom
+#define BLOOM_TYPE 2 //[0 1 2] 0=off 1=old_school 2=modern
+#define BLOOM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+#define BLOOM_FACTOR 1.0 //[0.25 0.5 1.0 1.5 2.0 2.5 3.0] from 0=none to inf=too_much
+// old bloom params
+#define BLOOM_OLD_RANGE 0.015 //[0.005 0.01 0.015 0.02 0.025 0.03] extent of the kernel
+#define BLOOM_OLD_RESOLUTION 0.5 //[0.1 0.25 0.5 0.75 0.9 1.0] in [0;1], proportion of pixel to be sampled
+#define BLOOM_OLD_KERNEL 1 // 0=box 1=gaussian
+#define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
+// modern bloom params
+#define BLOOM_MODERN_RANGE 0.75 //[-2.0 -1.5 -1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0 1.5 2.0] in [-2;2]
+#define BLOOM_MODERN_SAMPLES 1 //[1 2 3 4] number of samples in the radius 
+#define BLOOM_MODERN_TYPE 1 //[0 1] 0=low 1=high
+
+// depth of field
+#define DOF_TYPE 0 //[0 1 2] 0=off 1=dynamic_focus 2=static_focus
+#define DOF_RANGE 0.005 //[0.0025 0.005 0.0075 0.01] extent of the kernel
+#define DOF_RESOLUTION 0.5 //[0.25 0.5 0.75 1.0] in [0;1], proportion of pixel to be sampled
+#define DOF_KERNEL 0 //[0 1] 0=box 1=gaussian
+#define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
+#define DOF_FOCAL_PLANE_LENGTH 20 //[5 10 20 40] half length in blocks
+
+// temporal anti aliasing
+#define TAA_TYPE 2 //[0 1 2] 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
+
+// light refraction effect
+#define REFRACTION_UNDERWATER 1 //[0 1] 0=off 1=on
+#define REFRACTION_NETHER 1 //[0 1] 0=off 1=on
+
+// players status
+#define STATUS_DYING_TYPE 1 //[0 1] 0=off 1=on
+#define STATUS_STARVING_TYPE 1 //[0 1] 0=off 1=on
+#define STATUS_DROWNING_TYPE 1 //[0 1] 0=off 1=on
+
+// quantization
+#define QUANTIZATION_TYPE 0 //[0 1 2] 0=off 1=on 2=dithered
+#define QUANTIZATION_AMOUNT 1.0 //[1.0 2.0 4.0 8.0 16.0 32.0 64.0 128.0 256.0 512.0 1024.0] number of color used
+
+// chromatic aberation
+#define CHROMATIC_ABERATION_TYPE 0 //[0 1] 0=off 1=on
+#define CHROMATIC_ABERATION_AMPLITUDE 0.02 //[0.005 0.01 0.015 0.02] 0=off 0.02=too_much
+
+// --- distant horizon --- //
+
+#define DH_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
+
 ///////////////////////////////////////////////////
 //////////////////// constants ////////////////////
 ///////////////////////////////////////////////////
@@ -31,9 +178,9 @@ const float sunPathRotation = 0.0;
 
 // shadow
 const bool shadowHardwareFiltering = true;
-const int shadowMapResolution = 2048; // 1024 2048
+const int shadowMapResolution = 2048; //[512 1024 2048 4096]
 const float shadowDistanceRenderMul = 1.0;
-const float shadowDistance = 192.0; // 192
+const float shadowDistance = 192.0; //[96.0 128.0 192.0 256.0 512.0 1024.0]
 const float startShadowDecrease = 0.66 * shadowDistance;
 
 // noise
@@ -45,154 +192,6 @@ const float centerDepthHalflife = 2.0;
 // effects
 const float blindnessRange = 8.0;
 const float darknessRange = 32.0;
-
-////////////////////////////////////////////////////
-//////////////////// parameters ////////////////////
-////////////////////////////////////////////////////
-
-// --- lighting --- //
-
-// light
-#define SKY_LIGHT_COLOR 1 // 0=constant 1=tweaked
-#define BLOCK_LIGHT_COLOR 1 // 0=constant 1=tweaked
-#define SPLIT_TONING 1 // 0=off 1=on (give a blueish tint to shadows)
-
-// shadows
-#define SHADOW_TYPE 1 // 0=off 1=stochastic 2=classic+rotation 3=classic
-#define SHADOW_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define SHADOW_RANGE 3 // radius of the sample area in shadowmap pixels
-#define SHADOW_SAMPLES 4 // number of samples (in total for stochastic / in radius for classic)
-#define SHADOW_KERNEL 0 // 0=box 1=gaussian
-
-// light shaft
-#define VOLUMETRIC_LIGHT_TYPE 1 // 0=off 1=on
-#define VOLUMETRIC_LIGHT_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define VOLUMETRIC_LIGHT_RESOLUTION 1.5 // in [0;inf] 0.5=one_sample_each_two_block 1=one_sample_per_block 2=two_sample_per_block
-#define VOLUMETRIC_LIGHT_MIN_SAMPLE 4
-#define VOLUMETRIC_LIGHT_MAX_SAMPLE 8
-#define VOLUMETRIC_LIGHT_INTENSITY 1.0
-// underwater light shaft
-#define UNDERWATER_LIGHTSHAFT_TYPE 2 // 0=off 1=static 2=animated
-
-// pixelated shadding
-#define TEXTURE_RESOLUTION 16 // 0=off 1=on
-#define PIXELATION_TYPE 2 // 0=all_off 1=voxelisation 2=texture_snap
-#define PIXELATED_SHADOW 2 // 0=off 1=hard 2=smooth
-#define PIXELATED_SPECULAR 1 // 0=off 1=on
-#define PIXELATED_BLOCKLIGHT 1 // 0=off 1=on
-#define PIXELATED_AMBIENT_OCCLUSION 1 // 0=off 1=on
-#define PIXELATED_REFLECTION 0 // 0=off 1=on
-
-// --- material --- //
-
-// PBR texture pack
-// only support labPBR
-#define PBR_TYPE 0 // 0=off 1=on
-// porosity (only few texture pack specify porosity)
-#define PBR_POROSITY 0 // 0=off 1=on
-// parallax occlusion mapping (POM)
-#define PBR_POM_TYPE 2 // 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
-#define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define PBR_POM_DEPTH 4.0/16.0 // in [0;1] - 0=no_depth, 1/16=1_pixel_depth 1=1_block_depth
-#define PBR_POM_DISTANCE 16.0 // in [8;+inf] spherical distance in blocks
-#define PBR_POM_LAYERS 128 // 32 64 128 256 (only available with PBR_POM=1)
-#define PBR_POM_NORMAL 1 // 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
-
-// custom normalmap
-#define CUSTOM_NORMALMAP 1 // 0=off 1=on (procedurally generate normalmap : PBR override it)
-#define WATER_CUSTOM_NORMALMAP 1 // 0=off 1=on (custom normalmap for water : override PBR)
-
-// subsurface scattering
-#define SUBSURFACE_TYPE 1 // 0=off 1=on
-
-// porority
-#define POROSITY_TYPE 1 // 0=off 1=on
-
-// custom ambient occlusion
-#define AMBIENT_OCCLUSION_TYPE 1 // 0=off 1=on
-
-// reflection
-#define REFLECTION_TYPE 3 // 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
-#define REFLECTION_NORMAL_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define REFLECTION_STEP_DITHERING_TYPE 3 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define REFLECTION_RESOLUTION 1 // from 0=low to 1=high
-#define REFLECTION_MAX_STEPS 8 // from 0=none to inf=too_much
-#define REFLECTION_THICKNESS 5 // from 0=too_precise to inf=awful
-#define REFLECTION_LAST_BLUR_SAMPLES 1 // [0;inf]
-// blur reflections of opaque materials
-#define REFLECTION_BLUR_TYPE 0 // 0=off 1=on
-#define REFLECTION_BLUR_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define REFLECTION_BLUR_RANGE 0.001 // extent of the kernel
-#define REFLECTION_BLUR_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
-#define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
-#define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
-
-// emissive ores
-#define EMISSIVE_ORES 0 // 0=off 1=on
-
-// --- atmospheric --- //
-
-// sky
-#define SKY_TYPE 1 // 0=vanilla 1=custom
-#define SKY_DITHERING_TYPE 1 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-
-// fog
-#define FOG_TYPE 2 // 0=off 1=vanilla 2=custom
-
-// water caustics
-#define WATER_CAUSTIC_TYPE 1 // 0=off 1=vanilla+ 2=realistic
-
-// --- animation --- //
-
-// animation
-#define ANIMATED_POSITION 2 // 0=off 1=only_vertex 2=vertex_and_normal
-
-// --- post process --- //
-
-// bloom
-#define BLOOM_TYPE 2 // 0=off 1=old_school 2=modern
-#define BLOOM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define BLOOM_FACTOR 1.0 // from 0=none to inf=too_much
-// old bloom params
-#define BLOOM_OLD_RANGE 0.015 // extent of the kernel
-#define BLOOM_OLD_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
-#define BLOOM_OLD_KERNEL 1 // 0=box 1=gaussian
-#define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
-// modern bloom params
-#define BLOOM_MODERN_RANGE 0.75 // in [-2;2]
-#define BLOOM_MODERN_SAMPLES 1 // number of samples in the radius 
-
-// depth of field
-#define DOF_TYPE 0 // 0=off 1=dynamic_focus 2=static_focus
-#define DOF_RANGE 0.005 // extent of the kernel
-#define DOF_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
-#define DOF_KERNEL 0 // 0=box 1=gaussian
-#define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
-#define DOF_FOCAL_PLANE_LENGTH 20 // half length in blocks
-
-// temporal anti aliasing
-#define TAA_TYPE 2 // 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]
-
-// light refraction effect
-#define REFRACTION_UNDERWATER 1 // 0=off 1=on
-#define REFRACTION_NETHER 1 // 0=off 1=on
-
-// players status
-#define STATUS_DYING_TYPE 1 // 0=off 1=on
-#define STATUS_STARVING_TYPE 1 // 0=off 1=on
-#define STATUS_DROWNING_TYPE 1 // 0=off 1=on
-
-// quantization
-#define QUANTIZATION_TYPE 0 // 0=off 1=on 2=dithered
-#define QUANTIZATION_AMOUNT 1.0 // number of color used
-
-// chromatic aberation
-#define CHROMATIC_ABERATION_TYPE 0 // 0=off 1=on
-#define CHROMATIC_ABERATION_AMPLITUDE 0.02 // 0=off 0.02=too_much
-
-// --- distant horizon --- //
-
-#define DH_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
 
 ////////////////////////////////////////////////////
 ///////////////////// uniforms /////////////////////

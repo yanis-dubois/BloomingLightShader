@@ -127,10 +127,10 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             smoothness = 0.75;
         }
         else if (isSlightlySmooth(id)) {
-            smoothness = 0.55;
+            smoothness = 0.5;
         }
         else if (isSlightlyRough(id)) {
-            smoothness = 0.45;
+            smoothness = 0.4;
         }
         else if (isRough(id)) {
             smoothness = 0.2;
@@ -164,7 +164,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
         emissivness = 1.0;
     }
     else if (isSemiEmissive(id)) {
-        emissivness = getLightness(albedo);
+        emissivness = max(getLightness(albedo), max(albedo.r, max(albedo.g, albedo.b)));
         emissivness = smoothstep(0.25, 0.75, emissivness);
     }
     else if (isLitRedstone(id)) {

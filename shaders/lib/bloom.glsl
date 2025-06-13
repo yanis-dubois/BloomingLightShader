@@ -9,7 +9,13 @@ vec4 doBloom(vec2 uv, sampler2D texture, bool isFirstPass) {
     int log2width = int(log2(viewWidth));
     int lodMin = max(0, log2width - 7);
     int lodMax = max(3, log2width - 4);
-    for (int lod=lodMin; lod<=lodMax; ++lod) {
+
+    #if BLOOM_MODERN_TYPE > 0
+        for (int lod=lodMin; lod<=lodMax; ++lod) {
+    #else
+        for (int lod=lodMin+1; lod<=lodMax-1; ++lod) {
+    #endif
+
         float blurSize = pow(2.0, float(lod + BLOOM_MODERN_RANGE)) / n;
 
         // random rotation matrix

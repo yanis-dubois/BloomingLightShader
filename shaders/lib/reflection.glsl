@@ -259,6 +259,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         bool hitFirstPass = false, hitSecondPass = false;
 
         #if REFLECTION_TYPE == 2
+            vec2 texelSpaceFinalPosition = texelSpaceEndPosition;
             vec2 screenSpaceFinalPosition = screenSpaceEndPosition;
         #else
 

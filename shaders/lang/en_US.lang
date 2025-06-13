@@ -1,0 +1,300 @@
+# profiles
+profile.LOW = §aLow
+profile.MEDIUM = §eMedium
+profile.HIGH = §cHigh (Default)
+profile.ULTRA = §4§lUltra
+profile.comment = Shader profiles change performance settings. §e[*]§r It's recommended to use one of these profiles unless you know what you are doing.
+
+# LIGHTING
+screen.LIGHTING = Lighting 
+
+## SHADOW
+screen.SHADOW = Shadow 
+### SHADOW_TYPE
+option.SHADOW_TYPE = Shadow Type
+value.SHADOW_TYPE.0 = §cOFF
+value.SHADOW_TYPE.1 = Stochastic
+value.SHADOW_TYPE.2 = Convolution
+option.SHADOW_TYPE.comment = §e[*]§r If Pixelated Shadow is enable, the type doesn't matter as it's not OFF.
+### SHADOW_RANGE
+option.SHADOW_RANGE = Range
+suffix.SHADOW_RANGE = px
+option.SHADOW_RANGE.comment = Radius of the sample area in shadowmap pixels. §e[*]§r Work only if pixelated shadow is disable.
+### SHADOW_SAMPLES
+option.SHADOW_SAMPLES = Samples Number
+option.SHADOW_SAMPLES.comment = Number of samples used to calculate shadow. §e[*]§r Work only if pixelated shadow is disable.
+
+## VOLUMETRIC_LIGHT
+screen.VOLUMETRIC_LIGHT = Volumetric Light 
+### VOLUMETRIC_LIGHT_TYPE
+option.VOLUMETRIC_LIGHT_TYPE = Volumetric Light
+value.VOLUMETRIC_LIGHT_TYPE.0 = §cOFF
+value.VOLUMETRIC_LIGHT_TYPE.1 = §aON
+option.VOLUMETRIC_LIGHT_TYPE.comment = 
+### UNDERWATER_LIGHTSHAFT_TYPE
+option.UNDERWATER_LIGHTSHAFT_TYPE = Underwater Lightshaft
+value.UNDERWATER_LIGHTSHAFT_TYPE.0 = §cOFF
+value.UNDERWATER_LIGHTSHAFT_TYPE.1 = Static
+value.UNDERWATER_LIGHTSHAFT_TYPE.2 = Animated
+option.UNDERWATER_LIGHTSHAFT_TYPE.comment = 
+### VOLUMETRIC_LIGHT_RESOLUTION
+option.VOLUMETRIC_LIGHT_RESOLUTION = Resolution
+option.VOLUMETRIC_LIGHT_RESOLUTION.comment = 
+### VOLUMETRIC_LIGHT_MIN_SAMPLE
+option.VOLUMETRIC_LIGHT_MIN_SAMPLE = Minimum Samples Number
+option.VOLUMETRIC_LIGHT_MIN_SAMPLE.comment = 
+### VOLUMETRIC_LIGHT_MAX_SAMPLE
+option.VOLUMETRIC_LIGHT_MAX_SAMPLE = Maximum Samples Number
+option.VOLUMETRIC_LIGHT_MAX_SAMPLE.comment = 
+### VOLUMETRIC_LIGHT_INTENSITY
+option.VOLUMETRIC_LIGHT_INTENSITY = Intensity
+option.VOLUMETRIC_LIGHT_INTENSITY.comment = 
+
+## PIXELATED_SHADING
+screen.PIXELATED_SHADING = Pixelated Shading
+### PIXELATION_TYPE
+option.PIXELATION_TYPE = Pixelation Type
+value.PIXELATION_TYPE.0 = §cOFF
+value.PIXELATION_TYPE.1 = Voxelized
+value.PIXELATION_TYPE.2 = Texture Snapped
+option.PIXELATION_TYPE.comment = 
+### TEXTURE_RESOLUTION
+option.TEXTURE_RESOLUTION = Texturepack Resolution
+suffix.TEXTURE_RESOLUTION = px
+option.TEXTURE_RESOLUTION.comment = 
+### PIXELATED_SHADOW
+option.PIXELATED_SHADOW = Pixelated Shadows
+value.PIXELATED_SHADOW.0 = §cOFF
+value.PIXELATED_SHADOW.1 = Hard
+value.PIXELATED_SHADOW.2 = Smooth
+option.PIXELATED_SHADOW.comment = 
+### PIXELATED_SPECULAR
+option.PIXELATED_SPECULAR = Pixelated Specular Light
+value.PIXELATED_SPECULAR.0 = §cOFF
+value.PIXELATED_SPECULAR.1 = §aON
+option.PIXELATED_SPECULAR.comment = 
+### PIXELATED_BLOCKLIGHT
+option.PIXELATED_BLOCKLIGHT = Pixelated Block Light
+value.PIXELATED_BLOCKLIGHT.0 = §cOFF
+value.PIXELATED_BLOCKLIGHT.1 = §aON
+option.PIXELATED_BLOCKLIGHT.comment = 
+### PIXELATED_AMBIENT_OCCLUSION
+option.PIXELATED_AMBIENT_OCCLUSION = Pixelated Ambient Occlusion
+value.PIXELATED_AMBIENT_OCCLUSION.0 = §cOFF
+value.PIXELATED_AMBIENT_OCCLUSION.1 = §aON
+option.PIXELATED_AMBIENT_OCCLUSION..comment = 
+### PIXELATED_REFLECTION
+option.PIXELATED_REFLECTION = Pixelated Reflection
+value.PIXELATED_REFLECTION.0 = §cOFF
+value.PIXELATED_REFLECTION.1 = §aON
+option.PIXELATED_REFLECTION.comment = 
+
+# MATERIAL
+screen.MATERIAL = Material 
+
+## TEXTUREPACK_PBR
+screen.TEXTUREPACK_PBR = Texturepack PBR
+### PBR_TYPE
+option.PBR_TYPE = Use PBR Texturepack
+value.PBR_TYPE.0 = §cNO
+value.PBR_TYPE.1 = §aYES
+option.PBR_TYPE.comment = 
+### PBR_POROSITY
+option.PBR_POROSITY = Use Texturepack Porosity
+value.PBR_POROSITY.0 = §cNO
+value.PBR_POROSITY.1 = §aYES
+option.PBR_POROSITY.comment = 
+### PBR_POM_TYPE
+option.PBR_POM_TYPE = Parallax Occlusion Mapping
+value.PBR_POM_TYPE.0 = §cOFF
+value.PBR_POM_TYPE.1 = Classic
+value.PBR_POM_TYPE.2 = Custom
+option.PBR_POM_TYPE.comment = Wether if POM is calculated in a classical way or a more custom one. §e[*]§r Custom POM is recommended for low textures resolutions (32x32 or lower) but use the classical version on higher resolutions.
+### PBR_POM_DISTANCE
+option.PBR_POM_DISTANCE = POM Render Distance
+suffix.PBR_POM_DISTANCE = blocks
+option.PBR_POM_DISTANCE.comment = 
+### PBR_POM_LAYERS
+option.PBR_POM_LAYERS = Classical POM Number of Layers
+option.PBR_POM_LAYERS.comment = 
+### PBR_POM_DEPTH
+option.PBR_POM_DEPTH = POM Depth
+option.PBR_POM_DEPTH.comment = 
+### PBR_POM_NORMAL
+option.PBR_POM_NORMAL = POM Normal
+value.PBR_POM_NORMAL.0 = §cOFF
+value.PBR_POM_NORMAL.1 = §aON
+option.PBR_POM_NORMAL.comment = §e[*]§r Only available with custom POM for now.
+
+## REFLECTION
+screen.REFLECTION = Reflection
+### REFLECTION_TYPE
+option.REFLECTION_TYPE = Reflection
+value.REFLECTION_TYPE.0 = §cOFF
+value.REFLECTION_TYPE.1 = Only Fresnell Effect
+value.REFLECTION_TYPE.2 = Mirror Reflection
+value.REFLECTION_TYPE.3 = Screen Space Reflection
+option.REFLECTION_TYPE.comment = 
+### REFLECTION_RESOLUTION
+option.REFLECTION_RESOLUTION = Resolution
+option.REFLECTION_RESOLUTION.comment = 
+### REFLECTION_MAX_STEPS
+option.REFLECTION_MAX_STEPS = Maximum Samples Number
+option.REFLECTION_MAX_STEPS.comment = 
+
+### CUSTOM_NORMALMAP
+option.CUSTOM_NORMALMAP = Procedural Normalmap
+value.CUSTOM_NORMALMAP.0 = §cOFF
+value.CUSTOM_NORMALMAP.1 = §aON
+option.CUSTOM_NORMALMAP.comment = §e[*]§r Overrided by PBR texturepack normalmap.
+### WATER_CUSTOM_NORMALMAP
+option.WATER_CUSTOM_NORMALMAP = Custom Water Normalmap
+value.WATER_CUSTOM_NORMALMAP.0 = §cOFF
+value.WATER_CUSTOM_NORMALMAP.1 = §aON
+option.WATER_CUSTOM_NORMALMAP.comment = §e[*]§r Override PBR texturepack normalmap.
+### SUBSURFACE_TYPE
+option.SUBSURFACE_TYPE = Subsurface
+value.SUBSURFACE_TYPE.0 = §cOFF
+value.SUBSURFACE_TYPE.1 = §aON
+option.SUBSURFACE_TYPE.comment = 
+### POROSITY_TYPE
+option.POROSITY_TYPE = Porosity
+value.POROSITY_TYPE.0 = §cOFF
+value.POROSITY_TYPE.1 = §aON
+option.POROSITY_TYPE.comment = 
+### EMISSIVE_ORES
+option.EMISSIVE_ORES = Emissive Ores
+value.EMISSIVE_ORES.0 = §cOFF
+value.EMISSIVE_ORES.1 = §aON
+option.EMISSIVE_ORES.comment = 
+
+# ATMOSPHERIC
+screen.ATMOSPHERIC = Atmospheric
+
+### SKY_TYPE
+option.SKY_TYPE = Sky
+value.SKY_TYPE.0 = Vanilla
+value.SKY_TYPE.1 = Custom
+option.SKY_TYPE.comment = 
+### FOG_TYPE
+option.FOG_TYPE = Fog
+value.FOG_TYPE.0 = §cOFF
+value.FOG_TYPE.1 = Vanilla
+value.FOG_TYPE.2 = Custom
+option.FOG_TYPE.comment = 
+### ANIMATED_POSITION
+option.ANIMATED_POSITION = Animation
+value.ANIMATED_POSITION.0 = §cOFF
+value.ANIMATED_POSITION.1 = Vertex Only
+value.ANIMATED_POSITION.2 = Vertex & Normalmap
+option.ANIMATED_POSITION.comment = 
+### WATER_CAUSTIC_TYPE
+option.WATER_CAUSTIC_TYPE = Water Caustic
+value.WATER_CAUSTIC_TYPE.0 = §cOFF
+value.WATER_CAUSTIC_TYPE.1 = Vanilla Style
+value.WATER_CAUSTIC_TYPE.2 = Custom Style
+option.WATER_CAUSTIC_TYPE.comment = 
+### REFRACTION_UNDERWATER
+option.REFRACTION_UNDERWATER = Underwater Refraction
+value.REFRACTION_UNDERWATER.0 = §cOFF
+value.REFRACTION_UNDERWATER.1 = §aON
+option.REFRACTION_UNDERWATER.comment = 
+### REFRACTION_NETHER
+option.REFRACTION_NETHER = Nether Heat Refraction
+value.REFRACTION_NETHER.0 = §cOFF
+value.REFRACTION_NETHER.1 = §aON
+option.REFRACTION_NETHER.comment = 
+
+# POST_PROCESS
+screen.POST_PROCESS = Post Processing
+
+### TAA_TYPE
+option.TAA_TYPE = Temporal Anti Aliasing
+value.TAA_TYPE.0 = §cOFF
+value.TAA_TYPE.1 = Soft
+value.TAA_TYPE.2 = Hard
+option.TAA_TYPE.comment = 
+
+## BLOOM
+screen.BLOOM = Bloom
+### BLOOM_TYPE
+option.BLOOM_TYPE = Bloom Type
+value.BLOOM_TYPE.0 = §cOFF
+value.BLOOM_TYPE.1 = Odl School
+value.BLOOM_TYPE.2 = Modern
+option.BLOOM_TYPE.comment = 
+### BLOOM_FACTOR
+option.BLOOM_FACTOR = Factor
+option.BLOOM_FACTOR.comment = 
+### BLOOM_MODERN_TYPE
+option.BLOOM_MODERN_TYPE = Modern Bloom Quality
+value.BLOOM_MODERN_TYPE.0 = Low
+value.BLOOM_MODERN_TYPE.1 = High
+option.BLOOM_MODERN_TYPE.comment = 
+### BLOOM_MODERN_RANGE
+option.BLOOM_MODERN_RANGE = Modern Bloom Range
+option.BLOOM_MODERN_RANGE.comment = 
+### BLOOM_MODERN_SAMPLES
+option.BLOOM_MODERN_SAMPLES = Modern Bloom Samples Number
+option.BLOOM_MODERN_SAMPLES.comment = 
+### BLOOM_OLD_RANGE
+option.BLOOM_OLD_RANGE = Old Bloom Range
+option.BLOOM_OLD_RANGE.comment = 
+### BLOOM_OLD_RESOLUTION
+option.BLOOM_OLD_RESOLUTION = Old Bloom Resolution
+option.BLOOM_OLD_RESOLUTION.comment = 
+
+## DEPTH_OF_FIELD
+screen.DEPTH_OF_FIELD = Depth of Field
+### DOF_TYPE
+option.DOF_TYPE = Depth of Field
+value.DOF_TYPE.0 = §cOFF
+value.DOF_TYPE.1 = Dynamic Focus
+value.DOF_TYPE.2 = Static Focus
+option.DOF_TYPE.comment = 
+### DOF_RANGE
+option.DOF_RANGE = Range
+option.DOF_RANGE.comment = 
+### DOF_RESOLUTION
+option.DOF_RESOLUTION = Resolution
+option.DOF_RESOLUTION.comment = 
+### DOF_FOCAL_PLANE_LENGTH
+option.DOF_FOCAL_PLANE_LENGTH = Focal Plane Length
+suffix.DOF_FOCAL_PLANE_LENGTH = blocks
+option.DOF_FOCAL_PLANE_LENGTH.comment = 
+
+## PLAYER_STATUS
+screen.PLAYER_STATUS = Player Status Effect
+### STATUS_DYING_TYPE
+option.STATUS_DYING_TYPE = Dying Effect
+value.STATUS_DYING_TYPE.0 = §cOFF
+value.STATUS_DYING_TYPE.1 = §aON
+option.STATUS_DYING_TYPE.comment = 
+### STATUS_STARVING_TYPE
+option.STATUS_STARVING_TYPE = Starving Effect
+value.STATUS_STARVING_TYPE.0 = §cOFF
+value.STATUS_STARVING_TYPE.1 = §aON
+option.STATUS_STARVING_TYPE.comment = 
+### STATUS_DROWNING_TYPE
+option.STATUS_DROWNING_TYPE = Drowning Effect
+value.STATUS_DROWNING_TYPE.0 = §cOFF
+value.STATUS_DROWNING_TYPE.1 = §aON
+option.STATUS_DROWNING_TYPE.comment = 
+
+### QUANTIZATION_TYPE
+option.QUANTIZATION_TYPE = Quantization
+value.QUANTIZATION_TYPE.0 = §cOFF
+value.QUANTIZATION_TYPE.1 = Hard
+value.QUANTIZATION_TYPE.2 = Dithered
+option.QUANTIZATION_TYPE.comment = 
+### QUANTIZATION_AMOUNT
+option.QUANTIZATION_AMOUNT = Quantization Number of Colors
+option.QUANTIZATION_AMOUNT.comment = 
+### CHROMATIC_ABERATION_TYPE
+option.CHROMATIC_ABERATION_TYPE = Chromatic Aberration
+value.CHROMATIC_ABERATION_TYPE.0 = §cOFF
+value.CHROMATIC_ABERATION_TYPE.1 = §aON
+option.CHROMATIC_ABERATION_TYPE.comment = 
+### CHROMATIC_ABERATION_AMPLITUDE
+option.CHROMATIC_ABERATION_AMPLITUDE = Chromatic Aberration Amplitude
+option.CHROMATIC_ABERATION_AMPLITUDE.comment = 
