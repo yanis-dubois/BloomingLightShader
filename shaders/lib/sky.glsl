@@ -121,8 +121,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
         skyColor = mix(skyColor, 0.25 * skyColor, thunderStrength);
 
         // -- horizon fog -- //
-        vec3 fogColor = vec3(getLightness(skyLightColor));
-        float horizonFactor = 1.0 - smoothstep(-0.25, 0.3, viewDotUp);
+        vec3 fogColor = 0.75 * saturate(skyColor, 1.5);
+        float horizonFactor = 1.0 - smoothstep(-1.0, 0.2, viewDotUp);
         skyColor = mix(skyColor, fogColor, horizonFactor);
 
         // -- glare -- //
