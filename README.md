@@ -37,8 +37,9 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 ### 🌍 All Environments
 
-- Overworld
+- Surface
 - Underwater
+- Underground
 - Nether
 - End
 
