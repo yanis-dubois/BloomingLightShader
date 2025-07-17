@@ -1,6 +1,6 @@
 #  Minecraft Blooming Light Shaders
 
-This repository contains a shader pack for **Minecraft** that focuses on **stylized visual fidelity** while incorporating principles from **physically-based rendering (PBR)**, **volumetric lighting**, and **post-processing**. The shader is designed to enhance immersion and atmosphere without compromising Minecraft’s distinct visual identity.
+This repository contains a shader pack for **Minecraft** that focuses on stylized visual fidelity while incorporating principles from physically-based rendering (PBR), volumetric lighting, and post-processing. The shader is designed to enhance immersion and atmosphere without compromising Minecraft’s distinct visual identity.
 
 ---
 
@@ -15,25 +15,25 @@ This repository contains a shader pack for **Minecraft** that focuses on **styli
 
 ### 🧱 Physically-Based Material Rendering
 
-- **Emissivness** for light sources or luminescent objects
-- **Reflectance and Roughness** to simulate all kind of material (metal, stone, wood, ice, ...)
-- **Screen Space Reflections (SSR)** approximate local reflections in real time
-- **Subsurface Scattering** for translucent materials
-- **Porosity** simulates moisture absorption on wet surfaces
-- **Normal Mapping** support through external texture packs or procedurally generated
-- **Parallax Occlusion Mapping (POM)** simulates surface relief using texture height maps
+- Emissivness for light sources or luminescent objects
+- Reflectance and Roughness to simulate all kind of material (metal, stone, wood, ice, ...)
+- Screen Space Reflections (SSR) approximate local reflections in real time
+- Subsurface Scattering for translucent materials
+- Porosity simulates moisture absorption on wet surfaces
+- Normal Mapping support through external texture packs or procedurally generated
+- Parallax Occlusion Mapping (POM) simulates surface relief using texture height maps
 
 ### 🌦️ Atmospheric Effects
 
 - New procedural sky box
-- Simulated **light shafts** with volumetric fog
+- Simulated light shafts with volumetric fog
 - Procedural animation of foliage and water surfaces
 
 ### 🎞️ Post-Processing Pipeline
 
 - Temporal Anti-Aliasing (TAA)
 - Bloom
-- Depth of Field with **Bokeh simulation**
+- Depth of Field with Bokeh simulation
 
 ### 🌍 All Environments
 
