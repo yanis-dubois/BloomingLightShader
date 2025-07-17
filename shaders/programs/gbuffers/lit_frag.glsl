@@ -175,7 +175,7 @@ void main() {
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusionPBR, subsurfaceScattering, porosity);
     // remap emissivness, we keep [0.9;1.0] for sun's emissions
-    emissivness *= 0.9;
+    emissivness = 0.9 * clamp(emissivness, 0.0, 1.0);
 
     // gamma correct
     albedo = SRGBtoLinear(albedo);

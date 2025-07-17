@@ -232,7 +232,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         float specularFactor = smoothstep(0.8, 1.0, getLightness(directSkyLight * specular));
         if (sunAngle > 0.5) specularFactor *= 0.9;
         specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
-        emissivness = max(emissivness, specularFactor);
+        // emissivness = max(emissivness, specularFactor);
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT

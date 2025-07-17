@@ -451,7 +451,8 @@ bool isFullyEmissive(int id) {
         || id == 2701
         || id == 29000
         || id == 30000
-        || id == 40000;
+        || id == 40000
+        || id == 40001;
 }
 bool isSemiEmissive(int id) {
     return id == 2
@@ -486,7 +487,8 @@ bool isSemiEmissive(int id) {
         || id == 20403
         || id == 20404
         || id == 20502
-        || id == 30001;
+        || id == 30100
+        || id == 40100;
 }
 bool isLitRedstone(int id) {
     return id == 1205

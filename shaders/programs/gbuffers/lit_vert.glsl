@@ -46,7 +46,10 @@ void main() {
     #if defined TERRAIN
         if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
     #elif defined ENTITY
-        if (0 < entityId && entityId < 65535) id = entityId;
+        if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId;
+        else if (0 < entityId && entityId < 65535) id = entityId;
+    #else
+        if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId;
     #endif
 
     /* geometry infos */

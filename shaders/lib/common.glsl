@@ -248,6 +248,7 @@ uniform float currentPlayerHealth;
 
 uniform int blockEntityId;
 uniform int entityId;
+uniform int currentRenderedItemId;
 uniform int frameCounter; // in [0;720719]
 uniform int worldTime; // in tick [0;23999]
 uniform int moonPhase; // 0=fullmoon, 1=waning gibbous, 2=last quarter, 3=waning crescent, 4=new, 5=waxing crescent, 6=first quarter, 7=waxing gibbous

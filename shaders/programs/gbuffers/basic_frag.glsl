@@ -38,11 +38,11 @@ void main() {
 
     #ifdef GLOWING
         albedo *= 2.0;
-        emissivness = 1.0;
+        emissivness = 0.5;
     #endif
 
     #ifdef GLINT
-        emissivness = pow(max(albedo.r, max(albedo.g, albedo.b)), 0.5);
+        // emissivness = 0.5 * pow(max(albedo.r, max(albedo.g, albedo.b)), 0.5);
     #endif
 
     // remap emissivness, we keep [0.9;1.0] for sun's emissions
