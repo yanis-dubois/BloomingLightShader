@@ -76,8 +76,10 @@ float getEndVolumetricFog(float time, vec3 seed, inout vec3 color) {
     return noise;
 }
 
-vec2 doHeatRefraction(float time, vec2 uv, vec3 eyeSpaceDirection) {
-    float amplitude = 0.00165;
+vec2 doHeatRefraction(float time, vec2 uv, vec3 eyeSpaceDirection, float height) {
+    float heightFactor = 1.0 - map(height, seaLevel, 128.0, 0.0, 1.0);
+    heightFactor *= heightFactor;
+    float amplitude = 0.0033 * heightFactor;
     time = time * 0.3;
     vec3 seed = vec3(eyeSpaceDirection * 5.25);
     eyeSpaceDirection.y *= 0.33;

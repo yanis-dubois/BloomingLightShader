@@ -285,3 +285,11 @@ const vec3 southDirection = vec3(0.0, 0.0, 1.0);
 
 const float PI = 3.14159265359;
 const float e = 2.71828182846;
+
+#if defined OVERWORLD
+    const float seaLevel = 62.0;
+#elif defined NETHER
+    const float seaLevel = 30.0;
+#else
+    const float seaLevel = 52.0;
+#endif

@@ -24,7 +24,7 @@ void main() {
     vec4 textureColor = texture2D(gtexture, textureCoordinate);
     vec3 albedo = textureColor.xyz * additionalColor.xyz;
     // transparency
-    float transparency = mix(1.0, 0.1, rainStrength);
+    float transparency = mix(1.0, 0.1, rainStrength*rainStrength*rainStrength*rainStrength);
     if (transparency < alphaTestRef) discard;
 
     float emissivness = 0.0;
@@ -54,8 +54,13 @@ void main() {
             if (VdotX < 0.9 && eyeSpaceFragmentPosition.y < 0.08) {
                 discard;
             }
-
-            emissivness = 1.0;
+            // add sun's special bloom
+            if (VdotS > 0.0) {
+                emissivness = 1.0;
+            }
+            else {
+                emissivness = 0.9;
+            }
         #else
             emissivness = getLightness(albedo);
         #endif

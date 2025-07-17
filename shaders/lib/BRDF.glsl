@@ -56,7 +56,6 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, flo
     specularColor = mix(specularColor, vec3(1.0), 0.05);
 
     return specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
-    return 20.0 * specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
 
     // not used
     // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
@@ -75,7 +74,7 @@ vec3 specularSubsurfaceBRDF(vec3 V, vec3 L, vec3 albedo) {
     return specular;
 }
 
-// sample GGX visible normal
+// sample GGX visible normal (cf. Journal of Computer Graphics Techniques Vol. 7, No. 4, 2018)
 vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2) {
 
     // transforming the view direction to the hemisphere configuration

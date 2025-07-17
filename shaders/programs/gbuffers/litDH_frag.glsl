@@ -70,6 +70,8 @@ void main() {
     // material data
     float smoothness = 0.0, reflectance = 0.0, emissivness = 0.0;
     getDHMaterialData(id, albedo, smoothness, reflectance, emissivness);
+    // remap emissivness, we keep [0.9;1.0] for sun's emissions
+    emissivness *= 0.9;
 
     // -- apply lighting -- //
     vec4 color = doDHLighting(albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, emissivness);

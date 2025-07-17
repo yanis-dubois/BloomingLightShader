@@ -148,7 +148,7 @@ bool SSR_secondPass(sampler2D depthTexture, vec2 texelSpaceStartPosition, vec2 t
     return false;
 }
 
-vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance) {
+vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sampler2D depthTexture, vec2 uv, float depth, vec3 color, vec3 normal, float ambientSkyLightIntensity, float smoothness, float reflectance, inout float emissivness) {
 
     // ------------------ step 1 : preparation ------------------ //
 
@@ -392,7 +392,8 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
             // get reflection
             if (isValid) {
                 sampledReflection = SRGBtoLinear(texture2D(colorTexture, screenSpaceCurrentPosition).rgb);
-                float emissivness = texture2D(lightAndMaterialTexture, screenSpaceCurrentPosition).y;
+                float sampledEmissivness = texture2D(lightAndMaterialTexture, screenSpaceCurrentPosition).y;
+                sampledEmissivness = clamp(sampledEmissivness, 0.0, 0.99);
 
                 // underwater reflection
                 if (isEyeInWater==1) {
@@ -400,7 +401,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                     // underwater sky box
                     if (distance(playerSpaceHitPosition, vec3(0.0)) > far) {
                         sampledReflection = waterFogColor;
-                        emissivness = 0.0;
+                        sampledEmissivness = 0.0;
                     }
                     // attenuate reflection
                     else {
@@ -410,11 +411,9 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
                 // sky box tweak
                 if (finalPositionDepth == 1.0) {
-                    if (emissivness == 0.0) {
-                        #ifndef DISTANT_HORIZONS
-                            sampledReflection = backgroundColor;
-                        #endif
-                    }
+                    #ifndef DISTANT_HORIZONS
+                        sampledReflection = backgroundColor;
+                    #endif
                 }
                 else {
                     vec3 worldSpacePosition = playerToWorld(playerSpaceHitPosition);
@@ -424,6 +423,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 // enhance reflection of emissive objects
                 sampledReflection += sampledReflection * emissivness * 2.0;
                 sampledReflection = clamp(sampledReflection, 0.0, 1.0);
+                emissivness = max(sampledEmissivness * fresnel, emissivness);
             }
             else {
                 sampledReflection = backgroundColor;

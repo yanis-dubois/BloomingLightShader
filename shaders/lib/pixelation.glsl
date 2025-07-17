@@ -10,7 +10,7 @@ vec2 computeTexelOffset(sampler2D tex, vec2 uv) {
     vec2 dUV = uvCenter - uv;
 
     // 2. Calculate how much the texture coords vary over fragment space.
-    //     This essentially defines a 2x2 matrix that gets texture space (UV) deltas from fragment space (ST) deltas.
+    // This essentially defines a 2x2 matrix that gets texture space (UV) deltas from fragment space (ST) deltas.
     vec2 dUVdS = dFdx(uv);
     vec2 dUVdT = dFdy(uv);
 

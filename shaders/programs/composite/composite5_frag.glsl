@@ -36,7 +36,7 @@ void main() {
     #elif REFRACTION_NETHER > 0 && defined NETHER
         float depth = texture2D(depthtex0, uv).r;
         vec3 eyeSpaceDirection = normalize(viewToEye(screenToView(uv, depth)));
-        UV = uv + doHeatRefraction(frameTimeCounter, uv, eyeSpaceDirection);
+        UV = uv + doHeatRefraction(frameTimeCounter, uv, eyeSpaceDirection, cameraPosition.y);
     #endif
 
     // -- dying effect (pulsating chromatic aberation) -- //

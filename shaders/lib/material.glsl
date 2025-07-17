@@ -262,7 +262,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
                 // horizontally from center to extremity
                 else if (hasHorizontalAmbientOcclusion(id)) {
                     ambientOcclusion = distance(0.0, objectSpacePosition.x);
-                    ambientOcclusion = min(2.0 * ambientOcclusion, 1.0);
+                    ambientOcclusion = min(ambientOcclusion + 0.25, 1.0);
                 }
                 // vertically & horizontally from root to extremities
                 else {

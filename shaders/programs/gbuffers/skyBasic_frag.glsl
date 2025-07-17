@@ -41,6 +41,9 @@ void main() {
 		}
 	#endif
 
+	// remap emissivness, we keep [0.9;1.0] for sun's emissions
+    emissivness *= 0.9;
+
 	// apply blindness effect
 	vec3 worldSpacePosition = screenToWorld(texelToScreen(gl_FragCoord.xy), 1.0);
     doBlindness(worldSpacePosition, albedo, emissivness);

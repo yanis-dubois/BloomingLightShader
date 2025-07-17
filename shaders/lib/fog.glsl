@@ -37,14 +37,6 @@ vec3 getVolumetricFogColor() {
     #endif
 }
 
-#if defined OVERWORLD
-    const float seaLevel = 62.0;
-#elif defined NETHER
-    const float seaLevel = 30.0;
-#else
-    const float seaLevel = 52.0;
-#endif
-
 float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 10.0;
 

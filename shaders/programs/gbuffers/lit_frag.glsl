@@ -174,6 +174,8 @@ void main() {
     #endif
     // modify these PBR values if PBR textures are enable
     getPBRMaterialData(normals, specular, textureCoordinate, smoothness, reflectance, emissivness, ambientOcclusionPBR, subsurfaceScattering, porosity);
+    // remap emissivness, we keep [0.9;1.0] for sun's emissions
+    emissivness *= 0.9;
 
     // gamma correct
     albedo = SRGBtoLinear(albedo);
@@ -311,7 +313,7 @@ void main() {
         #else
             vec3 screenSpacePosition = vec3(uv, depth);
         #endif
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normalMap, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normalMap, ambientSkyLightIntensity, smoothness, reflectance, emissivness);
 
         // tweak reflection for water
         if (isWater_)
@@ -340,6 +342,7 @@ void main() {
     colorData = color;
     normalData = encodeNormal(normalMap);
     #ifdef TRANSPARENT
+        if (emissivness > 0.99) transparency = 1.0;
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, pow(transparency, 0.25));
     #else
         lightAndMaterialData = vec4(ambientSkyLightIntensity, emissivness, smoothness, 1.0 - reflectance);

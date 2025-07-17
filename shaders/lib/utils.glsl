@@ -38,7 +38,7 @@ vec3 saturate(vec3 color, float factor) {
 vec3 toneMap(vec3 color) {
     return color / (1.0 + getLightness(color));
 }
-// from [0;1] to [0;inf]
+// from [0;1] to [0;1000]
 vec3 inverseToneMap(vec3 color) {
     return color / max(1.0 - getLightness(color), 0.001);
 }
@@ -450,7 +450,8 @@ bool isFullyEmissive(int id) {
         #endif
         || id == 2701
         || id == 29000
-        || id == 30000;
+        || id == 30000
+        || id == 40000;
 }
 bool isSemiEmissive(int id) {
     return id == 2
@@ -463,7 +464,8 @@ bool isSemiEmissive(int id) {
         || id == 2906
         || id == 3006
         || id == 3106
-        || id == 3206
+        || id == 3206 
+        || id == 3704
         || id == 3900
         || id == 3901
         || id == 4000

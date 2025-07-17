@@ -1,5 +1,5 @@
 vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, float emissivness) {
+                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, inout float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -17,16 +17,26 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         ambientOcclusion = texelAmbientOcclusion.y;
     #endif
 
+    // custom ao tweak
+    ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
+    // vanilla ao x PBR ao
+    #ifdef TERRAIN
+        ambientOcclusionPBR *= vanillaAmbientOcclusion * vanillaAmbientOcclusion;
+    #endif
+
     // directions and angles 
     vec3 worldSpacelightDirection = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normalMap);
     float ambientLightDirectionDotNormal = dot(normal, normalMap);
-    #if PIXELATION_TYPE > 0 && PIXELATED_SPECULAR > 0
+    #if PIXELATION_TYPE > 0 && (PIXELATED_SPECULAR > 0 || PIXELATED_SHADOW > 0)
         #if PIXELATION_TYPE > 1
-            vec3 specularWorldPosition = texelSnap(unanimatedWorldPosition, pixelationOffset);
+            vec3 pixelatedWorldPosition = texelSnap(unanimatedWorldPosition, pixelationOffset);
         #else
-            vec3 specularWorldPosition = voxelize(unanimatedWorldPosition, normal);
+            vec3 pixelatedWorldPosition = voxelize(unanimatedWorldPosition, normal);
         #endif
+    #endif
+    #if PIXELATED_SPECULAR > 0
+        vec3 specularWorldPosition = pixelatedWorldPosition;
     #else
         vec3 specularWorldPosition = unanimatedWorldPosition;
     #endif
@@ -35,32 +45,30 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
 
     // -- shadow -- //
     #ifndef NETHER
-        // apply offset in normal direction to avoid self shadowing
-        vec3 offsetWorldSpacePosition = unanimatedWorldPosition + normal * 0.2;
         // pixelize if needed
-        #if PIXELATION_TYPE > 0 && PIXELATED_SHADOW > 0
-            #if PIXELATION_TYPE > 1
-                offsetWorldSpacePosition = texelSnap(offsetWorldSpacePosition, pixelationOffset);
-            #else
-                offsetWorldSpacePosition = voxelize(offsetWorldSpacePosition, normal);
-            #endif
+        #if PIXELATED_SHADOW > 0
+            vec3 shadowWorldPosition = pixelatedWorldPosition;
+        #else
+            vec3 shadowWorldPosition = unanimatedWorldPosition;
         #endif
+        // apply offset in normal direction to avoid self shadowing
+        shadowWorldPosition += normal * 0.0625; // 0.2
         // add increasing offset in normal direction when further from player (avoid shadow acne)
         float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
-        offsetWorldSpacePosition += normal * offsetAmplitude;
+        shadowWorldPosition += normal * offsetAmplitude;
         // lowers shadows a bit for subsurface on props
         #if SUBSURFACE_TYPE > 0
             if (subsurfaceScattering > 0.0 && isProps(id)) {
-                offsetWorldSpacePosition.y += 0.25;
+                shadowWorldPosition.y += 0.25;
             }
         #endif
         // get shadow
         vec4 shadow = vec4(0.0);
         if (distanceFromCamera < shadowDistance)
             #if PIXELATION_TYPE > 0 && PIXELATED_SHADOW > 0
-                shadow = getSoftShadow(uv, offsetWorldSpacePosition, tangent, bitangent, ambientSkyLightIntensity);
+                shadow = getSoftShadow(uv, shadowWorldPosition, tangent, bitangent, ambientSkyLightIntensity);
             #else
-                shadow = getSoftShadow(uv, offsetWorldSpacePosition);
+                shadow = getSoftShadow(uv, shadowWorldPosition);
             #endif
         // fade into the distance
         float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, shadowDistance, 0.0, 1.0);
@@ -94,11 +102,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             if (subsurfaceScattering > 0.0) {
                 float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
                 float subsurfaceDirectSkyLightIntensity = abs(lightDirectionDotNormal);
-                directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurface_fade);
+                directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurfaceScattering * subsurface_fade);
             }
         #endif
-        if (subsurfaceScattering > 0.0) {
-            directSkyLightIntensity = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
+        // correct direct sky light for props when it's noon
+        if (isProps(id)) {
+            float directSkyLightCorrection = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
+            directSkyLightIntensity = mix(directSkyLightCorrection, directSkyLightIntensity, max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0));
         }
         // tweak for south and north facing fragment
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
@@ -110,6 +120,10 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         directSkyLightIntensity *= dayNightBlend;
         // face tweak
         directSkyLightIntensity *= faceTweak;
+        // PBR & vanilla AO
+        directSkyLightIntensity *= ambientOcclusionPBR;
+        // custom AO
+        directSkyLightIntensity *= ambientOcclusion * 0.75 + 0.25;
         // split toning
         #if SPLIT_TONING > 0 && defined OVERWORLD
             vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
@@ -121,7 +135,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         // apply darkness
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.0, darknessFactor);
         // apply sky light color
-        vec3 directSkyLight = directSkyLightIntensity * skyLightColor; // * 1.5;
+        vec3 directSkyLight = directSkyLightIntensity * skyLightColor;
         // apply shadow
         directSkyLight = mix(directSkyLight, directSkyLight * shadow.rgb, shadow.a);
         directSkyLightIntensity *= getLightness(directSkyLight);
@@ -140,16 +154,23 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         ambientSkyLightIntensity = 0.0;
         vec3 ambientSkyLight = vec3(0.0);
     #endif
+    // PBR & vanilla AO
+    ambientSkyLight *= ambientOcclusionPBR;
+    // custom AO
+    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
 
     // -- block light
     // apply normalmap
     blockLightIntensity *= max(ambientLightDirectionDotNormal, 0.0);
     // apply darkness
-    blockLightIntensity = mix(blockLightIntensity, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
-    emissivness = mix(emissivness, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
+    blockLightIntensity = mix(blockLightIntensity, 0.0, clamp(2.0 * darknessLightFactor, 0.0, 1.0));
     // get light color
-    vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
+    vec3 blockLightColor = getBlockLightColor(blockLightIntensity);
     vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
+    // PBR & vanilla AO
+    blockLight *= ambientOcclusionPBR;
+    // custom AO
+    blockLight *= ambientOcclusion * 0.75 + 0.25;
 
     // -- ambient light
     #if defined OVERWORLD
@@ -168,6 +189,10 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
     // get light color
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
+    // PBR & vanilla AO
+    ambientLight *= ambientOcclusionPBR;
+    // custom AO
+    ambientLight *= ambientOcclusion * 0.5 + 0.5;
 
     // -- filter underwater light
     if (isEyeInWater == 1) {
@@ -178,24 +203,6 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         ambientLight = ambientLight * waterColor;
     }
 
-    // vanilla ambient occlusion
-    #ifdef TERRAIN
-        ambientOcclusionPBR *= vanillaAmbientOcclusion * vanillaAmbientOcclusion;
-    #endif
-
-    // -- ambient occlusion
-    // PBR ao
-    directSkyLight *= ambientOcclusionPBR;
-    blockLight *= ambientOcclusionPBR;
-    ambientSkyLight *= ambientOcclusionPBR;
-    ambientLight *= ambientOcclusionPBR;
-    // custom ao
-    ambientOcclusion = smoothstep(0.0, 0.9, ambientOcclusion);
-    directSkyLight *= ambientOcclusion * 0.75 + 0.25;
-    blockLight *= ambientOcclusion * 0.75 + 0.25;
-    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
-    ambientLight *= ambientOcclusion * 0.5 + 0.5;
-
     // -- BRDF -- //
     // -- diffuse
     vec3 light = directSkyLight + blockLight + ambientSkyLight + ambientLight;
@@ -205,23 +212,27 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     vec3 color = albedo * light;
     // -- specular
     #if !defined NETHER && !defined END
-        // if (smoothness > 0.1) {
-            vec3 subsurfaceSpecular = vec3(0.0);
+        vec3 subsurfaceSpecular = vec3(0.0);
 
-            // subsurface transmission highlight
-            #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
-                if (subsurfaceScattering > 0.0) {
-                    float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
-                    subsurfaceSpecular = specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
-                }
-            #endif
+        // subsurface transmission highlight
+        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
+            if (subsurfaceScattering > 0.0) {
+                float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
+                subsurfaceSpecular = subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
+            }
+        #endif
 
-            // specular reflection
-            vec3 specular = CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
+        // specular reflection
+        vec3 specular = CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
 
-            // add specular contribution
-            color += directSkyLight * (specular + subsurfaceSpecular);
-        // }
+        // add specular contribution
+        color += directSkyLight * (specular + subsurfaceSpecular);
+
+        // add bloom to specular reflections
+        float specularFactor = smoothstep(0.8, 1.0, getLightness(directSkyLight * specular));
+        if (sunAngle > 0.5) specularFactor *= 0.9;
+        specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
+        emissivness = max(emissivness, specularFactor);
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
@@ -229,7 +240,8 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         transparency = max(transparency, fresnel);
     #endif
     // -- emissivness
-    color = mix(color, albedo, emissivness);
+    emissivness = mix(emissivness, 0.0, clamp(2.0 * darknessLightFactor, 0.0, 1.0));
+    color = mix(color, clamp(color + albedo, 0.0, 1.0), map(emissivness, 0.0, 0.9, 0.0, 1.0));
 
     return vec4(color, transparency);
 }

@@ -4,16 +4,16 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
     if (normalizedRange <= 0.0 || resolution <= 0.0)
         return SRGBtoLinear(texture2D(colorTexture, uv).rgb);
 
-    // color data
-    vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
-    color = inverseToneMap(color);
-
     // retrieve depth of field data
     DOFdata = texture2D(DOFTexture, uv);
     float threshold = 0.2;
     bool isNearPlane = DOFdata.r > threshold ? true : false;
     bool isFarPlane = DOFdata.g > threshold ? true : false;
     bool isInFocus = !isNearPlane && !isFarPlane;
+
+    // color data
+    vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
+    color = inverseToneMap(color);
 
     // prepare loop
     float range = 0.0, stepLength = 0.0;
@@ -42,10 +42,11 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
         bool sampleIsNearPlane = sampleDOFdata.r > threshold ? true : false;
         bool sampleIsFarPlane = sampleDOFdata.g > threshold ? true : false;
         bool sampleIsInFocus = !sampleIsNearPlane && !sampleIsFarPlane;
+        float sampleEmissivness = sampleDOFdata.b;
 
         vec3 col = SRGBtoLinear(texture2D(colorTexture, coord).rgb);
         // inverse karis average
-        weight *= 1 + getLightness(col);
+        weight *= 1 + max(getLightness(col), sampleEmissivness);
 
         // far plane mix only with far & near planes
         if (isFarPlane && sampleIsFarPlane) {

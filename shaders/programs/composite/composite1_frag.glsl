@@ -38,7 +38,7 @@ void main() {
     float depthOpaque = texture2D(depthtex1, uv).r;
     vec3 viewSpacePosition = screenToView(uv, depthOpaque);
 
-    #if BLOOM_TYPE > 0
+    #if BLOOM_TYPE > 0 || DOF_TYPE > 0
         float emissivness = lightAndMaterialData.g;
     #else
         float emissivness = 0.0;
@@ -67,25 +67,15 @@ void main() {
         // extract bloom from color
         vec3 bloom = color;
         float lightness = getLightness(bloom);
-        bloom = bloom * max(pow(lightness, 10.0) * 0.125, emissivness);
+        bloom = bloom * max(pow(lightness, 10.0) * 0.125, map(emissivness, 0.0, 0.9, 0.0, 1.0));
 
-        // sun bloom
-        float sunMask = 0.0;
-        // frag position
-        vec3 eyeSpaceFragmentPosition = normalize(mat3(gbufferModelViewInverse) * viewSpacePosition);
-        vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
-        // polar coord of sun, moon & frag
-        vec3 polarFragmentPosition = cartesianToPolar(eyeSpaceFragmentPosition);
-        vec3 polarSunPosition = cartesianToPolar(eyeSpaceSunPosition);
-        float radius = 0.075;
-        // add a special bloom fir the sun
-        #ifdef OVERWORLD
-            if (depthOpaque == 1.0 && distanceInf(polarFragmentPosition.xy, polarSunPosition.xy) < radius) {
-                sunMask = emissivness;
-                #if BLOOM_TYPE > 1
-                    bloom *= 1.0 - sunMask;
-                #endif
-            }
+        // apply darkness
+        bloom = mix(bloom, 0.0 * bloom, clamp(2.0 * darknessLightFactor, 0.0, 1.0));
+
+        // sun & moon special bloom
+        float sunMask = map(emissivness, 0.9, 1.0, 0.0, 1.0);
+        #if defined OVERWORLD && BLOOM_TYPE > 1
+            bloom *= 1.0 - sunMask;
         #endif
 
         bloomData = vec4(linearToSRGB(bloom), sunMask);
@@ -94,7 +84,7 @@ void main() {
     #endif
 
     // -- depth of field buffer -- //
-    depthOfFieldData = vec4(vec3(0.0), 1.0);
+    depthOfFieldData = vec4(0.0, 0.0, map(emissivness, 0.0, 0.9, 0.0, 1.0), 1.0);
     #if DOF_TYPE > 0
         // actual distance
         float linearDepth = - viewSpacePosition.z;

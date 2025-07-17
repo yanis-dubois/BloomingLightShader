@@ -41,6 +41,13 @@ void main() {
         emissivness = 1.0;
     #endif
 
+    #ifdef GLINT
+        emissivness = pow(max(albedo.r, max(albedo.g, albedo.b)), 0.5);
+    #endif
+
+    // remap emissivness, we keep [0.9;1.0] for sun's emissions
+    emissivness *= 0.9;
+
     albedo = clamp(albedo, 0.0, 1.0);
 
     #ifdef CLOUD
@@ -51,7 +58,7 @@ void main() {
         float distanceFromCameraXZ = distance(cameraPosition.xz, worldSpacePosition.xz);
         float cloudDistance = 1.5*far;
         float blendFactor = map(distanceFromCameraXZ, max(cloudDistance - 64.0, 0.0), cloudDistance, 0.0, 1.0);
-        transparency = 0.75 * (1.0 - blendFactor);
+        transparency = 0.85 * (1.0 - blendFactor);
     #endif
 
     // apply blindness effect
@@ -61,7 +68,7 @@ void main() {
     albedo = linearToSRGB(albedo);
 
     colorData = vec4(albedo, transparency);
-    #if defined BEACON_BEAM || defined GLOWING
+    #if defined BEACON_BEAM || defined GLOWING || defined GLINT 
         lightAndMaterialData = vec4(0.0, emissivness, 0.0, 1.0);
     #endif
 }
