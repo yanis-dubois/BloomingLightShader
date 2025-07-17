@@ -58,3 +58,10 @@ This repository contains a shader pack for **Minecraft** that focuses on **styli
 <!-- Insert example screenshots or gif previews here -->
 
 ---
+
+## Credits
+
+- GLSL noise generator: https://github.com/hughsk/glsl-noise
+- Some technical functions came from Complementary shader: https://github.com/ComplementaryDevelopment/ComplementaryReimagined
+- Thanks to Samuel Gerkin for his great tutorials: https://www.youtube.com/watch?v=RjyNVmsTBmA
+- This project was possible thanks to Iris: https://www.irisshaders.dev
