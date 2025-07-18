@@ -42,16 +42,20 @@ void main() {
     textureCoordinateOffset.xy = abs(atlasMidToCorner) * 2.0; // length of the diagonal of the actual face in atlas space
     textureCoordinateOffset.zw = min(originalTextureCoordinate, midCoord - (atlasMidToCorner)); // coordinates in atlas space of the corner that have the (0,0) local uv coordinate
 
-    id = int(mc_Entity.x);
+    id = -1;
     #if defined TERRAIN
+        // block
+        id = int(mc_Entity.x + 0.5);
+        // block entity (chest, bed, bells, ...)
         if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
     #elif defined ENTITY
+        // dropped item, held item by ohter entity (or in 3rd person) & armor
         if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId;
+        // entity (mobs, item frame, ...)
         else if (0 < entityId && entityId < 65535) id = entityId;
-    #else
-        if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId;
-        else if (0 < entityId && entityId < 65535) id = entityId;
-        else if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
+    #elif defined HAND
+        // held item in 1st person
+        if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId; 
     #endif
 
     /* geometry infos */
