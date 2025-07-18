@@ -50,6 +50,8 @@ void main() {
         else if (0 < entityId && entityId < 65535) id = entityId;
     #else
         if (0 < currentRenderedItemId && currentRenderedItemId < 65535) id = currentRenderedItemId;
+        else if (0 < entityId && entityId < 65535) id = entityId;
+        else if (0 < blockEntityId && blockEntityId < 65535) id = blockEntityId;
     #endif
 
     /* geometry infos */
@@ -80,7 +82,7 @@ void main() {
     midBlock.y = -1.0 * midBlock.y + 0.5; // from [0.5;-0.5] to [0;1]
 
     // update position if animated
-    #if ANIMATED_POSITION > 0
+    #if ANIMATED_POSITION > 0 && defined TERRAIN
         if (isAnimated(id)) {
             float ambientSkyLightIntensity = lightMapCoordinate.y;
 

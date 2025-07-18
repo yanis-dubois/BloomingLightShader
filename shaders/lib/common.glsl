@@ -133,7 +133,7 @@ const bool colortex5Clear = true;
 #define BLOOM_OLD_KERNEL 1 // 0=box 1=gaussian
 #define BLOOM_OLD_STD 0.5 // standard deviation (only for gaussian kernel)
 // modern bloom params
-#define BLOOM_MODERN_RANGE 0.75 //[-2.0 -1.5 -1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0 1.5 2.0] in [-2;2]
+#define BLOOM_MODERN_RANGE 0.5 //[-2.0 -1.5 -1.0 -0.75 -0.5 -0.25 0.0 0.25 0.5 0.75 1.0 1.5 2.0] in [-2;2]
 #define BLOOM_MODERN_SAMPLES 1 //[1 2 3 4] number of samples in the radius 
 #define BLOOM_MODERN_TYPE 1 //[0 1] 0=low 1=high
 

@@ -499,6 +499,15 @@ bool isOre(int id) {
     return (1200 <= id && id < 1300)
         || (2300 <= id && id < 2400);
 }
+bool isStoneOre(int id) {
+    return (1200 <= id && id <= 1217);
+}
+bool isNetherrackOre(int id) {
+    return (2300 <= id && id < 2400);
+}
+bool isBlackstoneOre(int id) {
+    return id == 1218;
+}
 
 // --- subsurface --- //
 bool hasSubsurface(int id) {

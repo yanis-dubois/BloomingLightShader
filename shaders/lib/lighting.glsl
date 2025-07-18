@@ -57,7 +57,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
         shadowWorldPosition += normal * offsetAmplitude;
         // lowers shadows a bit for subsurface on props
-        #if SUBSURFACE_TYPE > 0
+        #if SUBSURFACE_TYPE > 0 && defined TERRAIN
             if (subsurfaceScattering > 0.0 && isProps(id)) {
                 shadowWorldPosition.y += 0.25;
             }
@@ -97,7 +97,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
         #endif
         // subsurface scattering
-        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
+        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0 && defined TERRAIN
             // subsurface diffuse part
             if (subsurfaceScattering > 0.0) {
                 float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
@@ -106,10 +106,12 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             }
         #endif
         // correct direct sky light for props when it's noon
-        if (isProps(id)) {
-            float directSkyLightCorrection = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
-            directSkyLightIntensity = mix(directSkyLightCorrection, directSkyLightIntensity, max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0));
-        }
+        #ifdef TERRAIN
+            if (isProps(id)) {
+                float directSkyLightCorrection = mix(directSkyLightIntensity, 1.0, dot(worldSpacelightDirection, vec3(0.0, 1.0, 0.0)));
+                directSkyLightIntensity = mix(directSkyLightCorrection, directSkyLightIntensity, max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0));
+            }
+        #endif
         // tweak for south and north facing fragment
         directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
         // reduce contribution if no ambiant sky light (avoid cave leak)
@@ -120,10 +122,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         directSkyLightIntensity *= dayNightBlend;
         // face tweak
         directSkyLightIntensity *= faceTweak;
-        // PBR & vanilla AO
-        directSkyLightIntensity *= ambientOcclusionPBR;
-        // custom AO
-        directSkyLightIntensity *= ambientOcclusion * 0.75 + 0.25;
+        // ambient occlusion
+        #ifdef TERRAIN
+            // PBR & vanilla AO
+            directSkyLightIntensity *= ambientOcclusionPBR;
+            // custom AO
+            directSkyLightIntensity *= ambientOcclusion * 0.75 + 0.25;
+        #endif
         // split toning
         #if SPLIT_TONING > 0 && defined OVERWORLD
             vec3 splitToningColor = getLightness(skyLightColor) * getShadowLightColor();
@@ -154,10 +159,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         ambientSkyLightIntensity = 0.0;
         vec3 ambientSkyLight = vec3(0.0);
     #endif
-    // PBR & vanilla AO
-    ambientSkyLight *= ambientOcclusionPBR;
-    // custom AO
-    ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
+    // ambient occlusion
+    #ifdef TERRAIN
+        // PBR & vanilla AO
+        ambientSkyLight *= ambientOcclusionPBR;
+        // custom AO
+        ambientSkyLight *= ambientOcclusion * 0.5 + 0.5;
+    #endif
 
     // -- block light
     // apply normalmap
@@ -167,10 +175,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     // get light color
     vec3 blockLightColor = getBlockLightColor(blockLightIntensity);
     vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
-    // PBR & vanilla AO
-    blockLight *= ambientOcclusionPBR;
-    // custom AO
-    blockLight *= ambientOcclusion * 0.75 + 0.25;
+    // ambient occlusion
+    #ifdef TERRAIN
+        // PBR & vanilla AO
+        blockLight *= ambientOcclusionPBR;
+        // custom AO
+        blockLight *= ambientOcclusion * 0.75 + 0.25;
+    #endif
 
     // -- ambient light
     #if defined OVERWORLD
@@ -189,10 +200,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
     // get light color
     vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
-    // PBR & vanilla AO
-    ambientLight *= ambientOcclusionPBR;
-    // custom AO
-    ambientLight *= ambientOcclusion * 0.5 + 0.5;
+    // ambient occlusion
+    #ifdef TERRAIN
+        // PBR & vanilla AO
+        ambientLight *= ambientOcclusionPBR;
+        // custom AO
+        ambientLight *= ambientOcclusion * 0.5 + 0.5;
+    #endif
 
     // -- filter underwater light
     if (isEyeInWater == 1) {
@@ -215,7 +229,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         vec3 subsurfaceSpecular = vec3(0.0);
 
         // subsurface transmission highlight
-        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0
+        #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0 && defined TERRAIN
             if (subsurfaceScattering > 0.0) {
                 float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
                 subsurfaceSpecular = subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);

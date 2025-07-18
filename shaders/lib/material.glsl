@@ -174,67 +174,34 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
     }
     #if EMISSIVE_ORES > 0
         else if (isOre(id)) {
-            bool isQuartz = isEqual(albedo, vec3(234.0, 229.0, 222.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(212.0, 202.0, 186.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(182.0, 164.0, 142.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(111.0, 88.0, 67.0) / 255.0, 2.0/255.0);
-            bool isCoal = isEqual(albedo, vec3(10.0, 10.0, 10.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(31.0, 31.0, 31.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(37.0, 37.0, 37.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(42.0, 42.0, 42.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(46.0, 46.0, 46.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(54.0, 54.0, 54.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(58.0, 60.0, 55.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(73.0, 75.0, 63.0) / 255.0, 2.0/255.0);
-            bool isIron = isEqual(albedo, vec3(226.0, 192.0, 170.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(215.0, 175.0, 147.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(175.0, 142.0, 119.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(136.0, 116.0, 85.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(118.0, 103.0, 79.0) / 255.0, 2.0/255.0);
-            bool isCopper = isEqual(albedo, vec3(243.0, 130.0, 105.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(224.0, 115.0, 77.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(193.0, 103.0, 70.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(129.0, 128.0, 89.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(58.0, 104.0, 90.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(57.0, 118.0, 99.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(89.0, 149.0, 129.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(80.0, 186.0, 152.0) / 255.0, 2.0/255.0);
-            bool isGold = isEqual(albedo, vec3(255.0, 255.0, 181.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(253.0, 237.0, 74.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(235.0, 157.0, 13.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(156.0, 112.0, 32.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(156.0, 99.0, 33.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(248.0, 175.0, 42.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(199.0, 100.0, 28.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(179.0, 67.0, 23.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(218.0, 145.0, 16.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(126.0, 69.0, 13.0) / 255.0, 2.0/255.0)
-                || isEqual(albedo, vec3(69.0, 27.0, 3.0) / 255.0, 2.0/255.0);
-            bool isRedstone = isEqual(albedo, vec3(151.0, 4.0, 5.0) / 255.0, 4.0/255.0)
-                || isEqual(albedo, vec3(197.0, 6.0, 5.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(247.0, 28.0, 28.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(255.0, 0.0, 0.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(255.0, 94.0, 94.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(255.0, 137.0, 137.0) / 255.0, 8.0/255.0);
-            bool isEmerald = isEqual(albedo, vec3(216.0, 255.0, 235.0) / 255.0, 4.0/255.0)
-                || isEqual(albedo, vec3(64.0, 243.0, 132.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(25.0, 197.0, 68.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(27.0, 152.0, 42.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(2.0, 123.0, 23.0) / 255.0, 8.0/255.0);
-            bool isLapis = isEqual(albedo, vec3(104.0, 149.0, 244.0) / 255.0, 4.0/255.0)
-                || isEqual(albedo, vec3(68.0, 111.0, 220.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(23.0, 85.0, 189.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(16.0, 52.0, 189.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(22.0, 68.0, 141.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(16.0, 52.0, 156.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(16.0, 68.0, 172.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(32.0, 89.0, 139.0) / 255.0, 8.0/255.0);
-            bool isDiamond = isEqual(albedo, vec3(213.0, 255.0, 246.0) / 255.0, 4.0/255.0)
-                || isEqual(albedo, vec3(119.0, 231.0, 210.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(29.0, 208.0, 214.0) / 255.0, 8.0/255.0)
-                || isEqual(albedo, vec3(36.0, 150.0, 152.0) / 255.0, 8.0/255.0);
+            vec3 hsvAlbedo = rgbToHsv(albedo);
 
-            if (isQuartz || isCoal || isIron || isCopper || isGold || isRedstone || isEmerald || isLapis || isDiamond) {
+            if (isStoneOre(id)) {
+                bool isStone = isEqual(albedo, vec3(132.0, 89.0, 89.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(191.0, 147.0, 147.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(77.0, 54.0, 55.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(59.0, 44.0, 44.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(55.0, 91.0, 61.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(82.0, 107.0, 80.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(141.0, 173.0, 177.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(49.0, 64.0, 64.0) / 255.0, 8.0/255.0)
+                    || isEqual(albedo, vec3(100.0, 138.0, 140.0) / 255.0, 8.0/255.0);
+
+                if (hsvAlbedo.z > 0.8 || (hsvAlbedo.y > 0.2 && !isStone)) {
+                    emissivness = 1.0;
+                }
+            }
+            else if (isNetherrackOre(id)) {
+                if (hsvAlbedo.z > 0.8 || albedo.r < max(albedo.g, albedo.b) || !isEqual(albedo.g, albedo.b, 8.0/255.0)) {
+                    emissivness = 1.0;
+                }
+            }
+            else if (isBlackstoneOre(id))  {
+                if (albedo.r > albedo.g && albedo.g > albedo.b && albedo.r > 50.0/255.0) {
+                    emissivness = 1.0;
+                }
+            }
+            else {
                 emissivness = 1.0;
             }
         }
