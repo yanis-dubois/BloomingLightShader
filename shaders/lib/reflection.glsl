@@ -201,7 +201,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
 
     // background color
     #ifdef OVERWORLD
-        float backgroundEmissivness; // useless here
+        float backgroundEmissivness;
         vec3 outdoorBackground = isEyeInWater==0 
             ? SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness))
             : SRGBtoLinear(getWaterFogColor());
@@ -209,7 +209,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
         vec3 indoorBackGround = vec3(0.0);
         vec3 backgroundColor = mix(indoorBackGround, outdoorBackground, ambientSkyLightIntensity);
     #else
-        float backgroundEmissivness; // useless here
+        float backgroundEmissivness;
         vec3 backgroundColor = SRGBtoLinear(getSkyColor(viewToEye(reflectedDirection), true, backgroundEmissivness));
     #endif
 
@@ -413,6 +413,7 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 if (finalPositionDepth == 1.0) {
                     #ifndef DISTANT_HORIZONS
                         sampledReflection = backgroundColor;
+                        sampledEmissivness = backgroundEmissivness;
                     #endif
                 }
                 else {
@@ -421,8 +422,8 @@ vec4 doReflection(sampler2D colorTexture, sampler2D lightAndMaterialTexture, sam
                 }
 
                 // enhance reflection of emissive objects
-                sampledReflection += sampledReflection * emissivness * 2.0;
-                sampledReflection = clamp(sampledReflection, 0.0, 1.0);
+                fresnel *= 1.0 + 0.2 * sampledEmissivness * max(sampledReflection.r, max(sampledReflection.g, sampledReflection.b));
+                fresnel = clamp(fresnel, 0.0, 1.0);
                 emissivness = max(sampledEmissivness * fresnel, emissivness);
             }
             else {

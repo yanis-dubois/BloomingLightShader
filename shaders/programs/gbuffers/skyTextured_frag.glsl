@@ -54,6 +54,7 @@ void main() {
             if (VdotX < 0.9 && eyeSpaceFragmentPosition.y < 0.08) {
                 discard;
             }
+
             // add sun's special bloom
             if (VdotS > 0.0) {
                 emissivness = 1.0;

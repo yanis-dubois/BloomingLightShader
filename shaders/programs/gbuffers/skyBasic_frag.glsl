@@ -23,6 +23,18 @@ void main() {
 
 	vec3 viewSpacePosition = screenToView(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0);
 	vec3 eyeSpacePosition = viewToEye(normalize(viewSpacePosition));
+	vec3 eyeSpaceSunPosition = normalize(mat3(gbufferModelViewInverse) * sunPosition);
+	vec3 eyeSpaceMoonPosition = normalize(mat3(gbufferModelViewInverse) * moonPosition);
+	float VdotS = dot(eyeSpacePosition, eyeSpaceSunPosition);
+	float VdotX = dot(eyeSpacePosition, eastDirection);
+	vec3 polarFragmentPosition = cartesianToPolar(eyeSpacePosition);
+	vec3 polarObjectPosition = VdotS > 0.0 ? cartesianToPolar(eyeSpaceSunPosition) : cartesianToPolar(eyeSpaceMoonPosition);
+	float radius = VdotS > 0.0 ? 0.075 : 0.05;
+
+	// cut sun & moon place
+	if (distanceInf(polarFragmentPosition.xy, polarObjectPosition.xy) <= radius && (VdotX >= 0.9 || eyeSpacePosition.y >= 0.08)) {
+		discard;
+	}
 
 	#if SKY_TYPE == 1
 		// sky & stars
@@ -42,7 +54,7 @@ void main() {
 	#endif
 
 	// remap emissivness, we keep [0.9;1.0] for sun's emissions
-    emissivness *= 0.9;
+    emissivness *= 0.5;
 
 	// apply blindness effect
 	vec3 worldSpacePosition = screenToWorld(texelToScreen(gl_FragCoord.xy), 1.0);

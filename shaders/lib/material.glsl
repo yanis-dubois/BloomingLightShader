@@ -241,8 +241,14 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
 
     // -- subsurfaceScattering -- //
     #if SUBSURFACE_TYPE > 0
-        if (hasSubsurface(id)) {
+        if (hasHighSubsurface(id)) {
             subsurfaceScattering = 1.0;
+        }
+        else if (hasMediumSubsurface(id)) {
+            subsurfaceScattering = 0.66;
+        }
+        else if (hasLowSubsurface(id)) {
+            subsurfaceScattering = 0.33;
         }
     #endif
 

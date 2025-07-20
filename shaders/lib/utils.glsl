@@ -334,6 +334,7 @@ bool isRooted(int id) {
 // --- smoothness --- //
 bool isVerySmooth(int id) {
     return id == 21
+        || id == 22
         || (3500 <= id && id < 3600)
         || (29000 <= id && id < 29100);
 }
@@ -344,6 +345,7 @@ bool isSmooth(int id) {
         || (3300 <= id && id < 3400)
         || (3702 <= id && id < 3800)
         || id == 3803
+        || id == 3806
         || id == 3901
         || (11800 <= id && id <= 11803)
         || id == 20032 
@@ -408,6 +410,7 @@ bool hasMetallicReflectance(int id) {
 bool hasHighReflectance(int id) {
     return id == 20
         || id == 21
+        || id == 22
         || id == 605
         || (1100 <= id && id < 1200)
         || (3500 <= id && id < 3600)
@@ -444,15 +447,16 @@ bool hasMediumReflectance(int id) {
 
 // --- emissivness --- //
 bool isFullyEmissive(int id) {
-    return id == 1100 
-        #if EMISSIVE_ORES > 0
-            || id == 2603
-        #endif
-        || id == 2701
+    return 
+        id == 2701
         || id == 29000
         || id == 30000
         || id == 40000
-        || id == 40001;
+        || id == 40001
+        #if EMISSIVE_ORES > 0
+            || id == 2603
+        #endif
+        ;
 }
 bool isSemiEmissive(int id) {
     return id == 2
@@ -460,7 +464,7 @@ bool isSemiEmissive(int id) {
         || id == 11
         || id == 109
         || id == 110
-        || (1100 < id && id < 1200)
+        || (1100 <= id && id < 1200)
         || id == 2101
         || id == 2906
         || id == 3006
@@ -510,14 +514,44 @@ bool isBlackstoneOre(int id) {
 }
 
 // --- subsurface --- //
-bool hasSubsurface(int id) {
-    return (20 <= id && id < 30)
-        || (3600 <= id && id < 4300)
-        || (10000 <= id && id < 11900);
+bool hasHighSubsurface(int id) {
+    return id == 20 
+        || id == 21
+        || (3600 <= id && id <= 3701)
+        || id == 3802
+        || id == 3803
+        || (10000 <= id && id < 11900 && id != 11502 && id != 11702 && id != 11703);
+}
+bool hasMediumSubsurface(int id) {
+    return id == 22
+        || id == 111
+        || id == 211
+        || id == 311
+        || id == 411
+        || id == 511
+        || id == 3702
+        || id == 3703
+        || id == 3704
+        || id == 3800
+        || id == 3801
+        || id == 3806
+        || id == 3900
+        || id == 3901
+        || (4000 <= id && id <= 4300)
+        || id == 11502
+        || id == 11702
+        || id == 11703;
+}
+bool hasLowSubsurface(int id) {
+    return id == 1005
+        || (1400 <= id && id < 1700)
+        || (3300 <= id && id < 3400)
+        || id == 3804
+        || id == 3805;
 }
 // like grass, pointed dripstone or cobweb
 bool isProps(int id) {
-    return (10000 <= id && id < 20000) ;
+    return (10000 <= id && id < 20000);
 }
 
 // --- ambient occlusion --- //
