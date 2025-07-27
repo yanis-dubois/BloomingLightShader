@@ -30,15 +30,15 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     float ambientLightDirectionDotNormal = dot(normal, normalMap);
     #if PIXELATION_TYPE > 0 && (PIXELATED_SPECULAR > 0 || PIXELATED_SHADOW > 0)
         #if PIXELATION_TYPE > 1
-            vec3 pixelatedWorldPosition = texelSnap(unanimatedWorldPosition, pixelationOffset);
+            vec3 pixelatedWorldPosition = texelSnap(worldSpacePosition, pixelationOffset); // unanimated
         #else
-            vec3 pixelatedWorldPosition = voxelize(unanimatedWorldPosition, normal);
+            vec3 pixelatedWorldPosition = voxelize(worldSpacePosition, normal); // unanimated
         #endif
     #endif
     #if PIXELATED_SPECULAR > 0
         vec3 specularWorldPosition = pixelatedWorldPosition;
     #else
-        vec3 specularWorldPosition = unanimatedWorldPosition;
+        vec3 specularWorldPosition = worldSpacePosition; // unanimated
     #endif
     vec3 worldSpaceViewDirection = normalize(cameraPosition - specularWorldPosition);
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
@@ -49,7 +49,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         #if PIXELATED_SHADOW > 0
             vec3 shadowWorldPosition = pixelatedWorldPosition;
         #else
-            vec3 shadowWorldPosition = unanimatedWorldPosition;
+            vec3 shadowWorldPosition = worldSpacePosition; // unanimated
         #endif
         // apply offset in normal direction to avoid self shadowing
         shadowWorldPosition += normal * 0.0625; // 0.2
@@ -243,7 +243,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         color += directSkyLight * (specular + subsurfaceSpecular);
 
         // add bloom to specular reflections
-        float specularFactor = smoothstep(0.8, 1.0, getLightness(directSkyLight * specular));
+        float specularFactor = smoothstep(0.8, 1.0, getLightness(directSkyLight * (specular + subsurfaceSpecular)));
         if (sunAngle > 0.5) specularFactor *= 0.9;
         specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
         emissivness = max(emissivness, specularFactor);

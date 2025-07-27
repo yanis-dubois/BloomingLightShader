@@ -159,6 +159,10 @@ vec4 playerToShadowClip(vec3 playerPosition) {
     return shadowViewToShadowClip(playerToShadowView(playerPosition));
 }
 
+vec4 worldToShadowClip(vec3 worldPosition) {
+    return playerToShadowClip(worldToPlayer(worldPosition));
+}
+
 vec3 shadowClipToShadowNDC(vec4 shadowClipPosition) {
     return shadowClipPosition.xyz / shadowClipPosition.w;
 }
