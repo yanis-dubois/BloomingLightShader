@@ -11,7 +11,7 @@ uniform sampler2D gtexture;
 
 // attributes
 in vec4 additionalColor; // foliage, water, particules
-in vec4 clipSpacePosition;
+in vec3 worldSpacePosition;
 in vec2 textureCoordinate; // immuable block & item
 flat in int id;
 
@@ -40,10 +40,6 @@ void main() {
         if (isUncoloredGlass(id)) transparency = clamp(transparency, 0.2, 0.75);
         else if (isBeacon(id)) transparency = clamp(transparency, 0.36, 1.0);
         if (transparency < alphaTestRef) discard;
-
-        #if (VOLUMETRIC_LIGHT_TYPE > 0 && UNDERWATER_LIGHTSHAFT_TYPE > 0) || WATER_CAUSTIC_TYPE > 0
-            vec3 worldSpacePosition = shadowClipToWorld(clipSpacePosition);
-        #endif
 
         // underwater light shaft animation
         float lightShaftIntensity = transparency;

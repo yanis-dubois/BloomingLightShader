@@ -139,7 +139,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
 
         // change smoothness on top of blocks that have grass
         if (hasGrass(id) && normal.y > 0.5) {
-            smoothness = 0.45;
+            smoothness = 0.35;
         }
 
         // -- reflectance -- //
@@ -155,7 +155,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             reflectance = getReflectance(n1, 1.4);
         }
         else { // default reflectance
-            reflectance = getReflectance(n1, 1.3);
+            reflectance = 0.0;
         }
     }
 
@@ -249,6 +249,9 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
         }
         else if (hasLowSubsurface(id)) {
             subsurfaceScattering = 0.33;
+        }
+        else {
+            subsurfaceScattering = 0.0;
         }
     #endif
 

@@ -42,20 +42,23 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, flo
     float NdotL = dot(N, L);
     float NdotH = dot(N, H);
     float VdotH = dot(V, H);
+    float LdotH = dot(L, H);
 
     NdotV = max(NdotV, 0.001);
     NdotL = max(NdotL, 0.001);
     NdotH = max(NdotH, 0.001);
     VdotH = max(VdotH, 0.001);
+    LdotH = max(LdotH, 0.001);
 
     float D = GGXNDF(NdotH, roughness);
-    float F = schlick(VdotH, reflectance);
-    float G = Smith_G(NdotV, NdotL, roughness);
+    float F = schlick(LdotH, reflectance);
+    float G = Smith_G(VdotH, LdotH, roughness);
 
-    vec3 specularColor = saturate(albedo, 1.3); specularColor = albedo;
+    vec3 specularColor = saturate(albedo, 1.3);
+    specularColor = albedo;
     specularColor = mix(specularColor, vec3(1.0), 0.05);
 
-    return specularColor * (D * F * G) / (4.0 * NdotV * NdotL + 0.001);
+    return specularColor * (D * F * G) / (4.0 * VdotH * LdotH + 0.001);
 
     // not used
     // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);

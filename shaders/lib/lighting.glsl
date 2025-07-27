@@ -1,5 +1,5 @@
-vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
-                float smoothness, float reflectance, float subsurface, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, inout float emissivness) {
+vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordinate, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+                float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, inout float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -52,7 +52,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
             vec3 shadowWorldPosition = worldSpacePosition; // unanimated
         #endif
         // apply offset in normal direction to avoid self shadowing
-        shadowWorldPosition += normal * 0.0625; // 0.2
+        shadowWorldPosition += normal * 0.0625;
         // add increasing offset in normal direction when further from player (avoid shadow acne)
         float offsetAmplitude = clamp(distanceFromCamera / startShadowDecrease, 0.0, 1.0);
         shadowWorldPosition += normal * offsetAmplitude;
@@ -83,25 +83,29 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
     float dayNightBlend = getDayNightBlend();
     float darknessExponent = 10.0;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
-    faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
-    faceTweak = mix(faceTweak, 0.3, smoothstep(0.8, 0.9, dot(normal, downDirection)));
-    float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
+    #ifdef TERRAIN
+        if (!isProps(id)) {
+            faceTweak = mix(faceTweak, 0.75, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
+            faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
+            faceTweak = mix(faceTweak, 0.3, smoothstep(0.8, 0.9, dot(normal, downDirection)));
+            // less contrast on subsurface material
+            faceTweak = mix(faceTweak, faceTweak * 0.5 + 0.5, subsurfaceScattering);
+        }
+    #endif
 
     // -- direct sky light
     #ifdef NETHER
         vec3 directSkyLight = vec3(0.0);
     #else
         float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
-        #ifdef TRANSPARENT
-            directSkyLightIntensity = max(2.0 * directSkyLightIntensity, 0.1);
-        #endif
         // subsurface scattering
         #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0 && defined TERRAIN
             // subsurface diffuse part
             if (subsurfaceScattering > 0.0) {
                 float subsurface_fade = 1.0 - map(distanceFromCamera, 0.8 * startShadowDecrease, 0.8 * shadowDistance, 0.0, 1.0);
-                float subsurfaceDirectSkyLightIntensity = abs(lightDirectionDotNormal);
+                float subsurfaceDirectSkyLightIntensity = isProps(id) 
+                    ? 1.0 
+                    : abs(lightDirectionDotNormal);
                 directSkyLightIntensity = mix(directSkyLightIntensity, subsurfaceDirectSkyLightIntensity, subsurfaceScattering * subsurface_fade);
             }
         #endif
@@ -112,16 +116,16 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
                 directSkyLightIntensity = mix(directSkyLightCorrection, directSkyLightIntensity, max(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0));
             }
         #endif
-        // tweak for south and north facing fragment
-        directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
+        // tweak for south and north facing fragment of block
+        if (!isProps(id)) {
+            directSkyLightIntensity = mix(directSkyLightIntensity, 0.15, abs(dot(normalMap, southDirection)));
+        }
         // reduce contribution if no ambiant sky light (avoid cave leak)
         directSkyLightIntensity *= map(smoothstep(0.0, 0.33, ambientSkyLightIntensity), 0.0, 1.0, 0.1, 1.0);
         // reduce contribution as it rains
         directSkyLightIntensity *= mix(1.0, 0.2, rainStrength);
         // reduce contribution during day-night transition
         directSkyLightIntensity *= dayNightBlend;
-        // face tweak
-        directSkyLightIntensity *= faceTweak;
         // ambient occlusion
         #ifdef TERRAIN
             // PBR & vanilla AO
@@ -219,7 +223,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
 
     // -- BRDF -- //
     // -- diffuse
-    vec3 light = directSkyLight + blockLight + ambientSkyLight + ambientLight;
+    vec3 light = 1.75 * directSkyLight + blockLight + ambientSkyLight + ambientLight;
     // apply night vision
     light = mix(light, pow(light, vec3(0.33)), nightVision);
     // diffuse model
@@ -243,7 +247,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec3 albedo, float trans
         color += directSkyLight * (specular + subsurfaceSpecular);
 
         // add bloom to specular reflections
-        float specularFactor = smoothstep(0.8, 1.0, getLightness(directSkyLight * (specular + subsurfaceSpecular)));
+        float specularFactor = 0.9 * smoothstep(0.0, 1.0, getLightness(directSkyLight * (specular + subsurfaceSpecular)));
         if (sunAngle > 0.5) specularFactor *= 0.9;
         specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
         emissivness = max(emissivness, specularFactor);
@@ -282,7 +286,6 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
     faceTweak = mix(faceTweak, 0.8, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
     faceTweak = mix(faceTweak, 0.3, smoothstep(0.8, 0.9, dot(normal, downDirection)));
-    float directSkyLightFactor = mix(1.0, 0.2, abs(dot(normal, southDirection)));
 
     // -- direct sky light
     #ifdef NETHER

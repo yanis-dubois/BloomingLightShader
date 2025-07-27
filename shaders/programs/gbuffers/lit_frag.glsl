@@ -212,7 +212,8 @@ void main() {
             mat3 animatedTBN = generateTBN(normalMap);
 
             // sampling data
-            float roughness = clamp(pow(1.0 - smoothness, 2.0), 0.1, 0.4);
+            float waterSmoothness = 0.9;
+            float roughness = clamp(pow(1.0 - waterSmoothness, 2.0), 0.1, 0.4);
             roughness *= roughness;
 
             // view direction from view to tangent space
@@ -230,7 +231,7 @@ void main() {
         vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
         float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
 
-        vec3 customNormal = polarToCartesian(vec3(zeta1 * PI/128.0, zeta2 * 2.0*PI, 1.0));
+        vec3 customNormal = polarToCartesian(vec3(zeta1 * PI/256.0, zeta2 * 2.0*PI, 1.0));
         customNormal = TBN * customNormal;
 
         // use the new normal if it's visible
@@ -303,7 +304,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, 1.0, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, localTextureCoordinate, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

@@ -9,10 +9,11 @@
 // gl_MultiTexCoord0.xy - block and item texture coordinate
 in vec3 mc_Entity;
 in vec3 at_midBlock;
+in vec4 mc_midTexCoord;
 
 // results
 out vec4 additionalColor;
-out vec4 clipSpacePosition;
+out vec3 worldSpacePosition;
 out vec2 textureCoordinate;
 flat out int id;
 
@@ -20,8 +21,10 @@ void main() {
     // get render attributes infos
     textureCoordinate = gl_MultiTexCoord0.xy;
     additionalColor = gl_Color;
-    gl_Position = ftransform();
-    clipSpacePosition = gl_Position;
+
+    // get data
+    worldSpacePosition = shadowClipToWorld(ftransform());
+    vec2 lightMapCoordinate = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 
     id = -1;
     // block
@@ -33,13 +36,9 @@ void main() {
     // entity (mobs, item frame, banner, ...)
     else if (0 < entityId && entityId < 65535) id = entityId;
 
-    // update position if animated
+    // update position if animated (except for water)
     #if ANIMATED_POSITION > 0
-        if (isAnimated(id)) {
-            // set position
-            vec3 worldSpacePosition = shadowClipToWorld(ftransform());
-            vec2 lightMapCoordinate = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
-
+        if (isAnimated(id) && !isWater(id)) {
             // remapped midBlock coordinates
             vec3 midBlock = at_midBlock;
             midBlock /= 64.0; // from [32;-32] to [0.5;-0.5] 
@@ -47,9 +46,21 @@ void main() {
 
             float ambientSkyLightIntensity = lightMapCoordinate.y;
             worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock, ambientSkyLightIntensity);
-            gl_Position = worldToShadowClip(worldSpacePosition); // to shadow clip space
         }
     #endif
+
+    // add shadows to props at noon
+    // if (isProps(id)) {
+    //     vec3 normal = gl_NormalMatrix * gl_Normal;
+    //     vec2 midCoord = (gl_TextureMatrix[0] * mc_midTexCoord).xy; // middle of the actual face in the atlas space
+    //     vec2 atlasMidToCorner = textureCoordinate - midCoord; // vector from the middle of the face to the actual corner (vertex) in the atlas space
+    //     // slightly move bottom vertices (so props aren't perpendicluar to sun)
+    //     if (atlasMidToCorner.y < 0.0) {
+    //         worldSpacePosition += normal * 0.4;
+    //     }
+    // }
+
+    gl_Position = worldToShadowClip(worldSpacePosition); // to shadow clip space
 
     // apply distortion to shadow map
     gl_Position.xyz = distortShadowClipPosition(gl_Position.xyz);
