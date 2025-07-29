@@ -1,4 +1,4 @@
-vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordinate, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
+vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordinate, vec3 textureColor, vec3 albedo, float transparency, vec3 normal, vec3 tangent, vec3 bitangent, vec3 normalMap, vec3 worldSpacePosition, vec3 unanimatedWorldPosition, 
                 float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, float vanillaAmbientOcclusion, float ambientOcclusion, float ambientOcclusionPBR, float subsurfaceScattering, inout float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
@@ -221,6 +221,8 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
         ambientLight = ambientLight * waterColor;
     }
 
+    float fresnel = fresnelIndex(worldSpaceViewDirection, normalMap, reflectance);
+
     // -- BRDF -- //
     // -- diffuse
     vec3 light = 1.75 * directSkyLight + blockLight + ambientSkyLight + ambientLight;
@@ -230,31 +232,39 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     vec3 color = albedo * light;
     // -- specular
     #if !defined NETHER && !defined END
-        vec3 subsurfaceSpecular = vec3(0.0);
+        vec3 specular = vec3(0.0);
 
         // subsurface transmission highlight
         #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0 && defined TERRAIN
             if (subsurfaceScattering > 0.0) {
                 float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
-                subsurfaceSpecular = subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
+                specular = subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
             }
         #endif
 
         // specular reflection
-        vec3 specular = CookTorranceBRDF(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
+        if (isWater(id)) {
+            specular += waterSpecularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, textureColor, smoothness, reflectance, fresnel);
+        }
+        else {
+            specular += specularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
+        }
+
+        // take shadows account
+        specular = clamp(specular, 0.0, 1.0);
+        specular = mix(specular, specular * shadow.rgb, shadow.a);
 
         // add specular contribution
-        color += directSkyLight * (specular + subsurfaceSpecular);
+        color += specular;
 
         // add bloom to specular reflections
-        float specularFactor = 0.9 * smoothstep(0.0, 1.0, getLightness(directSkyLight * (specular + subsurfaceSpecular)));
+        float specularFactor = smoothstep(0.0, 1.0, getLightness(specular));
         if (sunAngle > 0.5) specularFactor *= 0.9;
         specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
         emissivness = max(emissivness, specularFactor);
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
-        float fresnel = fresnel(worldSpaceViewDirection, normalMap, reflectance);
         transparency = max(transparency, fresnel);
     #endif
     // -- emissivness
@@ -386,7 +396,7 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
-        float fresnel = fresnel(worldSpaceViewDirection, normal, reflectance);
+        float fresnel = fresnelIndex(worldSpaceViewDirection, normal, reflectance);
         transparency = max(transparency, fresnel);
     #endif
 

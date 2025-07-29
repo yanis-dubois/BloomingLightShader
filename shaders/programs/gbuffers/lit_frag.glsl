@@ -204,6 +204,7 @@ void main() {
         }
     #endif
 
+    // -- normal map -- //
     // custom normal map for water (override PBR)
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
         if (isWater(id)) {
@@ -226,7 +227,7 @@ void main() {
         }
     #endif
     // custom normalmap for all other blocks (if no PBR)
-    #if defined TERRAIN && CUSTOM_NORMALMAP > 0 && PBR_TYPE == 0
+    #if !defined PARTICLE && !defined WEATHER && CUSTOM_NORMALMAP > 0 && PBR_TYPE == 0
     if (!isWater(id)) {
         vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
         float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
@@ -240,8 +241,7 @@ void main() {
         }
     }
     #endif
-
-    // -- normal map -- //
+    // PBR normalmap
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
         // don't apply PBR normalmap on water if the water custom normalmap is activated
         #if WATER_CUSTOM_NORMALMAP > 0
@@ -304,7 +304,7 @@ void main() {
     #endif
 
     // -- apply lighting -- //
-    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, localTextureCoordinate, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
+    vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, localTextureCoordinate, textureColor.rgb, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE

@@ -11,7 +11,7 @@ float schlick(float cosTheta, float F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float fresnel(vec3 viewDirection, vec3 normal, float reflectance) {
+float fresnelIndex(vec3 viewDirection, vec3 normal, float reflectance) {
     float VdotN = clamp(dot(viewDirection, normal), 0.001, 1.0);
     return schlick(VdotN, reflectance);
 }
@@ -33,9 +33,7 @@ float Smith_G(float NdotV, float NdotL, float roughness) {
 }
 
 // Cook Torrance BRDF
-vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance) {
-    float roughness = 1.0 - smoothness;
-
+float CookTorranceBRDF(vec3 N, vec3 V, vec3 L, float roughness, float reflectance) {
     vec3 H = normalize(V + L);
 
     float NdotV = dot(N, V);
@@ -54,15 +52,33 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, flo
     float F = schlick(LdotH, reflectance);
     float G = Smith_G(VdotH, LdotH, roughness);
 
-    vec3 specularColor = saturate(albedo, 1.3);
-    specularColor = albedo;
-    specularColor = mix(specularColor, vec3(1.0), 0.05);
+    return (D * F * G) / (4.0 * VdotH * LdotH + 0.001);
+}
 
-    return specularColor * (D * F * G) / (4.0 * VdotH * LdotH + 0.001);
+vec3 specularHighlight(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance, inout float fresnel) {
+    float roughness = (1.0 - smoothness);
 
-    // not used
-    // vec3 diffuse = albedo * (1.0 - F) * (1.0 / PI);
-    // return diffuse + specular;
+    // slightly unsaturated albedo
+    vec3 specularColor = mix(albedo, vec3(1.0), 0.05);
+
+    float specularFactor = CookTorranceBRDF(N, V, L, roughness, reflectance);
+    fresnel = max(fresnel, specularFactor);
+    return specularFactor * specularColor;
+}
+
+vec3 waterSpecularHighlight(vec3 N, vec3 V, vec3 L, vec3 texture, float smoothness, float reflectance, inout float fresnel) {
+    float factor = map(texture.r, 124.0/255.0, 255.0/255.0, 0.0, 1.0);
+    factor = smoothstep(0.33, 1.0, factor);
+    smoothness -= factor * 0.4;
+
+    float roughness = pow(1.0 - smoothness, 2.0);
+
+    // white highlight
+    vec3 specularColor = vec3(1.0) * map(factor, 0.0, 1.0, 1.0, 5.0);
+
+    float specularFactor = CookTorranceBRDF(N, V, L, roughness, reflectance);
+    fresnel = max(fresnel, specularFactor);
+    return specularFactor * specularColor;
 }
 
 // subsurface BRDF (not even close to reality)
@@ -73,7 +89,7 @@ vec3 specularSubsurfaceBRDF(vec3 V, vec3 L, vec3 albedo) {
     vec3 transmittedColor = saturate(albedo, VdotL * 1.4);
     transmittedColor = mix(transmittedColor, vec3(1.0), 0.05);
 
-    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 5.0;
+    vec3 specular = transmittedColor * pow(VdotL, 8.0) * 2.0;
     return specular;
 }
 
