@@ -227,7 +227,7 @@ void main() {
         }
     #endif
     // custom normalmap for all other blocks (if no PBR)
-    #if !defined PARTICLE && !defined WEATHER && CUSTOM_NORMALMAP > 0 && PBR_TYPE == 0
+    #if !defined PARTICLE && !defined WEATHER && CUSTOM_NORMALMAP > 0 && (PBR_TYPE == 0 || PBR_NORMAL_MAP == 0)
     if (!isWater(id)) {
         vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
         float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
@@ -242,7 +242,7 @@ void main() {
     }
     #endif
     // PBR normalmap
-    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0
+    #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_NORMAL_MAP > 0
         // don't apply PBR normalmap on water if the water custom normalmap is activated
         #if WATER_CUSTOM_NORMALMAP > 0
         if (!isWater(id))

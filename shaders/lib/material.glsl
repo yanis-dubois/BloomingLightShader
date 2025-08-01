@@ -123,7 +123,7 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             smoothness = 0.95;
         }
         else if (isSmooth(id)) {
-            smoothness = 0.75;
+            smoothness = 0.6;
         }
         else if (isSlightlySmooth(id)) {
             smoothness = 0.45;
@@ -272,24 +272,30 @@ void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoord
         vec4 normalMapData = texture2D(normals, textureCoordinate);
         vec4 specularMapData = texture2D(specular, textureCoordinate);
 
-        if (length(normalMapData) > 0.0) {
-            // -- ambient occlusion -- //
-            ambientOcclusion = normalMapData.z;
-        }
+        #if PBR_AMBIENT_OCCLUSION > 0
+            if (length(normalMapData) > 0.0) {
+                // -- ambient occlusion -- //
+                ambientOcclusion = normalMapData.z;
+            }
+        #endif
 
         if (length(specularMapData) > 0.0) {
-            // -- smoothness -- //
-            smoothness = specularMapData.r;
+            #if PBR_SPECULAR > 0
+                // -- smoothness -- //
+                smoothness = specularMapData.r;
 
-            // -- reflectance -- //
-            reflectance = specularMapData.g;
-            if (reflectance > 229.0/255.0) {
-                reflectance = 0.5;
-            }
+                // -- reflectance -- //
+                reflectance = specularMapData.g;
+                if (reflectance > 229.0/255.0) {
+                    reflectance = 0.5;
+                }
+            #endif
 
             // -- subsurface scattering -- //
             if (specularMapData.b > 64.0/255.0) {
-                subsurfaceScattering = map(specularMapData.b, 65.0/255.0, 255.0/255.0, 0.0, 1.0);
+                #if PBR_SUBSURFACE > 0
+                    subsurfaceScattering = map(specularMapData.b, 65.0/255.0, 255.0/255.0, 0.0, 1.0);
+                #endif
             }
             // -- porosity -- //
             #if PBR_POROSITY > 0
@@ -299,11 +305,13 @@ void getPBRMaterialData(sampler2D normals, sampler2D specular, vec2 textureCoord
             #endif
 
             // -- emissivness -- //
-            emissivness = specularMapData.a < 1.0 ? specularMapData.a : 0.0;
-            // fix issues caused by mipmaps
-            float emissivnessL0 = texture2DLod(specular, textureCoordinate, 0).a;
-            emissivnessL0 = emissivnessL0 < 1.0 ? emissivnessL0 : 0.0;
-            emissivness = min(emissivness, emissivnessL0);
+            #if PBR_EMISSIVNESS > 0
+                emissivness = specularMapData.a < 1.0 ? specularMapData.a : 0.0;
+                // fix issues caused by mipmaps
+                float emissivnessL0 = texture2DLod(specular, textureCoordinate, 0).a;
+                emissivnessL0 = emissivnessL0 < 1.0 ? emissivnessL0 : 0.0;
+                emissivness = min(emissivness, emissivnessL0);
+            #endif
         }
     #endif
 }

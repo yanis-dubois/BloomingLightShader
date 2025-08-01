@@ -377,7 +377,7 @@ vec4 doDHLighting(int id, vec3 textureColor, vec3 albedo, float transparency, ve
         ambientLight = ambientLight * waterColor;
     }
 
-    float fresnel = fresnelIndex(worldSpaceViewDirection, normal, reflectance);
+    float fresnel = fresnelIndex(worldSpaceViewDirection, normalMap, reflectance);
 
     // -- BRDF -- //
     // -- diffuse
@@ -395,7 +395,7 @@ vec4 doDHLighting(int id, vec3 textureColor, vec3 albedo, float transparency, ve
             specular += waterSpecularHighlight(normal, worldSpaceViewDirection, worldSpacelightDirection, textureColor, smoothness, reflectance, fresnel);
         }
         else {
-            specular += skyLightColor * specularHighlight(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
+            specular += skyLightColor * specularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
         }
 
         // take weather account

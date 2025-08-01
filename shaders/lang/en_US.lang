@@ -57,7 +57,7 @@ option.PIXELATION_TYPE = Pixelation Type
 value.PIXELATION_TYPE.0 = §cOFF
 value.PIXELATION_TYPE.1 = Voxelized
 value.PIXELATION_TYPE.2 = Texture Snapped
-option.PIXELATION_TYPE.comment = 
+option.PIXELATION_TYPE.comment = This technique doesn't works well with POM
 ### TEXTURE_RESOLUTION
 option.TEXTURE_RESOLUTION = Texturepack Resolution
 suffix.TEXTURE_RESOLUTION = px
@@ -99,6 +99,31 @@ option.PBR_TYPE = Use PBR Texturepack
 value.PBR_TYPE.0 = §cNO
 value.PBR_TYPE.1 = §aYES
 option.PBR_TYPE.comment = 
+### PBR_NORMAL_MAP
+option.PBR_NORMAL_MAP = Use Texturepack Normalmap
+value.PBR_NORMAL_MAP.0 = §cNO
+value.PBR_NORMAL_MAP.1 = §aYES
+option.PBR_NORMAL_MAP.comment = 
+### PBR_AMBIENT_OCCLUSION
+option.PBR_AMBIENT_OCCLUSION = Use Texturepack Ambient Occlusion
+value.PBR_AMBIENT_OCCLUSION.0 = §cNO
+value.PBR_AMBIENT_OCCLUSION.1 = §aYES
+option.PBR_AMBIENT_OCCLUSION.comment = 
+### PBR_SPECULAR
+option.PBR_SPECULAR = Use Texturepack Smoothness & Reflectance
+value.PBR_SPECULAR.0 = §cNO
+value.PBR_SPECULAR.1 = §aYES
+option.PBR_SPECULAR.comment = 
+### PBR_EMISSIVNESS
+option.PBR_EMISSIVNESS = Use Texturepack Emissivness
+value.PBR_EMISSIVNESS.0 = §cNO
+value.PBR_EMISSIVNESS.1 = §aYES
+option.PBR_EMISSIVNESS.comment = 
+### PBR_SUBSURFACE
+option.PBR_SUBSURFACE = Use Texturepack Subsurface
+value.PBR_SUBSURFACE.0 = §cNO
+value.PBR_SUBSURFACE.1 = §aYES
+option.PBR_SUBSURFACE.comment = 
 ### PBR_POROSITY
 option.PBR_POROSITY = Use Texturepack Porosity
 value.PBR_POROSITY.0 = §cNO
@@ -109,7 +134,7 @@ option.PBR_POM_TYPE = Parallax Occlusion Mapping
 value.PBR_POM_TYPE.0 = §cOFF
 value.PBR_POM_TYPE.1 = Classic
 value.PBR_POM_TYPE.2 = Custom
-option.PBR_POM_TYPE.comment = Wether if POM is calculated in a classical way or a more custom one. §e[*]§r Custom POM is recommended for low textures resolutions (32x32 or lower) but use the classical version on higher resolutions.
+option.PBR_POM_TYPE.comment = Wether if POM is calculated in a classical way or a more custom one. §e[*]§r Custom POM is recommended for low textures resolutions (32x32 or lower) but use the classical version on higher resolutions. §e[*]§r POM doesn't works well with Pixelated Lighting.
 ### PBR_POM_DISTANCE
 option.PBR_POM_DISTANCE = POM Render Distance
 suffix.PBR_POM_DISTANCE = blocks

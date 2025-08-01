@@ -64,8 +64,13 @@ const bool colortex5Clear = true;
 // PBR texture pack
 // only support labPBR
 #define PBR_TYPE 0 //[0 1] 0=off 1=on
-// porosity (only few texture pack specify porosity)
-#define PBR_POROSITY 0 //[0 1] 0=off 1=on
+// customisable params
+#define PBR_NORMAL_MAP 1 //[0 1] 0=off 1=on
+#define PBR_AMBIENT_OCCLUSION 1 //[0 1] 0=off 1=on
+#define PBR_SPECULAR 1 //[0 1] 0=off 1=on
+#define PBR_EMISSIVNESS 1 //[0 1] 0=off 1=on
+#define PBR_SUBSURFACE 1 //[0 1] 0=off 1=on
+#define PBR_POROSITY 1 //[0 1] 0=off 1=on
 // parallax occlusion mapping (POM)
 #define PBR_POM_TYPE 2 //[0 1 2] 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
