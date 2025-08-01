@@ -74,12 +74,12 @@ void main() {
     emissivness *= 0.9;
 
     // -- apply lighting -- //
-    vec4 color = doDHLighting(albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, emissivness);
+    vec4 color = doDHLighting(id, Valbedo.rgb, albedo, transparency, normal, worldSpacePosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, emissivness);
 
     // -- reflection on transparent material -- //
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         vec3 screenSpacePosition = vec3(uv, depth);
-        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance);
+        vec4 reflection = doReflection(colortex4, colortex5, depthtex1, screenSpacePosition.xy, screenSpacePosition.z, color.rgb, normal, ambientSkyLightIntensity, smoothness, reflectance, emissivness);
 
         // tweak reflection on water
         reflection.a = smoothstep(0.0, 1.0, reflection.a);

@@ -225,7 +225,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
 
     // -- BRDF -- //
     // -- diffuse
-    vec3 light = 1.75 * directSkyLight + blockLight + ambientSkyLight + ambientLight;
+    vec3 light = mix(0.5, 1.75, sunAngle > 0.5 ? 0.0 : 1.0) * directSkyLight + blockLight + ambientSkyLight + ambientLight;
     // apply night vision
     light = mix(light, pow(light, vec3(0.33)), nightVision);
     // diffuse model
@@ -238,7 +238,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
         #if SHADOW_TYPE > 0 && SUBSURFACE_TYPE > 0 && defined TERRAIN
             if (subsurfaceScattering > 0.0) {
                 float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
-                specular = subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
+                specular = skyLightColor * subsurfaceScattering * specularFade * specularSubsurfaceBRDF(worldSpaceViewDirection, worldSpacelightDirection, albedo);
             }
         #endif
 
@@ -247,12 +247,16 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
             specular += waterSpecularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, textureColor, smoothness, reflectance, fresnel);
         }
         else {
-            specular += specularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
+            specular += skyLightColor * specularHighlight(normalMap, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
         }
 
         // take shadows account
         specular = clamp(specular, 0.0, 1.0);
         specular = mix(specular, specular * shadow.rgb, shadow.a);
+
+        // take weather account
+        specular = mix(specular, 0.5 * specular, rainStrength);
+        specular = mix(specular, 0.2 * specular, thunderStrength);
 
         // add specular contribution
         color += specular;
@@ -260,7 +264,6 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
         // add bloom to specular reflections
         float specularFactor = smoothstep(0.0, 1.0, getLightness(specular));
         if (sunAngle > 0.5) specularFactor *= 0.9;
-        specularFactor = mix(specularFactor, 0.9 * specularFactor, rainStrength*rainStrength*rainStrength*rainStrength);
         emissivness = max(emissivness, specularFactor);
     #endif
     // -- fresnel
@@ -274,8 +277,8 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     return vec4(color, transparency);
 }
 
-vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, 
-                float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, float emissivness) {
+vec4 doDHLighting(int id, vec3 textureColor, vec3 albedo, float transparency, vec3 normal, vec3 worldSpacePosition, 
+                float smoothness, float reflectance, float ambientSkyLightIntensity, float blockLightIntensity, inout float emissivness) {
 
     vec3 skyLightColor = getSkyLightColor();
 
@@ -346,7 +349,7 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
     blockLightIntensity = mix(blockLightIntensity, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
     emissivness = mix(emissivness, 0.00001 * smoothstep(0.99, 1.0, emissivness), darknessLightFactor);
     // get light color
-    vec3 blockLightColor = getBlockLightColor(blockLightIntensity, emissivness);
+    vec3 blockLightColor = getBlockLightColor(blockLightIntensity);
     vec3 blockLight = faceTweak * blockLightColor * mix(1.0, blockLightIntensity, darknessFactor);
 
     // -- ambient light
@@ -374,29 +377,41 @@ vec4 doDHLighting(vec3 albedo, float transparency, vec3 normal, vec3 worldSpaceP
         ambientLight = ambientLight * waterColor;
     }
 
+    float fresnel = fresnelIndex(worldSpaceViewDirection, normal, reflectance);
+
     // -- BRDF -- //
     // -- diffuse
-    vec3 light = directSkyLight + ambientSkyLight + blockLight + ambientLight;
+    vec3 light = mix(0.5, 1.75, sunAngle > 0.5 ? 0.0 : 1.0) * directSkyLight + ambientSkyLight + blockLight + ambientLight;
     // apply night vision
     light = mix(light, pow(light, vec3(0.33)), nightVision);
     // diffuse model
     vec3 color = albedo * light;
     // -- specular
     #if !defined NETHER && !defined END
-        if (0.1 < smoothness) {
-            float specularFade = map(distanceFromCamera, shadowDistance * 0.6, startShadowDecrease * 0.6, 0.0, 1.0);
-            vec3 specular = vec3(0.0);
+        vec3 specular = vec3(0.0);
 
-            // specular reflection
-            specular += CookTorranceBRDF(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance);
-
-            // add specular contribution
-            color += directSkyLight * specular;
+        // specular reflection
+        if (id == DH_BLOCK_WATER) {
+            specular += waterSpecularHighlight(normal, worldSpaceViewDirection, worldSpacelightDirection, textureColor, smoothness, reflectance, fresnel);
         }
+        else {
+            specular += skyLightColor * specularHighlight(normal, worldSpaceViewDirection, worldSpacelightDirection, albedo, smoothness, reflectance, fresnel);
+        }
+
+        // take weather account
+        specular = mix(specular, 0.5 * specular, rainStrength);
+        specular = mix(specular, 0.2 * specular, thunderStrength);
+
+        // add specular contribution
+        color += specular;
+
+        // add bloom to specular reflections
+        float specularFactor = smoothstep(0.0, 1.0, getLightness(specular));
+        if (sunAngle > 0.5) specularFactor *= 0.9;
+        emissivness = max(emissivness, specularFactor);
     #endif
     // -- fresnel
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE && defined TRANSPARENT
-        float fresnel = fresnelIndex(worldSpaceViewDirection, normal, reflectance);
         transparency = max(transparency, fresnel);
     #endif
 

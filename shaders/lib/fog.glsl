@@ -48,7 +48,7 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
         vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);
         float lightDirectionDotUp = dot(lightDirectionWorldSpace, upDirection);
         if (sunAngle < 0.5) lightDirectionDotUp = pow(lightDirectionDotUp, 0.33);
-        float density = mix(minFogDensity, maxFogDensity, 1.0 - lightDirectionDotUp);
+        float density = mix(minFogDensity, maxFogDensity, pow(1.0 - lightDirectionDotUp, 0.25));
         density = mix(density, maxFogDensity, rainStrength);
     #elif defined NETHER
         float density = 0.33;

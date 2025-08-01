@@ -56,7 +56,8 @@ float CookTorranceBRDF(vec3 N, vec3 V, vec3 L, float roughness, float reflectanc
 }
 
 vec3 specularHighlight(vec3 N, vec3 V, vec3 L, vec3 albedo, float smoothness, float reflectance, inout float fresnel) {
-    float roughness = (1.0 - smoothness);
+    // float roughness = (1.0 - smoothness);
+    float roughness = pow(1.0 - smoothness, 2.0);
 
     // slightly unsaturated albedo
     vec3 specularColor = mix(albedo, vec3(1.0), 0.05);

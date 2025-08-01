@@ -126,19 +126,19 @@ void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTexture
             smoothness = 0.75;
         }
         else if (isSlightlySmooth(id)) {
-            smoothness = 0.525;
+            smoothness = 0.45;
         }
         else if (isSlightlyRough(id)) {
-            smoothness = 0.4;
+            smoothness = 0.3;
         }
         else if (isRough(id)) {
-            smoothness = 0.2;
+            smoothness = 0.15;
         }
         // else is very rough : smoothness = 0.0
 
         // change smoothness on top of blocks that have grass
         if (hasGrass(id) && normal.y > 0.5) {
-            smoothness = 0.35;
+            smoothness = 0.3;
         }
 
         // -- reflectance -- //
@@ -317,9 +317,7 @@ void getDHMaterialData(int id, inout vec3 albedo, out float smoothness, out floa
 
     // water
     if (id == DH_BLOCK_WATER) {
-        smoothness = 0.9;
-        float n2 = isEyeInWater == 0 ? 1.33 : 1.0;
-        reflectance = getReflectance(n1, n2);
+        getWaterMaterialData(smoothness, reflectance);
     }
     // metal
     else if (id == DH_BLOCK_METAL) {
