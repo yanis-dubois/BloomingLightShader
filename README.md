@@ -17,7 +17,7 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 - Emissivness for light sources or luminescent objects
 - Reflectance and Roughness to simulate all kind of material (metal, stone, wood, ice, ...)
-- Screen Space Reflections (SSR) approximate local reflections in real time
+- Screen Space Reflections (SSR) approximate reflections in real time
 - Subsurface Scattering for translucent materials
 - Porosity simulates moisture absorption on wet surfaces
 - Normal Mapping support through external texture packs or procedurally generated
@@ -27,7 +27,7 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 - New procedural sky box
 - Simulated light shafts with volumetric fog
-- Procedural animation of foliage and water surfaces
+- Procedural animation of foliage and water surface
 
 ### 🎞️ Post-Processing Pipeline
 
@@ -47,7 +47,7 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 ## ⚙️ Compatibility
 
-- Minecraft version: `1.21.5`  
+- Minecraft version: `1.21.8`  
 - Compatible with: `Iris`
 - PBR texture packs: `labPBR`
 - Supported Mods: `Distant Horizon`
