@@ -134,7 +134,11 @@ void main() {
         vec4 textureColor = texture2D(gtexture, textureCoordinate);
     #endif
     vec3 tint = additionalColor.rgb;
-    float vanillaAmbientOcclusion = additionalColor.a;
+    #if VANILLA_AMBIENT_OCCLUSION_TYPE > 0
+        float vanillaAmbientOcclusion = additionalColor.a;
+    #else
+        float vanillaAmbientOcclusion = 1.0;
+    #endif
     vec3 albedo = textureColor.rgb * tint;
     float transparency = textureColor.a;
 
@@ -169,7 +173,7 @@ void main() {
     // initialize specific material as end portal or glowing particles
     getSpecificMaterial(gtexture, id, textureColor.rgb, tint, albedo, transparency, emissivness, subsurfaceScattering);
     // update PBR values with my own custom data
-    #if !defined PARTICLE && !defined WEATHER
+    #if !defined PARTICLE && !defined WEATHER && CUSTOM_MATERIAL > 0
         getCustomMaterialData(id, normal, midBlock, localTextureCoordinate, textureColor.rgb, albedo, smoothness, reflectance, emissivness, ambientOcclusion, subsurfaceScattering, porosity);  
     #endif
     // modify these PBR values if PBR textures are enable

@@ -10,9 +10,11 @@
 
 // textures
 uniform sampler2D colortex0; // color
+#if TAA_TYPE > 0 || STATUS_STARVING_TYPE > 0
+    uniform sampler2D colortex2; // TAA - last frame color
+#endif
 #if TAA_TYPE > 0
     uniform sampler2D depthtex1; // depth opaque
-    uniform sampler2D colortex2; // TAA - last frame color
 #endif
 #if TAA_TYPE == 1
     uniform sampler2D colortex3; // TAA - last frame depth
@@ -24,7 +26,7 @@ in vec2 uv;
 // results
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 colorData;   
-#if TAA_TYPE > 0
+#if TAA_TYPE > 0 || STATUS_STARVING_TYPE > 0
     /* RENDERTARGETS: 0,2 */
     layout(location = 1) out vec3 taaColorData;
 #endif

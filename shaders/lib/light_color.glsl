@@ -82,7 +82,7 @@ vec3 getShadowLightColor() {
 
 vec3 getBlockLightColor(float blockLightIntensity) {
     #if BLOCK_LIGHT_COLOR == 0
-        return SRGBtoLinear(light4500K);
+        return blockLightIntensity * SRGBtoLinear(light4500K);
     #else
         vec3 blockLightColorBright = light5500K;
         vec3 blockLightColorLow = light3500K;

@@ -35,7 +35,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
             vec3 pixelatedWorldPosition = voxelize(worldSpacePosition, normal); // unanimated
         #endif
     #endif
-    #if PIXELATED_SPECULAR > 0
+    #if PIXELATION_TYPE > 0 && PIXELATED_SPECULAR > 0
         vec3 specularWorldPosition = pixelatedWorldPosition;
     #else
         vec3 specularWorldPosition = worldSpacePosition; // unanimated
@@ -44,9 +44,9 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     float distanceFromCamera = distance(cameraPosition, worldSpacePosition);
 
     // -- shadow -- //
-    #ifndef NETHER
+    #if !defined NETHER && DIRECT_LIGHTING > 0 && SHADOW_TYPE > 0
         // pixelize if needed
-        #if PIXELATED_SHADOW > 0
+        #if PIXELATION_TYPE > 0 && PIXELATED_SHADOW > 0
             vec3 shadowWorldPosition = pixelatedWorldPosition;
         #else
             vec3 shadowWorldPosition = worldSpacePosition; // unanimated
@@ -73,6 +73,8 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
         // fade into the distance
         float shadow_fade = 1.0 - map(distanceFromCamera, startShadowDecrease, shadowDistance, 0.0, 1.0);
         shadow *= shadow_fade;
+    #else
+        vec4 shadow = vec4(0.0);
     #endif
 
     // -- lighting -- //
@@ -83,7 +85,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     float dayNightBlend = getDayNightBlend();
     float darknessExponent = 10.0;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    #ifdef TERRAIN
+    #if FACE_TWEAK > 0 && defined TERRAIN
         if (!isProps(id)) {
             faceTweak = mix(faceTweak, 0.75, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
             faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));
@@ -94,8 +96,9 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     #endif
 
     // -- direct sky light
-    #ifdef NETHER
+    #if defined NETHER || DIRECT_LIGHTING == 0
         vec3 directSkyLight = vec3(0.0);
+        float directSkyLightIntensity = 0.0;
     #else
         float directSkyLightIntensity = max(lightDirectionDotNormal, 0.0);
         // subsurface scattering
@@ -188,28 +191,32 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     #endif
 
     // -- ambient light
-    #if defined OVERWORLD
-        float ambientLightFactor = 0.0125;
-        vec3 ambiantLightColor = light10000K;
-    #elif defined NETHER
-        float ambientLightFactor = 0.33;
-        vec3 ambiantLightColor = saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+    #if AMBIENT_LIGHTING > 0
+        #if defined OVERWORLD
+            float ambientLightFactor = 0.0125;
+            vec3 ambiantLightColor = light10000K;
+        #elif defined NETHER
+            float ambientLightFactor = 0.33;
+            vec3 ambiantLightColor = saturate(clamp(10.0 * fogColor, 0.0, 1.0), 0.66);
+        #else
+            float ambientLightFactor = 0.33;
+            vec3 ambiantLightColor = skyLightColor;
+        #endif
+        // apply normalmap
+        ambientLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
+        // apply darkness
+        ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
+        // get light color
+        vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
+        // ambient occlusion
+        #ifdef TERRAIN
+            // PBR & vanilla AO
+            ambientLight *= ambientOcclusionPBR;
+            // custom AO
+            ambientLight *= ambientOcclusion * 0.5 + 0.5;
+        #endif
     #else
-        float ambientLightFactor = 0.33;
-        vec3 ambiantLightColor = skyLightColor;
-    #endif
-    // apply normalmap
-    ambientLightFactor *= max(ambientLightDirectionDotNormal, 0.0);
-    // apply darkness
-    ambientLightFactor = mix(ambientLightFactor, 0.0, smoothstep(0.0, 0.25, darknessLightFactor));
-    // get light color
-    vec3 ambientLight = faceTweak * ambientLightFactor * ambiantLightColor * (1.0 - ambientSkyLightIntensity);
-    // ambient occlusion
-    #ifdef TERRAIN
-        // PBR & vanilla AO
-        ambientLight *= ambientOcclusionPBR;
-        // custom AO
-        ambientLight *= ambientOcclusion * 0.5 + 0.5;
+        vec3 ambientLight = vec3(0.0);
     #endif
 
     // -- filter underwater light
@@ -231,7 +238,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     // diffuse model
     vec3 color = albedo * light;
     // -- specular
-    #if !defined NETHER && !defined END
+    #if !defined NETHER && !defined END && DIRECT_LIGHTING > 0
         vec3 specular = vec3(0.0);
 
         // subsurface transmission highlight
