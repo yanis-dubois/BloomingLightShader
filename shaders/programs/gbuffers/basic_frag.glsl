@@ -30,15 +30,23 @@ void main() {
 
     albedo = SRGBtoLinear(albedo);
 
-    #ifdef BEACON_BEAM
-        transparency = 0.5;
-        emissivness = 1.0;
-        albedo *= 1.5;
+    #if defined BEACON_BEAM
+        #if EMISSVNESS_TYPE > 0
+            transparency = 0.5;
+            emissivness = 1.0;
+            albedo *= 1.5;
+        #else
+            transparency = 0.0;
+        #endif
     #endif
 
-    #ifdef GLOWING
-        albedo *= 2.0;
-        emissivness = 0.5;
+    #if defined GLOWING
+        #if EMISSVNESS_TYPE > 0
+            albedo *= 2.0;
+            emissivness = 0.5;
+        #else
+            transparency = 0.0;
+        #endif
     #endif
 
     #ifdef GLINT

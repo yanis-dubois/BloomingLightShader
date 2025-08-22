@@ -67,8 +67,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
             break;
         }
 
-        // density
-        scatteringCoefficient = 0.012 * getVolumetricFogDensity(rayWorldSpacePosition.y, normalizedRayDistance);
+        // density ////// 0.012
+        scatteringCoefficient = 1.0 * getVolumetricFogDensity(rayWorldSpacePosition.y, normalizedRayDistance);
 
         // get shadow
         #ifdef OVERWORLD
@@ -93,8 +93,8 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
         #endif
 
         // compute inscattered light
-        float scatteringAbsorption = 1.0 - pow(normalizedRayDistance, 1.0);
-        vec3 inscatteredLight = shadowedLight * scatteringAbsorption * stepSize;
+        float scatteringAbsorption = 1.0 - (normalizedRayDistance * normalizedRayDistance);
+        vec3 inscatteredLight = shadowedLight * scatteringAbsorption * (stepSize/min(shadowDistance, far));
         inscatteredLight *= scatteringCoefficient;
 
         // add light contribution
@@ -122,6 +122,10 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     #elif defined NETHER
         // fog color
         accumulatedLight *= SRGBtoLinear(getVolumetricFogColor());
+    
+    #elif defined END
+        accumulatedLight *= 2.0;
+
     #endif
 
     // write values

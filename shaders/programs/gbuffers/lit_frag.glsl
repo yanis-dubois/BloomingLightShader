@@ -37,10 +37,10 @@ in vec3 Vnormal;
 in vec3 Vtangent;
 in vec3 Vbitangent;
 in vec4 additionalColor; // albedo of : foliage, water, particules
-in vec3 unanimatedWorldPosition;
+in vec3 unanimatedPlayerPosition;
 in vec3 midBlock;
-in vec3 worldSpacePosition;
-in vec2 originalTextureCoordinate; // immuable block & item albedo
+in vec3 playerSpacePosition;
+in vec2 originalTextureCoordinate;
 in vec2 lightMapCoordinate; // light map
 in vec4 textureCoordinateOffset;
 in vec2 localTextureCoordinate;
@@ -58,12 +58,11 @@ void main() {
     // fragment data
     vec2 uv = texelToScreen(gl_FragCoord.xy);
     float depth = gl_FragCoord.z;
-    vec3 viewDirection = normalize(eyeCameraPosition - worldSpacePosition);
+    vec3 viewDirection = - normalize(playerSpacePosition);
     bool isWater_ = isWater(id);
 
     // blending transition between classic terrain & DH terrain
     #ifdef DISTANT_HORIZONS
-        vec3 playerSpacePosition = worldToPlayer(unanimatedWorldPosition);
         float cylindricDistance = max(length(playerSpacePosition.xz), abs(playerSpacePosition.y));
         float dhBlend = smoothstep(0.75*far, far, cylindricDistance);
         float dither = dithering(uv, DH_DITHERING_TYPE);
@@ -103,7 +102,7 @@ void main() {
     vec2 textureCoordinate = originalTextureCoordinate;
     // -- POM -- //
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_POM_TYPE > 0
-        float worldSpaceDistance = length(cameraPosition - worldSpacePosition);
+        float worldSpaceDistance = length(playerSpacePosition);
         float POMblend = map(worldSpaceDistance, 0.5*PBR_POM_DISTANCE, PBR_POM_DISTANCE, 0.0, 1.0);
         float POMdither = dithering(uv, PBR_POM_DITHERING_TYPE);
 
@@ -156,7 +155,7 @@ void main() {
     albedo = mix(albedo, entityColor.rgb, entityColor.a);
 
     // light data
-    float distanceFromEye = distance(eyePosition, worldSpacePosition);
+    float distanceFromEye = length(playerSpacePosition);
     float heldLightValue = max(heldBlockLightValue, heldBlockLightValue2);
     float heldBlockLight = heldLightValue >= 1.0 ? max(1.0 - (distanceFromEye / max(heldLightValue, 1.0)) - (1.0/15.0), 0.0) : 0.0;
     vec2 lightMap = vec2(
@@ -189,9 +188,9 @@ void main() {
         if (isAnimated(id) && length(normalPOM) <= 0.001) {
 
             // sample noise function
-            vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedWorldPosition, midBlock, ambientSkyLightIntensity);
-            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
-            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedWorldPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
+            vec3 actualPosition = doAnimation(id, frameTimeCounter, unanimatedPlayerPosition, midBlock, ambientSkyLightIntensity);
+            vec3 tangentDerivative = doAnimation(id, frameTimeCounter, unanimatedPlayerPosition + tangent / 16.0, midBlock, ambientSkyLightIntensity);
+            vec3 bitangentDerivative = doAnimation(id, frameTimeCounter, unanimatedPlayerPosition + bitangent / 16.0, midBlock, ambientSkyLightIntensity);
 
             // calcul derivative
             vec3 newTangent = normalize(tangentDerivative - actualPosition);
@@ -211,28 +210,28 @@ void main() {
     // -- normal map -- //
     // custom normal map for water (override PBR)
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
-        if (isWater(id)) {
-            vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
-            float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
-            mat3 animatedTBN = generateTBN(normalMap);
+        // if (isWater(id)) {
+        //     vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
+        //     float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
+        //     mat3 animatedTBN = generateTBN(normalMap);
 
-            // sampling data
-            float waterSmoothness = 0.9;
-            float roughness = clamp(pow(1.0 - waterSmoothness, 2.0), 0.1, 0.4);
-            roughness *= roughness;
+        //     // sampling data
+        //     float waterSmoothness = 0.9;
+        //     float roughness = clamp(pow(1.0 - waterSmoothness, 2.0), 0.1, 0.4);
+        //     roughness *= roughness;
 
-            // view direction from view to tangent space
-            vec3 voxelizedViewDirection = normalize(cameraPosition - voxelize(unanimatedWorldPosition));
-            vec3 tangentSpaceViewDirection = transpose(animatedTBN) * voxelizedViewDirection;
-            // sample normal & convert to view
-            vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
+        //     // view direction from view to tangent space
+        //     vec3 voxelizedViewDirection = normalize(cameraPosition - voxelize(unanimatedPlayerPosition));
+        //     vec3 tangentSpaceViewDirection = transpose(animatedTBN) * voxelizedViewDirection;
+        //     // sample normal & convert to view
+        //     vec3 sampledNormal = sampleGGXVNDF(tangentSpaceViewDirection, roughness, roughness, zeta1, zeta2);
 
-            normalMap = mix(normalMap, animatedTBN * sampledNormal, map(seed.r - 0.35, 124.0/255.0, 191.0/255.0, 0.0, 1.0));
-        }
+        //     normalMap = mix(normalMap, animatedTBN * sampledNormal, map(seed.r - 0.35, 124.0/255.0, 191.0/255.0, 0.0, 1.0));
+        // }
     #endif
     // custom normalmap for all other blocks (if no PBR)
     #if !defined PARTICLE && !defined WEATHER && CUSTOM_NORMALMAP > 0 && (PBR_TYPE == 0 || PBR_NORMAL_MAP == 0)
-    if (!isWater(id)) {
+    // if (!isWater(id)) {
         vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba;
         float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
 
@@ -243,7 +242,7 @@ void main() {
         if (dot(viewDirection, customNormal) > 0.0) {
             normalMap = customNormal;
         }
-    }
+    // }
     #endif
     // PBR normalmap
     #if !defined PARTICLE && !defined WEATHER && PBR_TYPE > 0 && PBR_NORMAL_MAP > 0
@@ -307,6 +306,9 @@ void main() {
         albedo = mix(albedo, 0.45 * albedo, sqrt(porosity) * wetnessFactor);
     #endif
 
+    vec3 worldSpacePosition = playerToWorld(playerSpacePosition);
+    vec3 unanimatedWorldPosition = playerToWorld(unanimatedPlayerPosition);
+
     // -- apply lighting -- //
     vec4 color = doLighting(id, pixelationOffset, gl_FragCoord.xy, localTextureCoordinate, textureColor.rgb, albedo, transparency, normal, tangent, bitangent, normalMap, worldSpacePosition, unanimatedWorldPosition, smoothness, reflectance, ambientSkyLightIntensity, blockLightIntensity, vanillaAmbientOcclusion, ambientOcclusion, ambientOcclusionPBR, subsurfaceScattering, emissivness);
 
@@ -314,7 +316,7 @@ void main() {
     #if REFLECTION_TYPE > 0 && defined REFLECTIVE
         #if PIXELATED_REFLECTION > 0
             // avoid position glitche for animated material (like water)
-            vec3 screenSpacePosition = worldToScreen((unanimatedWorldPosition));
+            vec3 screenSpacePosition = playerToScreen(unanimatedPlayerPosition);
         #else
             vec3 screenSpacePosition = vec3(uv, depth);
         #endif

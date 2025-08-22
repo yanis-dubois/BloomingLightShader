@@ -13,7 +13,9 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
 
     // color data
     vec3 color = SRGBtoLinear(texture2D(colorTexture, uv).rgb);
-    color = inverseToneMap(color);
+    #if DOF_BOKEH > 0
+        color = inverseToneMap(color);
+    #endif
 
     // prepare loop
     float range = 0.0, stepLength = 0.0;
@@ -45,12 +47,15 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
         float sampleEmissivness = sampleDOFdata.b;
 
         vec3 col = SRGBtoLinear(texture2D(colorTexture, coord).rgb);
-        // inverse karis average
-        weight *= 1 + max(getLightness(col), sampleEmissivness);
+        #if DOF_BOKEH > 0
+            // inverse karis average
+            weight *= 1 + max(getLightness(col), sampleEmissivness);
+            col = inverseToneMap(col);
+        #endif
 
         // far plane mix only with far & near planes
         if (isFarPlane && sampleIsFarPlane) {
-            farDOF += weight * inverseToneMap(col);
+            farDOF += weight * col;
             farTotalWeight += weight;
         }
         // update blur factor
@@ -62,7 +67,7 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
         }
 
         // near plane mix with all plane
-        nearDOF += weight * inverseToneMap(col);
+        nearDOF += weight * col;
         nearTotalWeight += weight;
     }
 
@@ -75,7 +80,9 @@ vec3 doDepthOfField(vec2 uv, sampler2D colorTexture, sampler2D DOFTexture, float
     DOF = mix(DOF, farDOF, smoothstep(threshold+0.0001, 1.0, DOFdata.g));
     DOF = mix(DOF, nearDOF, smoothstep(threshold+0.0001, 1.0, DOFdata.r));
 
-    DOF = clamp(toneMap(DOF), 0.0, 1.0);
+    #if DOF_BOKEH > 0
+        DOF = clamp(toneMap(DOF), 0.0, 1.0);
+    #endif
 
     return DOF;
 }

@@ -111,7 +111,7 @@ void main() {
             }
         #else
             float focusDistance = 0.0;
-            float blurFactor = pow(linearDepth / far, 1.8);
+            float blurFactor = pow(linearDepth / far, 0.26);
         #endif
 
         // write buffer

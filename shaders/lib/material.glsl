@@ -54,37 +54,40 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
     // particles
     #ifdef PARTICLE
 
-        // all types of glowing particles
-        bool isObsidianTears = isEqual(tint, vec3(130.0, 8.0, 227.0) / 255.0, 2.0/255.0);
-        bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
-        bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
-        bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
-        bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0 && 2.0*tint.g < tint.b;
-        bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
-        bool isSoulFire = isEqual(texture, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(0.0, 142.0, 146.0) / 255.0, 2.0/255.0);
-        bool isCrimsonForest = isEqual(tint, vec3(229.0, 101.0, 127.0) / 255.0, 2.0/255.0);
-        bool isGreenGlint = isEqual(texture, vec3(6.0, 229.0, 151.0) / 255.0, 6.0/255.0)
-            || isEqual(texture, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
-            || isEqual(texture, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
-        bool isSculkSoundWave = isEqual(texture, vec3(57.0, 214.0, 224.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(42.0, 227.0, 235.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(14.0, 180.0, 170.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(10.0, 126.0, 129.0) / 255.0, 2.0/255.0)
-            || isEqual(texture, vec3(12.0, 81.0, 78.0) / 255.0, 2.0/255.0);
+        // emissivness
+        #if EMISSVNESS_TYPE > 0
+            // all types of glowing particles
+            bool isObsidianTears = isEqual(tint, vec3(130.0, 8.0, 227.0) / 255.0, 2.0/255.0);
+            bool isBlossom = isEqual(tint, vec3(80.0, 127.0, 56.0) / 255.0, 2.0/255.0);
+            bool isRedstone = tint.r > 0.1 && tint.g < 0.2 && tint.b < 0.1;
+            bool isEnchanting = isEqual(tint.r, tint.g, 2.0/255.0) && 10.0/255.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0; // also trigger warpped forest particles
+            bool isNetherPortal = 0.0 < (tint.b - tint.r) && (tint.b - tint.r) < 30.0/255.0 && 2.0*tint.g < tint.b;
+            bool isLava = (albedo.r > 250.0/255.0 && albedo.g > 70.0/255.0 && albedo.b < 70.0/255.0) || tint.r > 250.0/255.0 && tint.g > 70.0/255.0 && tint.b < 70.0/255.0;
+            bool isSoulFire = isEqual(texture, vec3(96.0, 245.0, 250.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(1.0, 167.0, 172.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(0.0, 142.0, 146.0) / 255.0, 2.0/255.0);
+            bool isCrimsonForest = isEqual(tint, vec3(229.0, 101.0, 127.0) / 255.0, 2.0/255.0);
+            bool isGreenGlint = isEqual(texture, vec3(6.0, 229.0, 151.0) / 255.0, 6.0/255.0)
+                || isEqual(texture, vec3(4.0, 201.0, 77.0) / 255.0, 6.0/255.0)
+                || isEqual(texture, vec3(2.0, 179.0, 43.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(0.0, 150.0, 17.0) / 255.0, 2.0/255.0);
+            bool isSculkSoundWave = isEqual(texture, vec3(57.0, 214.0, 224.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(42.0, 227.0, 235.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(14.0, 180.0, 170.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(10.0, 126.0, 129.0) / 255.0, 2.0/255.0)
+                || isEqual(texture, vec3(12.0, 81.0, 78.0) / 255.0, 2.0/255.0);
 
-        // emissive 
-        if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint || isSculkSoundWave) {
-            subsurfaceScattering = 1.0;
-            emissivness = 1.0;
+            // emissive 
+            if (isNetherPortal || isRedstone || isObsidianTears || isBlossom || isEnchanting || isLava || isSoulFire || isCrimsonForest || isGreenGlint || isSculkSoundWave) {
+                subsurfaceScattering = 1.0;
+                emissivness = 1.0;
 
-            // saturate some of them
-            if ((isNetherPortal && !isObsidianTears) || isRedstone || isBlossom) {
-                albedo *= 1.5;
+                // saturate some of them
+                if ((isNetherPortal && !isObsidianTears) || isRedstone || isBlossom) {
+                    albedo *= 1.5;
+                }
             }
-        }
+        #endif
 
         // all type of transparent particles
         bool isRain = isEqual(texture, vec3(72.0, 106.0, 204.0) / 255.0, 2.0/255.0)
@@ -112,98 +115,104 @@ void getSpecificMaterial(sampler2D gtexture, int id, vec3 texture, vec3 tint, in
 
 void getCustomMaterialData(int id, vec3 normal, vec3 midBlock, vec2 localTextureCoordinate, vec3 texture, vec3 albedo, inout float smoothness, inout float reflectance, inout float emissivness, inout float ambientOcclusion, inout float subsurfaceScattering, inout float porosity) {
 
-    // -- water smoothness & reflectance -- //
-    if (isWater(id)) {
-        getWaterMaterialData(smoothness, reflectance);
+    // -- smoothness & reflectance -- //
+    #if SPECULAR_TYPE > 0
+        // water
+        if (isWater(id)) {
+            getWaterMaterialData(smoothness, reflectance);
 
-    }
-    else {
-        // -- smoothness -- //
-        if (isVerySmooth(id)) {
-            smoothness = 0.95;
         }
-        else if (isSmooth(id)) {
-            smoothness = 0.6;
-        }
-        else if (isSlightlySmooth(id)) {
-            smoothness = 0.45;
-        }
-        else if (isSlightlyRough(id)) {
-            smoothness = 0.3;
-        }
-        else if (isRough(id)) {
-            smoothness = 0.15;
-        }
-        // else is very rough : smoothness = 0.0
+        // other
+        else {
+            // -- smoothness -- //
+            if (isVerySmooth(id)) {
+                smoothness = 0.95;
+            }
+            else if (isSmooth(id)) {
+                smoothness = 0.6;
+            }
+            else if (isSlightlySmooth(id)) {
+                smoothness = 0.45;
+            }
+            else if (isSlightlyRough(id)) {
+                smoothness = 0.3;
+            }
+            else if (isRough(id)) {
+                smoothness = 0.15;
+            }
+            // else is very rough : smoothness = 0.0
 
-        // change smoothness on top of blocks that have grass
-        if (hasGrass(id) && normal.y > 0.5) {
-            smoothness = 0.3;
-        }
+            // change smoothness on top of blocks that have grass
+            if (hasGrass(id) && normal.y > 0.5) {
+                smoothness = 0.3;
+            }
 
-        // -- reflectance -- //
-        // index of refraction of the actual medium
-        float n1 = isEyeInWater > 0 ? 1.33 : 1.0;
-        if (hasMetallicReflectance(id)) {
-            reflectance = 0.3;
+            // -- reflectance -- //
+            // index of refraction of the actual medium
+            float n1 = isEyeInWater > 0 ? 1.33 : 1.0;
+            if (hasMetallicReflectance(id)) {
+                reflectance = 0.3;
+            }
+            else if (hasHighReflectance(id)) {
+                reflectance = getReflectance(n1, 1.5);
+            }
+            else if (hasMediumReflectance(id)) {
+                reflectance = getReflectance(n1, 1.4);
+            }
+            else { // default reflectance
+                reflectance = 0.0;
+            }
         }
-        else if (hasHighReflectance(id)) {
-            reflectance = getReflectance(n1, 1.5);
-        }
-        else if (hasMediumReflectance(id)) {
-            reflectance = getReflectance(n1, 1.4);
-        }
-        else { // default reflectance
-            reflectance = 0.0;
-        }
-    }
+    #endif
 
     // -- emissivness -- //
-    if (isFullyEmissive(id)) {
-        emissivness = 1.0;
-    }
-    else if (isSemiEmissive(id)) {
-        emissivness = max(getLightness(albedo), max(albedo.r, max(albedo.g, albedo.b)));
-        emissivness = smoothstep(0.33, 0.75, emissivness);
-    }
-    else if (isLitRedstone(id)) {
-        if (albedo.r > 90.0/255.0 && (albedo.r - max(albedo.g, albedo.b) > 64.0/255.0 || albedo.r > 245.0/255.0) && (albedo.b < 5.0/255.0 || abs(albedo.b - albedo.g) < 5.0/255.0)) {
+    #if EMISSVNESS_TYPE > 0
+        if (isFullyEmissive(id)) {
             emissivness = 1.0;
         }
-    }
-    #if EMISSIVE_ORES > 0
-        else if (isOre(id)) {
-            vec3 hsvAlbedo = rgbToHsv(albedo);
-
-            if (isStoneOre(id)) {
-                bool isStone = isEqual(albedo, vec3(132.0, 89.0, 89.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(191.0, 147.0, 147.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(77.0, 54.0, 55.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(59.0, 44.0, 44.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(55.0, 91.0, 61.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(82.0, 107.0, 80.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(141.0, 173.0, 177.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(49.0, 64.0, 64.0) / 255.0, 8.0/255.0)
-                    || isEqual(albedo, vec3(100.0, 138.0, 140.0) / 255.0, 8.0/255.0);
-
-                if (hsvAlbedo.z > 0.8 || (hsvAlbedo.y > 0.2 && !isStone)) {
-                    emissivness = 1.0;
-                }
-            }
-            else if (isNetherrackOre(id)) {
-                if (hsvAlbedo.z > 0.8 || albedo.r < max(albedo.g, albedo.b) || !isEqual(albedo.g, albedo.b, 8.0/255.0)) {
-                    emissivness = 1.0;
-                }
-            }
-            else if (isBlackstoneOre(id))  {
-                if (albedo.r > albedo.g && albedo.g > albedo.b && albedo.r > 50.0/255.0) {
-                    emissivness = 1.0;
-                }
-            }
-            else {
+        else if (isSemiEmissive(id)) {
+            emissivness = max(getLightness(albedo), max(albedo.r, max(albedo.g, albedo.b)));
+            emissivness = smoothstep(0.33, 0.75, emissivness);
+        }
+        else if (isLitRedstone(id)) {
+            if (albedo.r > 90.0/255.0 && (albedo.r - max(albedo.g, albedo.b) > 64.0/255.0 || albedo.r > 245.0/255.0) && (albedo.b < 5.0/255.0 || abs(albedo.b - albedo.g) < 5.0/255.0)) {
                 emissivness = 1.0;
             }
         }
+        #if EMISSIVE_ORES > 0
+            else if (isOre(id)) {
+                vec3 hsvAlbedo = rgbToHsv(albedo);
+
+                if (isStoneOre(id)) {
+                    bool isStone = isEqual(albedo, vec3(132.0, 89.0, 89.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(191.0, 147.0, 147.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(77.0, 54.0, 55.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(59.0, 44.0, 44.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(55.0, 91.0, 61.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(82.0, 107.0, 80.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(141.0, 173.0, 177.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(49.0, 64.0, 64.0) / 255.0, 8.0/255.0)
+                        || isEqual(albedo, vec3(100.0, 138.0, 140.0) / 255.0, 8.0/255.0);
+
+                    if (hsvAlbedo.z > 0.8 || (hsvAlbedo.y > 0.2 && !isStone)) {
+                        emissivness = 1.0;
+                    }
+                }
+                else if (isNetherrackOre(id)) {
+                    if (hsvAlbedo.z > 0.8 || albedo.r < max(albedo.g, albedo.b) || !isEqual(albedo.g, albedo.b, 8.0/255.0)) {
+                        emissivness = 1.0;
+                    }
+                }
+                else if (isBlackstoneOre(id))  {
+                    if (albedo.r > albedo.g && albedo.g > albedo.b && albedo.r > 50.0/255.0) {
+                        emissivness = 1.0;
+                    }
+                }
+                else {
+                    emissivness = 1.0;
+                }
+            }
+        #endif
     #endif
 
     // -- ambient occlusion -- //

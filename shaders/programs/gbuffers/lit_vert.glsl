@@ -20,8 +20,8 @@ out vec4 additionalColor;
 out vec3 Vnormal;
 out vec3 Vtangent;
 out vec3 Vbitangent;
-out vec3 worldSpacePosition;
-out vec3 unanimatedWorldPosition;
+out vec3 playerSpacePosition;
+out vec3 unanimatedPlayerPosition;
 out vec3 midBlock;
 out vec2 originalTextureCoordinate;
 out vec2 lightMapCoordinate;
@@ -76,8 +76,8 @@ void main() {
     Vbitangent = bitangent;
 
     // set position
-    worldSpacePosition = viewToWorld((gl_ModelViewMatrix * gl_Vertex).xyz);
-    unanimatedWorldPosition = worldSpacePosition;
+    playerSpacePosition = viewToPlayer((gl_ModelViewMatrix * gl_Vertex).xyz);
+    unanimatedPlayerPosition = playerSpacePosition;
     gl_Position = ftransform();
 
     // remapped midBlock coordinates
@@ -90,8 +90,8 @@ void main() {
         if (isAnimated(id)) {
             float ambientSkyLightIntensity = lightMapCoordinate.y;
 
-            worldSpacePosition = doAnimation(id, frameTimeCounter, worldSpacePosition, midBlock, ambientSkyLightIntensity);
-            vec3 viewSpacePosition = worldToView(worldSpacePosition);
+            playerSpacePosition = doAnimation(id, frameTimeCounter, playerSpacePosition, midBlock, ambientSkyLightIntensity);
+            vec3 viewSpacePosition = playerToView(playerSpacePosition);
             gl_Position = gl_ProjectionMatrix * vec4(viewSpacePosition, 1); // to clip space
         }
     #endif

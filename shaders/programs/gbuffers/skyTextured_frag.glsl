@@ -70,6 +70,9 @@ void main() {
     #elif defined END
         #if SKY_TYPE > 0
             albedo = getSkyColor(viewToEye(normalize(viewSpacePosition)), false, emissivness);
+
+            // remap emissivness, we keep [0.9;1.0] for sun's emissions
+            emissivness *= 0.9;
         #else
             albedo *= 0.15;
         #endif

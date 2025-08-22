@@ -29,8 +29,11 @@ const bool colortex5Clear = true;
 // --- lighting --- //
 
 // light
+#define DIRECT_LIGHTING 1 //[0 1] 0=off 1=on
+#define AMBIENT_LIGHTING 1 //[0 1] 0=off 1=on
 #define SKY_LIGHT_COLOR 1 //[0 1] 0=constant 1=tweaked
 #define BLOCK_LIGHT_COLOR 1 //[0 1] 0=constant 1=tweaked
+#define FACE_TWEAK 1 //[0 1] 0=off 1=on
 #define SPLIT_TONING 1 //[0 1] 0=off 1=on (give a blueish tint to shadows)
 
 // shadows
@@ -69,8 +72,8 @@ const bool colortex5Clear = true;
 #define PBR_AMBIENT_OCCLUSION 1 //[0 1] 0=off 1=on
 #define PBR_SPECULAR 1 //[0 1] 0=off 1=on
 #define PBR_EMISSIVNESS 1 //[0 1] 0=off 1=on
-#define PBR_SUBSURFACE 1 //[0 1] 0=off 1=on
-#define PBR_POROSITY 1 //[0 1] 0=off 1=on
+#define PBR_SUBSURFACE 0 //[0 1] 0=off 1=on
+#define PBR_POROSITY 0 //[0 1] 0=off 1=on
 // parallax occlusion mapping (POM)
 #define PBR_POM_TYPE 2 //[0 1 2] 0=off 1=basicPOM 2=customPOM[better with low def textures] (parallax occlusion mapping needs height field)
 #define PBR_POM_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
@@ -79,8 +82,13 @@ const bool colortex5Clear = true;
 #define PBR_POM_LAYERS 128 //[32 64 128 256] (only available with PBR_POM=1)
 #define PBR_POM_NORMAL 1 //[0 1] 0=off 1=on activate POM generated normals (only available with PBR_POM=2)
 
+// custom materials
+#define CUSTOM_MATERIAL 1 //[0 1] 0=off 1=on add custom material values (roughness, reflectance, emissivness, ...)
+#define EMISSVNESS_TYPE 1
+#define SPECULAR_TYPE 1
+
 // custom normalmap
-#define CUSTOM_NORMALMAP 1 //[0 1] 0=off 1=on (procedurally generate normalmap : PBR override it)
+#define CUSTOM_NORMALMAP 0 //[0 1] 0=off 1=on (procedurally generate normalmap : PBR override it)
 #define WATER_CUSTOM_NORMALMAP 1 //[0 1] 0=off 1=on (custom normalmap for water : override PBR)
 
 // subsurface scattering
@@ -90,7 +98,8 @@ const bool colortex5Clear = true;
 #define POROSITY_TYPE 1 //[0 1] 0=off 1=on
 
 // custom ambient occlusion
-#define AMBIENT_OCCLUSION_TYPE 1 //[0 1] 0=off 1=on
+#define AMBIENT_OCCLUSION_TYPE 1 //[0 1] 0=off 1=on custom ambient occlusion for props
+#define VANILLA_AMBIENT_OCCLUSION_TYPE 1 //[0 1] 0=off 1=on vanilla ambient occlusion
 
 // reflection
 #define REFLECTION_TYPE 3 //[0 1 2 3] 0=off 1=fresnel_effect 2=mirror_reflection 3=SSR
@@ -100,13 +109,6 @@ const bool colortex5Clear = true;
 #define REFLECTION_MAX_STEPS 12 //[2 4 8 12 16 32 64] from 0=none to inf=too_much
 #define REFLECTION_THICKNESS 5 //[3 5 7 11 17 31] from 0=too_precise to inf=awful
 #define REFLECTION_LAST_BLUR_SAMPLES 1 // [0;inf]
-// blur reflections of opaque materials
-#define REFLECTION_BLUR_TYPE 0 // 0=off 1=on
-#define REFLECTION_BLUR_DITHERING_TYPE 2 // 0=off 1=interleavedGradient 2=bayer 3=blueNoise
-#define REFLECTION_BLUR_RANGE 0.001 // extent of the kernel
-#define REFLECTION_BLUR_RESOLUTION 0.5 // in [0;1], proportion of pixel to be sampled
-#define REFLECTION_BLUR_KERNEL 0 // 0=box 1=gaussian
-#define REFLECTION_BLUR_STD 0.5 // standard deviation (only for gaussian kernel)
 
 // emissive ores
 #define EMISSIVE_ORES 0 //[0 1] 0=off 1=on
@@ -149,6 +151,7 @@ const bool colortex5Clear = true;
 #define DOF_KERNEL 0 //[0 1] 0=box 1=gaussian
 #define DOF_STD 0.5 // standard deviation (only for gaussian kernel)
 #define DOF_FOCAL_PLANE_LENGTH 20 //[5 10 20 40] half length in blocks
+#define DOF_BOKEH 1 //[0 1] // 0=off 1=on
 
 // temporal anti aliasing
 #define TAA_TYPE 2 //[0 1 2] 0=off 1=soft[denoise] 2=hard[denoise & anti aliasing]

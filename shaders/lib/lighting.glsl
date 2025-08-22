@@ -29,11 +29,13 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     float lightDirectionDotNormal = dot(worldSpacelightDirection, normalMap);
     float ambientLightDirectionDotNormal = dot(normal, normalMap);
     #if PIXELATION_TYPE > 0 && (PIXELATED_SPECULAR > 0 || PIXELATED_SHADOW > 0)
+        vec3 pixelatedWorldPosition = worldToPlayer(worldSpacePosition);
         #if PIXELATION_TYPE > 1
-            vec3 pixelatedWorldPosition = texelSnap(worldSpacePosition, pixelationOffset); // unanimated
+            pixelatedWorldPosition = texelSnap(pixelatedWorldPosition, pixelationOffset); // unanimated
         #else
-            vec3 pixelatedWorldPosition = voxelize(worldSpacePosition, normal); // unanimated
+            pixelatedWorldPosition = voxelize(pixelatedWorldPosition, normal); // unanimated
         #endif
+        pixelatedWorldPosition = playerToWorld(pixelatedWorldPosition);
     #endif
     #if PIXELATION_TYPE > 0 && PIXELATED_SPECULAR > 0
         vec3 specularWorldPosition = pixelatedWorldPosition;
@@ -85,7 +87,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
     float dayNightBlend = getDayNightBlend();
     float darknessExponent = 10.0;
     // tweak factors depending on directions (avoid seeing two faces of the same cube beeing the exact same color)
-    #if FACE_TWEAK > 0 && defined TERRAIN
+    #if FACE_TWEAK > 0 && (defined TERRAIN || defined ENTITY)
         if (!isProps(id)) {
             faceTweak = mix(faceTweak, 0.75, smoothstep(0.8, 0.9, abs(dot(normal, eastDirection))));
             faceTweak = mix(faceTweak, 0.55, smoothstep(0.8, 0.9, abs(dot(normal, southDirection))));

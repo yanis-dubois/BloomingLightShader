@@ -247,13 +247,15 @@ vec3 doGrassAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock
     return worldSpacePosition;
 }
 
-vec3 doAnimation(int id, float time, vec3 worldSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
-    if (hasWaterAnimation(id))
-        return doWaterAnimation(time, worldSpacePosition);
-    if (hasLeavesAnimation(id))
-        return doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
-    if (hasGrassAnimation(id))
-        return doGrassAnimation(id, time, worldSpacePosition, midBlock, ambientSkyLightIntensity);
+vec3 doAnimation(int id, float time, vec3 playerSpacePosition, vec3 midBlock, float ambientSkyLightIntensity) {
+    vec3 worldSpacePosition = playerToWorld(playerSpacePosition);
 
-    return worldSpacePosition;
+    if (hasWaterAnimation(id))
+        worldSpacePosition = doWaterAnimation(time, worldSpacePosition);
+    else if (hasLeavesAnimation(id))
+        worldSpacePosition = doLeafAnimation(id, time, worldSpacePosition, ambientSkyLightIntensity);
+    else if (hasGrassAnimation(id))
+        worldSpacePosition = doGrassAnimation(id, time, worldSpacePosition, midBlock, ambientSkyLightIntensity);
+
+    return worldToPlayer(worldSpacePosition);
 }
