@@ -41,8 +41,8 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
     if (isEyeInWater >= 1) return 10.0;
 
     #if defined OVERWORLD
-        float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.3;
-        float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.33;
+        float minFogDensity = sunAngle < 0.5 ? 0.01 : 0.66;
+        float maxFogDensity = sunAngle < 0.5 ? 0.75 : 0.95;
 
         // higher density during morning / night / rain
         vec3 lightDirectionWorldSpace = normalize(mat3(gbufferModelViewInverse) * shadowLightPosition);

@@ -61,7 +61,7 @@ vec4 doLighting(int id, vec2 pixelationOffset, vec2 uv, vec2 localTextureCoordin
         // lowers shadows a bit for subsurface on props
         #if SUBSURFACE_TYPE > 0 && defined TERRAIN
             if (subsurfaceScattering > 0.0 && isProps(id)) {
-                shadowWorldPosition.y += 0.25;
+                // shadowWorldPosition.y += 0.25;
             }
         #endif
         // get shadow

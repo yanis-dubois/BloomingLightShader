@@ -211,7 +211,7 @@ void main() {
     // custom normal map for water (override PBR)
     #if defined TERRAIN && defined REFLECTIVE && WATER_CUSTOM_NORMALMAP > 0
         // if (isWater(id)) {
-        //     vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.35;
+        //     vec4 seed = texture2DLod(gtexture, textureCoordinate, 0).rgba + 0.2;
         //     float zeta1 = interleavedGradient(seed), zeta2 = interleavedGradient(seed + 41.43291);
         //     mat3 animatedTBN = generateTBN(normalMap);
 
