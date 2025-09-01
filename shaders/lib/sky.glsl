@@ -155,7 +155,8 @@ vec3 getCustomSkyColor(vec3 eyeSpacePosition, bool isFog, out float emissivness)
 
     // NETHER
     #elif defined NETHER
-        skyColor = saturate(pow(fogColor, vec3(1.0/2.2)), 2.0);
+        skyColor = saturate(fogColor, 2.5);
+        skyColor = clamp(skyColor, 0.0, 1.0);
 
     // END
     #else

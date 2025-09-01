@@ -51,7 +51,7 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
         float density = mix(minFogDensity, maxFogDensity, pow(1.0 - lightDirectionDotUp, 0.25));
         density = mix(density, maxFogDensity, rainStrength);
     #elif defined NETHER
-        float density = 0.33;
+        float density = 0.75;
     #else
         float density = 0.5;
     #endif
@@ -91,10 +91,12 @@ float getVolumetricFogDensity(float worldSpaceHeight, float normalizedDistance) 
 float getFogDensity(float worldSpaceHeight, float normalizedDistance) {
     if (isEyeInWater >= 1) return 1.0;
 
-    #ifdef OVERWORLD
+    #if defined OVERWORLD
         // higher density in overworld caves
         float caveHeightFactor = 1.0 - map(worldSpaceHeight, 0.0, seaLevel, 0.0, 1.0);
         return mix(0.0, 0.66, caveHeightFactor);
+    #elif defined NETHER
+        return 0.9;
     #else
         return 0.25;
     #endif

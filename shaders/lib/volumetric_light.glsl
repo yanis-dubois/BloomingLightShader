@@ -12,7 +12,11 @@ void volumetricLighting(vec2 uv, float depth, float ambientSkyLightIntensity,
     // distances
     vec3 fragmentWorldSpacePosition = viewToWorld(screenToView(uv, depth));
     float fragmentDistance = distance(cameraPosition, fragmentWorldSpacePosition);
-    float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(shadowDistance, far));
+    #if defined NETHER
+        float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(128.0, far));
+    #else
+        float clampedMaxDistance = clamp(fragmentDistance, 0.001, min(shadowDistance, far));
+    #endif
     // direction
     vec3 worldSpaceViewDirection = normalize(fragmentWorldSpacePosition - cameraPosition);
 
