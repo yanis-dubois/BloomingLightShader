@@ -56,7 +56,12 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 ## 📷 Screenshots
 
-<!-- Insert example screenshots or gif previews here -->
+![day](images/coverON_low.png)
+![night](images/villageON_low.png)
+![underwater](images/mangroveON_low.png)
+![underground](images/deepdarkON_low.png)
+![nether](images/netherredforestON_low.png)
+![end](images/endcityON_low.png)
 
 ---
 
