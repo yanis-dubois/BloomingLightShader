@@ -8,19 +8,19 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 
 ### ☀️ Lighting
 
-- Reworked ambient lighing
-- Direct lighing added with projected shadows
+- Reworked ambient lighting
+- Direct lighting added with projected shadows
 - Custom Ambient occlusion for environmental props
 - Pixelated Lighting
 
 ### 🧱 Physically-Based Material Rendering
 
-- Emissivness for light sources or luminescent objects
-- Reflectance and Roughness to simulate all kind of material (metal, stone, wood, ice, ...)
+- Emissions for light sources or luminescent objects
+- Reflectance and Roughness to simulate all kinds of material (metal, stone, wood, ice, ...)
 - Screen Space Reflections (SSR) approximate reflections in real time
 - Subsurface Scattering for translucent materials
 - Porosity simulates moisture absorption on wet surfaces
-- Normal Mapping support through external texture packs or procedurally generated
+- Normal Mapping supports through external texture packs or procedurally generated
 - Parallax Occlusion Mapping (POM) simulates surface relief using texture height maps
 
 ### 🌦️ Atmospheric Effects
@@ -29,7 +29,7 @@ This repository contains a shader pack for **Minecraft** that focuses on stylize
 - Simulated light shafts with volumetric fog
 - Procedural animation of foliage and water surface
 
-### 🎞️ Post-Processing Pipeline
+### 🎞️ Post-Processing
 
 - Temporal Anti-Aliasing (TAA)
 - Bloom
